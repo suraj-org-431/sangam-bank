@@ -19,11 +19,11 @@
 }
 
 [data-theme="dark"] {
-  --bg-color: #031e35;
+  --bg-color: #082008;
   --text-color: #d9f4ff;
-  --sidebar-bg: #0c1e38;
-  --header-bg: #0b1a31;
-  --footer-bg: #0b1a31;
+  --sidebar-bg: #082008;
+  --header-bg: #082008;
+  --footer-bg: #082008;
   --primary-color: #00cfe8;
   --hover-bg-color: #0c6084;
   --hover-text-color: #ffffff;
@@ -31,7 +31,8 @@
   --input-text-color: #ffffff;
   --border-color: #3d3939;
   --card-bg: #111827;
-  --table-header-bg: #1a2e50;
+  --table-header-bg: #082008;
+  --theme-text:#082008;
 }
 
 /* Optional: auto-theme based on system setting */
@@ -57,14 +58,16 @@ body {
 }
 
 .theme-card {
-  background-color: var(--card-bg);
+  background-color: var(--card-bg) !important;
   color: var(--text-color);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
-
+.theme-text{
+  color:var(--theme-text);
+}
 .table th,
 .table td {
   color: var(--text-color);
@@ -116,10 +119,7 @@ body {
   border: 1px solid var(--border-color);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
-
-.theme-input::placeholder {
-  color: #aaa;
-}
+ 
 
 .theme-input-sm {
   background-color: var(--input-bg-color);
@@ -132,10 +132,7 @@ body {
   transition: all 0.3s ease;
 }
 
-.theme-input-sm::placeholder {
-  color: #aaa;
-}
-
+ 
 .theme-btn {
   background-color: var(--primary-color);
   color: var(--text-color);
@@ -213,4 +210,125 @@ select.form-select-md {
   height: 40px;
   object-fit: cover;
   border-radius: 50%;
+}
+
+/*===============newcss=================*/
+
+.card.theme-card {
+    border:solid 1px var(--border-color) !important;
+    border-radius: 15px;
+    color:#effbef;
+    padding: 25px 30px !important;
+    margin-top:20px;
+}
+.sidebar .logo {
+    text-align: center;
+    margin-top: 0px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+.form-control, .form-select{
+    background-color: transparent !important;
+    padding: 15px 25px !important;
+    border-radius: 15px !important;
+    border: solid 1px #1f7e20 !important;
+}
+.form-control::placeholder{ color:#fff }
+header.top-header input.form-control {
+    color: #effbef;
+    padding: 10px 25px !important;
+}
+
+header.top-header input.form-control::placeholder {
+    color: #effbef;
+}
+.btn-primary {
+    background-color: #175f18 !important;
+    border-color:#104110 !important;
+}
+.btn-outline-primary{
+  border-color:#175f18 !important;
+  color:#175f18 !important;
+}
+.btn-outline-primary:hover{
+  background-color:#175f18 !important;
+  color:#effbef !important;
+}
+.form-control-sm, .form-select-sm {
+    padding: 8px 20px !important;
+}
+.btn {
+    border-radius: 10px !important;
+    padding: 8px 15px !important;
+}
+.form-control-md.theme-input-sm{
+      padding: 6px 25px !important;
+}
+.table.theme-table tbody tr td {
+    border-color: #d0f3d0;
+    background-color: transparent;
+}
+
+.table.theme-table tbody tr:nth-child(odd) td {
+    background-color: #ffffff;
+}
+table.table-bordered thead tr th:first-child, table.table-bordered thead tr th:last-child, table.table-bordered tbody tr td:first-child, table.table-bordered tbody tr td:last-child {
+    border: 0px !important;
+}
+.card.dash_card {
+    background-color: #c1efc1;
+    border-radius: 15px;
+    border: solid 2px #104110;
+    overflow: hidden;
+}
+
+.card.dash_card .card-header h4 {
+    margin-bottom: 0px;
+    font-size: 18px;
+    color: #d9f4ff;
+    font-family: 'DM Sans';
+}
+
+.card.dash_card .card-header > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card.dash_card .card-header {
+    padding: 10px 15px;
+    background-color: #346f34;
+}
+
+.card.dash_card .card-header i {
+    color: #cddc39;
+    font-size: 30px;
+}
+
+.card.dash_card .card-body .lg-text {
+    font-size: 35px;
+}
+
+.card.dash_card .card-footer {
+    text-align: right;
+    background-color: #a9dea9;
+}
+
+.card.dash_card .card-footer a {
+    text-decoration: none;
+    font-size: 12px;
+    color: #d9f4ff;
+    background-color: #082008;
+    border-radius: 15px;
+    padding: 6px 12px;
+}
+
+.card.dash_card .card-footer a:hover {
+    border: solid 1px #082008;
+    background-color: transparent;
+    color: #082008;
+}
+.card.dash_card .card-body .lg-text i {
+    font-size: 25px;
+    margin-right: 15px;
 }

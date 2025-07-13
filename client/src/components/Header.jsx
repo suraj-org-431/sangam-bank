@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import logo from '../assets/images/logo.png';
 import defaultAvatar from '../assets/images/pic3.webp';
 import { logout } from "../utils/auth";
 import { adminRoute } from "../utils/router";
@@ -47,27 +46,31 @@ const AdminHeader = () => {
     };
 
     return (
-        <header className="top-header py-2 border-bottom">
+        <header className="top-header py-2">
             <div className="container-fluid">
-                <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex justify-content-end align-items-center">
                     {/* Left: Logo */}
-                    <div className="logo">
+                    {/* <div className="logo">
                         <Link to={adminRoute("/dashboard")}>
                             <img src={logo} alt="logo" height={40} />
                         </Link>
-                    </div>
+                    </div> */}
 
                     {/* Right: Country + Notifications + Messages + User */}
-                    <div className="d-flex align-items-center gap-3">
+
+<div className='d-flex align-items-center gap-3 me-3'>
+                       <a href={adminRoute('/deposit')} className='btn btn-sm btn-primary'>
+                        <i className='fa-solid fa-building-columns me-2'></i> Deposit 
+                        </a>
+                          <button className='btn btn-sm btn-primary'>
+                            <i className='fa-solid fa-money-bill-wave me-2'></i> Withdraw
+                          </button>
+                          </div>
+
+                    <div className='d-flex align-items-center gap-3'>
+                        
                         {/* Country Selector */}
-                        <select className="form-select form-select-sm theme-input-sm">
-                            <option>Select Country</option>
-                            <option value="India">India</option>
-                            <option value="Australia">Australia</option>
-                            <option value="Indonesia">Indonesia</option>
-                            <option value="Japan">Japan</option>
-                            <option value="Italy">Italy</option>
-                        </select>
+                         <input type="text" className='form-control' placeholder="Search Account..." />
 
                         {/* Notifications */}
                         <div className="dropdown">

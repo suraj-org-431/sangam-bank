@@ -1,12 +1,17 @@
 import { Link } from "react-router-dom";
 import { adminRoute } from "../utils/router";
-
+import logo from '../assets/images/logo.webp';
 const Sidebar = () => {
     return (
         <div className="container-fluid main-area">
             <div className="row g-0">
                 <div className="col-sm-2">
                     <div className="sidebar">
+                        <div className="logo">
+                            <Link to={adminRoute("/dashboard")}>
+                                <img src={logo} alt="logo" height={40} />
+                            </Link>
+                        </div>
                         <ul className="nav flex-column" id="sidebar">
                             <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Dashboard">
                                 <Link className="nav-link" to={adminRoute('/dashboard')}>
