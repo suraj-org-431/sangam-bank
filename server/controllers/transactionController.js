@@ -91,7 +91,7 @@ export const getTransactions = async (req, res) => {
             .sort({ updatedAt: -1 })
             .skip(skip)
             .limit(pageLimit)
-            .populate('accountId', 'applicantName accountNumber accountType');
+            .populate('accountId', 'applicantName accountNumber accountType status');
 
         const totalPages = Math.ceil(totalCount / pageLimit);
 

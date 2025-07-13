@@ -6,12 +6,11 @@ import { getAllLedgers } from '../../api/ledger';
 import { adminRoute } from '../../utils/router';
 
 const Ledger = () => {
-    const [particularSummary, setParticularSummary] = useState([]);
+    const [ledgerGroups, setLedgerGroups] = useState([]);
     const [summaryTotals, setSummaryTotals] = useState({});
     const [query, setQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [paginatedEntries, setPaginatedEntries] = useState([]);
     const limit = 10;
     const hasWarnedRef = useRef(false);
 
@@ -22,14 +21,6 @@ const Ledger = () => {
     });
 
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const hasInvalid = particularSummary.some(item => item.invalidDebit);
-        if (hasInvalid && !hasWarnedRef.current) {
-            toast.warning("⚠️ Some debit transactions exceed available balance and are ignored in summary.");
-            hasWarnedRef.current = true;
-        }
-    }, [particularSummary]);
 
     useEffect(() => {
         loadSummary();
@@ -45,11 +36,11 @@ const Ledger = () => {
                 accountType: filters.accountType,
             });
 
-            setParticularSummary(res.summary?.particularSummary || []);
-            setPaginatedEntries(res.entries || []);
+            setLedgerGroups(res.entries || []);
             setSummaryTotals({
                 overallCredit: res.summary?.overallCredit || 0,
                 overallDebit: res.summary?.overallDebit || 0,
+                overallInterest: res.summary?.overallInterest || 0,
                 overallBalance: res.summary?.overallBalance || 0,
             });
             setTotalPages(res.totalPages || 1);
@@ -125,7 +116,7 @@ const Ledger = () => {
                     </div>
                 </div>
 
-                {/* Action Section */}
+                {/* Search + Add */}
                 <div className="d-flex justify-content-end gap-2 mb-3">
                     <div>
                         <input
@@ -147,9 +138,10 @@ const Ledger = () => {
                             + Create Ledger
                         </button>
                     </div>
+
                 </div>
 
-                {/* Table Summary */}
+                {/* Ledger Table */}
                 <div className="table-responsive mb-4">
                     <table className="table table-bordered theme-table">
                         <thead>
@@ -163,19 +155,21 @@ const Ledger = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {particularSummary.length > 0 ? (
-                                particularSummary.map((item, index) => (
+                            {ledgerGroups.length > 0 ? (
+                                ledgerGroups.map((item, index) => (
                                     <tr key={index}>
-                                        <td>{item.particular}</td>
-                                        <td>{item.totalCredit?.toFixed(2) || 0}</td>
-                                        <td>{item.totalDebit?.toFixed(2) || 0}</td>
-                                        <td>{item.totalInterest?.toFixed(2) || 0}</td>
-                                        <td>{item.balance?.toFixed(2) || 0}</td>
+                                        <td>{item.particulars || item._id}</td>
+                                        <td>{item.totalCredit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td>{item.totalDebit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td>{item.totalInterest?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td>{item.balance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                         <td>
                                             <button
                                                 className="btn btn-sm btn-outline-primary"
                                                 onClick={() =>
-                                                    navigate(adminRoute(`/ledger/particular/${item.particular?.replace(/\s+/g, '-')}`))
+                                                    navigate(
+                                                        adminRoute(`/ledger/particular/${(item.particulars || item._id)?.replace(/\s+/g, '-')}`)
+                                                    )
                                                 }
                                             >
                                                 View Summary
@@ -191,13 +185,12 @@ const Ledger = () => {
                                 </tr>
                             )}
 
-
-
                             <tr className="fw-bold bg-light">
                                 <td>Total</td>
-                                <td>{summaryTotals.overallCredit?.toFixed(2)}</td>
-                                <td>{summaryTotals.overallDebit?.toFixed(2)}</td>
-                                <td>{summaryTotals.overallBalance?.toFixed(2)}</td>
+                                <td>{summaryTotals.overallCredit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td>{summaryTotals.overallDebit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td>{summaryTotals.overallInterest?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td>{summaryTotals.overallBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                 <td></td>
                             </tr>
                         </tbody>

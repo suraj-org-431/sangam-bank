@@ -40,6 +40,7 @@ const accountsSchema = new Schema({
     verifierSignaturePath: { type: String },
     profileImage: { type: String },
     balance: { type: Number, default: 0 },
+    status: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export default mongoose.model("Accounts", accountsSchema);

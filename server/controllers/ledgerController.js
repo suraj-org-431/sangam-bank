@@ -133,6 +133,7 @@ export const getAllLedgers = async (req, res) => {
             matchConditions.push({ transactionType });
         }
 
+        // Build aggregation pipeline
         const pipeline = [
             {
                 $match: matchConditions.length ? { $and: matchConditions } : {}
@@ -145,84 +146,311 @@ export const getAllLedgers = async (req, res) => {
                     as: 'accountInfo'
                 }
             },
-            { $unwind: { path: '$accountInfo', preserveNullAndEmptyArrays: true } }
-        ];
-
-        if (accountType) {
-            pipeline.push({ $match: { 'accountInfo.accountType': accountType } });
-        }
-
-        const allEntries = await Ledger.aggregate([...pipeline]);
-
-        const paginatedEntries = await Ledger.aggregate([
-            ...pipeline,
-            { $sort: { createdAt: -1 } },
-            { $skip: skip },
-            { $limit: limit }
-        ]);
-
-        const particularSummary = {};
-        let overallCredit = 0;
-        let overallDebit = 0;
-
-        for (const entry of allEntries) {
-            const { particulars, transactionType, amount = 0 } = entry;
-
-            if (!particularSummary[particulars]) {
-                particularSummary[particulars] = {
-                    particular: particulars,
-                    totalCredit: 0,
-                    totalDebit: 0,
-                    totalInterest: 0,
-                    balance: 0,
-                };
-            }
-
-            if (transactionType === 'deposit') {
-                particularSummary[particulars].totalCredit += amount;
-                overallCredit += amount;
-                particularSummary[particulars].balance += amount;
-            } else if (transactionType === 'interest') {
-                particularSummary[particulars].totalCredit += amount;
-                particularSummary[particulars].totalInterest += amount;
-                overallCredit += amount;
-                particularSummary[particulars].balance += amount;
-            } else if (transactionType === 'withdrawal') {
-                if (particularSummary[particulars].balance >= amount) {
-                    particularSummary[particulars].totalDebit += amount;
-                    particularSummary[particulars].balance -= amount;
-                    overallDebit += amount;
-                } else {
-                    particularSummary[particulars].invalidDebit = true;
+            {
+                $unwind: {
+                    path: '$accountInfo',
+                    preserveNullAndEmptyArrays: true
                 }
             }
+        ];
+
+        // Optional filter by accountType
+        if (accountType) {
+            pipeline.push({
+                $match: {
+                    'accountInfo.accountType': accountType
+                }
+            });
         }
 
-        const summaryArray = Object.values(particularSummary);
+        // Group by user (particulars)
+        pipeline.push({
+            $group: {
+                _id: "$particulars",
+                totalCredit: {
+                    $sum: {
+                        $cond: [
+                            { $in: ["$transactionType", ["deposit", "interest"]] },
+                            "$amount",
+                            0
+                        ]
+                    }
+                },
+                totalDebit: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$transactionType", "withdrawal"] },
+                            "$amount",
+                            0
+                        ]
+                    }
+                },
+                totalInterest: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$transactionType", "interest"] },
+                            "$amount",
+                            0
+                        ]
+                    }
+                },
+                lastTransactionDate: { $max: "$createdAt" },
+                accountType: { $first: "$accountInfo.accountType" },
+                balance: {
+                    $sum: {
+                        $cond: [
+                            { $in: ["$transactionType", ["deposit", "interest"]] },
+                            "$amount",
+                            {
+                                $cond: [
+                                    { $eq: ["$transactionType", "withdrawal"] },
+                                    { $multiply: ["$amount", -1] },
+                                    0
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        });
+
+        // Sort latest first
+        pipeline.push({ $sort: { lastTransactionDate: -1 } });
+
+        // Count total before pagination
+        const groupedAll = await Ledger.aggregate([...pipeline]);
+        const totalCount = groupedAll.length;
+
+        // Apply pagination
+        pipeline.push({ $skip: skip });
+        pipeline.push({ $limit: limit });
+
+        const paginatedGrouped = await Ledger.aggregate(pipeline);
+
+        // Overall totals
+        let overallCredit = 0;
+        let overallDebit = 0;
+        let overallInterest = 0;
+
+        groupedAll.forEach(item => {
+            overallCredit += item.totalCredit;
+            overallDebit += item.totalDebit;
+            overallInterest += item.totalInterest;
+        });
 
         const accountTotal = await Account.aggregate([
             { $group: { _id: null, totalBalance: { $sum: "$balance" } } }
         ]);
+
         const totalBalance = accountTotal[0]?.totalBalance || 0;
 
-        return successResponse(res, 200, "Ledger entries and summary", {
+        return successResponse(res, 200, "Grouped ledger entries and summary", {
             summary: {
                 overallCredit,
                 overallDebit,
+                overallInterest,
                 overallBalance: overallCredit - overallDebit,
-                particularSummary: summaryArray
             },
-            entries: paginatedEntries,
+            entries: paginatedGrouped.map(item => ({
+                particulars: item._id,
+                totalCredit: item.totalCredit,
+                totalDebit: item.totalDebit,
+                totalInterest: item.totalInterest,
+                balance: item.balance,
+                accountType: item.accountType
+            })),
             totalBalance,
-            totalPages: Math.ceil(allEntries.length / limit),
+            totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
-            totalCount: allEntries.length
+            totalCount
         });
     } catch (err) {
         console.error("❌ Fetch error:", err);
         return errorResponse(res, 500, "Failed to fetch ledgers", err.message);
     }
 };
+
+export const getLedgerSummaryByParticular = async (req, res) => {
+    try {
+        const rawParticular = req.params.particular || '-';
+        const particular = rawParticular?.replace(/-/g, ' ').trim();
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const skip = (page - 1) * limit;
+
+        const match = { particulars: { $regex: new RegExp(`^${particular}$`, 'i') } };
+
+        // Fetch all entries for this particular
+        const allEntries = await Ledger.find(match).sort({ createdAt: -1 });
+
+        let totalCredit = 0;
+        let totalDebit = 0;
+        let totalInterest = 0;
+        let balance = 0;
+
+        allEntries.forEach(entry => {
+            const amt = entry.amount || 0;
+            switch (entry.transactionType) {
+                case 'deposit':
+                    totalCredit += amt;
+                    balance += amt;
+                    break;
+                case 'interest':
+                    totalCredit += amt;
+                    totalInterest += amt;
+                    balance += amt;
+                    break;
+                case 'withdrawal':
+                    totalDebit += amt;
+                    balance -= amt;
+                    break;
+            }
+        });
+
+        const paginatedEntries = allEntries.slice(skip, skip + limit);
+
+        return successResponse(res, 200, "Ledger summary fetched", {
+            particular,
+            summary: {
+                totalCredit,
+                totalDebit,
+                totalInterest,
+                balance
+            },
+            entries: paginatedEntries,
+            totalCount: allEntries.length,
+            totalPages: Math.ceil(allEntries.length / limit),
+            currentPage: page
+        });
+    } catch (err) {
+        console.error("❌ Ledger summary error:", err);
+        return errorResponse(res, 500, "Failed to fetch ledger summary", err.message);
+    }
+};
+
+// export const getAllLedgers = async (req, res) => {
+//     try {
+//         const page = parseInt(req.query.page) || 1;
+//         const limit = parseInt(req.query.limit) || 10;
+//         const skip = (page - 1) * limit;
+
+//         const {
+//             search = '',
+//             applicantName = '',
+//             transactionType = '',
+//             accountType = ''
+//         } = req.query;
+
+//         const matchConditions = [];
+
+//         if (search) {
+//             matchConditions.push({
+//                 $or: [
+//                     { particulars: { $regex: search, $options: 'i' } },
+//                     { description: { $regex: search, $options: 'i' } }
+//                 ]
+//             });
+//         }
+
+//         if (applicantName) {
+//             matchConditions.push({ particulars: { $regex: applicantName, $options: 'i' } });
+//         }
+
+//         if (transactionType) {
+//             matchConditions.push({ transactionType });
+//         }
+
+//         const pipeline = [
+//             {
+//                 $match: matchConditions.length ? { $and: matchConditions } : {}
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'accounts',
+//                     localField: 'particulars',
+//                     foreignField: 'applicantName',
+//                     as: 'accountInfo'
+//                 }
+//             },
+//             { $unwind: { path: '$accountInfo', preserveNullAndEmptyArrays: true } }
+//         ];
+
+//         if (accountType) {
+//             pipeline.push({ $match: { 'accountInfo.accountType': accountType } });
+//         }
+
+//         const allEntries = await Ledger.aggregate([...pipeline]);
+
+//         const paginatedEntries = await Ledger.aggregate([
+//             ...pipeline,
+//             { $sort: { createdAt: -1 } },
+//             { $skip: skip },
+//             { $limit: limit }
+//         ]);
+
+//         const particularSummary = {};
+//         let overallCredit = 0;
+//         let overallDebit = 0;
+
+//         for (const entry of allEntries) {
+//             const { particulars, transactionType, amount = 0 } = entry;
+
+//             if (!particularSummary[particulars]) {
+//                 particularSummary[particulars] = {
+//                     particular: particulars,
+//                     totalCredit: 0,
+//                     totalDebit: 0,
+//                     totalInterest: 0,
+//                     balance: 0,
+//                 };
+//             }
+
+//             if (transactionType === 'deposit') {
+//                 particularSummary[particulars].totalCredit += amount;
+//                 overallCredit += amount;
+//                 particularSummary[particulars].balance += amount;
+//             } else if (transactionType === 'interest') {
+//                 particularSummary[particulars].totalCredit += amount;
+//                 particularSummary[particulars].totalInterest += amount;
+//                 overallCredit += amount;
+//                 particularSummary[particulars].balance += amount;
+//             } else if (transactionType === 'withdrawal') {
+//                 if (particularSummary[particulars].balance >= amount) {
+//                     particularSummary[particulars].totalDebit += amount;
+//                     particularSummary[particulars].balance -= amount;
+//                     overallDebit += amount;
+//                 } else {
+//                     particularSummary[particulars].invalidDebit = true;
+//                 }
+//             }
+//         }
+
+//         const summaryArray = Object.values(particularSummary);
+
+//         const accountTotal = await Account.aggregate([
+//             { $group: { _id: null, totalBalance: { $sum: "$balance" } } }
+//         ]);
+//         const totalBalance = accountTotal[0]?.totalBalance || 0;
+
+//         return successResponse(res, 200, "Ledger entries and summary", {
+//             summary: {
+//                 overallCredit,
+//                 overallDebit,
+//                 overallBalance: overallCredit - overallDebit,
+//                 particularSummary: summaryArray
+//             },
+//             entries: paginatedEntries,
+//             totalBalance,
+//             totalPages: Math.ceil(allEntries.length / limit),
+//             currentPage: page,
+//             totalCount: allEntries.length
+//         });
+//     } catch (err) {
+//         console.error("❌ Fetch error:", err);
+//         return errorResponse(res, 500, "Failed to fetch ledgers", err.message);
+//     }
+// };
 
 // ✅ Delete Ledger Entry
 export const deleteLedger = async (req, res) => {

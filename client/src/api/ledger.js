@@ -30,6 +30,18 @@ export const getAllLedgers = async (params) => {
     }
 };
 
+// 🔹 Get Ledger Summary for a particular user (grouped)
+export const getLedgerSummaryByParticular = async (particular, page = 1, limit = 50) => {
+    try {
+        const res = await API.get(`/ledger/summary/${particular}`, {
+            params: { page, limit }
+        });
+        return res.data.data;
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Failed to fetch ledger summary');
+    }
+};
+
 // 🔹 Delete a ledger entry by ID
 export const deleteLedgerEntry = async (ledgerId) => {
     try {

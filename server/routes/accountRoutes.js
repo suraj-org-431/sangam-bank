@@ -3,6 +3,7 @@ import {
     deleteAccount,
     generateAccountNumberAPI,
     getAccount,
+    getAccountsCount,
     getAllAccounts,
     getTotalBalance,
     getTotalDepositAmount,
@@ -19,6 +20,7 @@ router.post("/", upload.fields([
     { name: "signature", maxCount: 1 },
     { name: "verifierSignature", maxCount: 1 }
 ]), upsertAccount);                     // Create or update
+router.get('/count', getAccountsCount);
 router.get('/total-balance', getTotalBalance);
 router.get('/total-amount', getTotalDepositAmount);
 router.get("/generate-account-number", generateAccountNumberAPI); // Generate account number

@@ -351,3 +351,12 @@ export const getTotalBalance = async (req, res) => {
         return errorResponse(res, 500, "Failed to calculate total balance", err.message);
     }
 };
+
+export const getAccountsCount = async (req, res) => {
+    try {
+        const count = await Account.countDocuments();
+        return successResponse(res, 200, "Total Account fetched sucessfully", { count });
+    } catch (err) {
+        return errorResponse(res, 500, "Failed to count accounts", err.message);
+    }
+};

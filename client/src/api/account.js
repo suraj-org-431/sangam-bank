@@ -34,6 +34,7 @@ export const getAccountDetailsByUser = async (userId) => {
         const res = await API.get(`/accounts/${userId}`);
         return res?.data?.data;
     } catch (err) {
+        console.log(err);
         throw new Error(err?.response?.data?.message || 'Failed to fetch account details');
     }
 };
@@ -81,6 +82,16 @@ export const importAccountsFromCSV = async (formData) => {
 export const generateAccountNumber = async () => {
     try {
         const res = await API.get('/accounts/generate-account-number');
+        return res.data?.data;
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Error in generating account number');
+    }
+};
+
+
+export const getAllAccountsCount = async () => {
+    try {
+        const res = await API.get('/accounts/count');
         return res.data?.data;
     } catch (err) {
         throw new Error(err?.response?.data?.message || 'Error in generating account number');

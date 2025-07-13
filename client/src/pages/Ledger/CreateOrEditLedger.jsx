@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminRoute } from '../../utils/router';
 
-const transactionTypes = ['deposit', 'Withdrawn', 'Interest'];
+const transactionTypes = ['deposit', 'withdrawal', 'Interest'];
 
 const initialParticulars = [
     'Office Equipment',
