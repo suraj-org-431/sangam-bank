@@ -20,12 +20,12 @@ const Sidebar = () => {
                                 </Link >
                             </li>
 
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
+                            {/* <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
                                 <Link className="nav-link" to={adminRoute('/users')}>
                                     <i className="fa-solid fa-users"></i>
                                     <span className="nav-link-text">Users</span>
                                 </Link >
-                            </li>
+                            </li> */}
 
                             <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
                                 <Link className="nav-link" to={adminRoute('/accounts')}>

@@ -521,39 +521,82 @@ export const importLedgerFromCSV = async (req, res) => {
 
 export const getOverallFinancialSummary = async (req, res) => {
     try {
-        // 1. Aggregate total balance from Accounts
-        const accountAgg = await Account.aggregate([
-            { $group: { _id: null, totalAccountBalance: { $sum: "$balance" } } }
-        ]);
-        const totalAccountBalance = accountAgg[0]?.totalAccountBalance || 0;
+        const { month, year } = req.query;
 
-        // 2. Calculate ledger totals
-        const ledgers = await Ledger.find().lean();
+        let startDate = null;
+        let endDate = null;
 
-        let totalCredit = 0;
-        let totalDebit = 0;
+        if (month && year) {
+            startDate = new Date(year, month - 1, 1);
+            endDate = new Date(year, month, 1);
+        } else if (year) {
+            startDate = new Date(year, 0, 1);
+            endDate = new Date(parseInt(year) + 1, 0, 1);
+        }
 
-        for (const entry of ledgers) {
-            if (entry.transactionType === 'withdrawal') {
-                totalCredit += entry.amount || 0;
-            } else if (entry.transactionType === 'deposit') {
-                totalDebit += entry.amount || 0;
+        // 🔹 All ledgers (needed for opening and closing calculations)
+        const allLedgers = await Ledger.find().sort({ date: 1 }).lean();
+
+        // 🔹 Ledgers before the selected range (for opening balance)
+        const openingLedgers = allLedgers.filter(l => startDate && new Date(l.date) < startDate);
+
+        // 🔹 Ledgers within the selected range (for total ledger and closing balance)
+        const periodLedgers = startDate && endDate
+            ? allLedgers.filter(l => new Date(l.date) >= startDate && new Date(l.date) < endDate)
+            : allLedgers;
+
+        // ➕ Opening Balance Calculation
+        let openingBalance = 0;
+        for (const entry of openingLedgers) {
+            const amt = entry.amount || 0;
+            if (entry.transactionType === 'deposit' || entry.transactionType === 'interest') {
+                openingBalance += amt;
+            } else if (entry.transactionType === 'withdrawal') {
+                openingBalance -= amt;
             }
         }
 
-        const totalLedgerBalance = totalCredit - totalDebit;
+        // 📊 Calculate Total Ledger and Closing Balance
+        let totalCredit = 0;
+        let totalDebit = 0;
+        let totalInterest = 0;
+        let totalLedgerAmount = 0;
+        let closingBalance = openingBalance;
 
-        return successResponse(res, 200, "Financial summary fetched successfully", {
-            totalAccountBalance,
+        for (const entry of periodLedgers) {
+            const amt = entry.amount || 0;
+            totalLedgerAmount += amt;
+
+            if (entry.transactionType === 'deposit') {
+                totalDebit += amt;
+                closingBalance += amt;
+            } else if (entry.transactionType === 'interest') {
+                totalInterest += amt;
+                totalCredit += amt;
+                closingBalance += amt;
+            } else if (entry.transactionType === 'withdrawal') {
+                totalCredit += amt;
+                closingBalance -= amt;
+            }
+        }
+
+        return successResponse(res, 200, "Financial summary calculated", {
+            filter: {
+                month: month ? parseInt(month) : null,
+                year: year ? parseInt(year) : null
+            },
+            openingBalance,
+            closingBalance,
+            totalLedgerAmount,
             ledger: {
                 totalCredit,
                 totalDebit,
-                totalLedgerBalance,
-            },
-            grandTotal: totalAccountBalance + totalLedgerBalance
+                totalInterest,
+                net: totalCredit - totalDebit
+            }
         });
     } catch (err) {
-        console.error("❌ Error calculating summary:", err);
-        return errorResponse(res, 500, "Failed to calculate financial summary", err.message);
+        console.error("❌ Summary Error:", err);
+        return errorResponse(res, 500, "Failed to calculate summary", err.message);
     }
 };

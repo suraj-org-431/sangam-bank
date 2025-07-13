@@ -77,20 +77,20 @@ const LedgerSummary = () => {
                                     )
                                     )}
                                     <tr className="fw-bold bg-light">
-                                        <td colSpan="3" className="text-end">Total Credit</td>
-                                        <td colSpan="2">
+                                        <td colSpan="4" className="text-end">Total Credit</td>
+                                        <td colSpan="1">
                                             ₹ {getTotal('deposit').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </td>
                                     </tr>
                                     <tr className="fw-bold bg-light">
-                                        <td colSpan="3" className="text-end">Total Debit</td>
-                                        <td colSpan="2">
+                                        <td colSpan="4" className="text-end">Total Debit</td>
+                                        <td colSpan="1">
                                             ₹ {getTotal('withdrawal').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </td>
                                     </tr>
                                     <tr className="fw-bold bg-light">
-                                        <td colSpan="3" className="text-end">Total Interest</td>
-                                        <td colSpan="2">
+                                        <td colSpan="4" className="text-end">Total Interest</td>
+                                        <td colSpan="1">
                                             ₹ {getTotal('interest').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </td>
                                     </tr>

@@ -5,15 +5,24 @@ import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { getAllAccountsCount } from '../../api/account';
 import { adminRoute } from '../../utils/router';
+import { getOveralllSummary } from '../../api/ledger';
 
 const Dashboard = () => {
-    const navigate = useNavigate();
     const [transactions, setTransactions] = useState([]);
     const [totalAccounts, setTotalAccounts] = useState(0);
+    const [openingBalance, setOpeningBalance] = useState(0);
+    const [closingBalance, setClosingBalance] = useState(0);
+    const [ledgerBalance, setLedgerBalance] = useState(0);
+    const [showOpening, setShowOpening] = useState(false);
+    const [showClosing, setShowClosing] = useState(false);
+
+    const toggleOpening = () => setShowOpening(true);
+    const toggleClosing = () => setShowClosing(true);
 
     useEffect(() => {
         loadRecentTransactions();
         loadTotalAccounts();
+        loadFinancialSummary();
     }, []);
 
     const loadRecentTransactions = async () => {
@@ -25,6 +34,18 @@ const Dashboard = () => {
         }
     };
 
+    const loadFinancialSummary = async () => {
+        try {
+            // Assuming you have a function to fetch financial summary
+            const summary = await getOveralllSummary();
+            // Handle summary data as needed
+            setOpeningBalance(summary.openingBalance || 0);
+            setClosingBalance(summary.closingBalance || 0);
+            setLedgerBalance(summary.totalLedgerAmount || 0);
+        } catch (err) {
+            toast.error('Failed to load financial summary');
+        }
+    };
 
     const loadTotalAccounts = async () => {
         try {
@@ -73,13 +94,13 @@ const Dashboard = () => {
                         <div className='card-body'>
                             <div className='lg-text'>
                                 <i className="fa-solid fa-indian-rupee-sign"></i>
-                                <span>13,340123.00</span>
+                                <span>{showOpening ? openingBalance?.toLocaleString('en-IN') : '••••••'}</span>
                             </div>
                         </div>
                         <div className='card-footer'>
-                            <a href='#'>View
-                                <i className="fa-solid fa-eye ms-2"></i>
-                            </a>
+                            <Link components="button" onClick={toggleOpening}>
+                                View <i className="fa-solid fa-eye ms-2"></i>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -95,18 +116,16 @@ const Dashboard = () => {
                         <div className='card-body'>
                             <div className='lg-text'>
                                 <i className="fa-solid fa-indian-rupee-sign"></i>
-                                <span>14,340123.00</span>
+                                <span>{showClosing ? closingBalance?.toLocaleString('en-IN') : '••••••'}</span>
                             </div>
                         </div>
                         <div className='card-footer'>
-                            <Link to={adminRoute('/ledger')}>View
-                                <i className="fa-solid fa-eye ms-2"></i>
+                            <Link components="button" onClick={toggleClosing}>
+                                View <i className="fa-solid fa-eye ms-2"></i>
                             </Link>
                         </div>
                     </div>
                 </div>
-
-
                 <div className='col-sm-3'>
                     <div className='card dash_card'>
                         <div className='card-header'>
@@ -118,13 +137,13 @@ const Dashboard = () => {
                         <div className='card-body'>
                             <div className='lg-text'>
                                 <i className="fa-solid fa-indian-rupee-sign"></i>
-                                <span>14,340123.00</span>
+                                <span>{ledgerBalance?.toLocaleString('en-IN')}</span>
                             </div>
                         </div>
                         <div className='card-footer'>
-                            <a href='ledger'>View Details
+                            <Link to={adminRoute('/ledger')}>View
                                 <i className="fa-solid fa-eye ms-2"></i>
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>
