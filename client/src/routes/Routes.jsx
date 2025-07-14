@@ -78,7 +78,7 @@ const AdminRoutes = () => {
                 <Route path="loan/emi-calculator" element={<EMICalculator />} />
 
 
-                <Route path="system-config" element={<ConfigSettings />} />
+                <Route path="system-settings" element={<ConfigSettings />} />
                 <Route path="interest-management" element={<InterestTrigger />} />
 
                 <Route path="user-settings" element={<Setting />} />
