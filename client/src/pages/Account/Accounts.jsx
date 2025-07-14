@@ -175,10 +175,11 @@ const Accounts = () => {
                                 onChange={(e) => setFilters(prev => ({ ...prev, accountType: e.target.value }))}
                             >
                                 <option value="">All</option>
-                                <option value="Recurring">RD / आवर्ती जमा</option>
                                 <option value="Savings">Saving / बचत</option>
+                                <option value="Current">Current / चालू खाता</option>
                                 <option value="Fixed">Fixed / सावधि जमा</option>
-                                <option value="Mis">MIS / मासिक आय योजना</option>
+                                <option value="Recurring">Recurring / आवर्ती जमा</option>
+                                <option value="MIS">MIS / मासिक आय योजना</option>
                                 <option value="Loan">Loan / ऋण</option>
                             </select>
                         </div>
@@ -354,7 +355,7 @@ const Accounts = () => {
                 footer={false}
             >
                 <div className="mb-3">
-                    <label className="form-label fw-semibold">Choose CSV File</label>
+                    <label className="form-label fw-semibold text-black">Choose CSV File</label>
                     <input
                         type="file"
                         accept=".csv"

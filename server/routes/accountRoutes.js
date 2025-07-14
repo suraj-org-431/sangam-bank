@@ -8,6 +8,7 @@ import {
     getTotalBalance,
     getTotalDepositAmount,
     importAccountsFromCSV,
+    searchAccounts,
     upsertAccount
 } from "../controllers/accountController.js";
 import { upload } from "../middleware/upload.js";
@@ -20,6 +21,7 @@ router.post("/", upload.fields([
     { name: "signature", maxCount: 1 },
     { name: "verifierSignature", maxCount: 1 }
 ]), upsertAccount);                     // Create or update
+router.get('/search', searchAccounts);
 router.get('/count', getAccountsCount);
 router.get('/total-balance', getTotalBalance);
 router.get('/total-amount', getTotalDepositAmount);

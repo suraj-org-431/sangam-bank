@@ -58,19 +58,19 @@ const AdminHeader = () => {
 
                     {/* Right: Country + Notifications + Messages + User */}
 
-<div className='d-flex align-items-center gap-3 me-3'>
-                       <a href={adminRoute('/deposit')} className='btn btn-sm btn-primary'>
-                        <i className='fa-solid fa-building-columns me-2'></i> Deposit 
-                        </a>
-                          <button className='btn btn-sm btn-primary'>
+                    <div className='d-flex align-items-center gap-3 me-3'>
+                        <Link to={adminRoute('/transaction/create')} className='btn btn-sm btn-primary'>
+                            <i className='fa-solid fa-building-columns me-2'></i> Deposit
+                        </Link>
+                        <Link to={adminRoute('/transaction/create')} className='btn btn-sm btn-primary'>
                             <i className='fa-solid fa-money-bill-wave me-2'></i> Withdraw
-                          </button>
-                          </div>
+                        </Link>
+                    </div>
 
                     <div className='d-flex align-items-center gap-3'>
-                        
+
                         {/* Country Selector */}
-                         <input type="text" className='form-control' placeholder="Search Account..." />
+                        <input type="text" className='form-control' placeholder="Search Account..." />
 
                         {/* Notifications */}
                         <div className="dropdown">

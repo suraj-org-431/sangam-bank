@@ -35,7 +35,7 @@ export const upsertLedger = async (req, res) => {
         // 🔁 If no account, create one
         if (!account) {
             const newAccountNumber = await generateNextAccountNumber();
-            const initBalance = transactionType === 'withdrawal' ? amt : 0;
+            const initBalance = transactionType === 'withdrawal' ? 0 : amt;
 
             account = await Account.create({
                 applicantName: particulars,
@@ -47,13 +47,13 @@ export const upsertLedger = async (req, res) => {
             });
         } else {
             // ✅ Update existing account balance
-            if (transactionType === 'withdrawal') {
-                account.balance += amt;
-            } else if (transactionType === 'deposit') {
-                if (account.balance <= 0 || account.balance < amt) {
+            if (["withdrawal", "penalty", "loanRepayment"].includes(transactionType)) {
+                if (account.balance < amt) {
                     return badRequestResponse(res, 400, "Insufficient balance for debit transaction");
                 }
                 account.balance -= amt;
+            } else if (["deposit", "interest", "loanDisbursed", "openingBalance"].includes(transactionType)) {
+                account.balance += amt;
             }
 
             await account.save();
@@ -170,7 +170,7 @@ export const getAllLedgers = async (req, res) => {
                 totalCredit: {
                     $sum: {
                         $cond: [
-                            { $in: ["$transactionType", ["deposit", "interest"]] },
+                            { $in: ["$transactionType", ["deposit", "interest", "loanDisbursed", "openingBalance"]] },
                             "$amount",
                             0
                         ]
@@ -179,7 +179,7 @@ export const getAllLedgers = async (req, res) => {
                 totalDebit: {
                     $sum: {
                         $cond: [
-                            { $eq: ["$transactionType", "withdrawal"] },
+                            { $in: ["$transactionType", ["withdrawal", "penalty", "loanRepayment"]] },
                             "$amount",
                             0
                         ]
@@ -196,21 +196,39 @@ export const getAllLedgers = async (req, res) => {
                 },
                 lastTransactionDate: { $max: "$createdAt" },
                 accountType: { $first: "$accountInfo.accountType" },
+                initialBalance: { $first: "$accountInfo.balance" },
                 balance: {
                     $sum: {
-                        $cond: [
-                            { $in: ["$transactionType", ["deposit", "interest"]] },
-                            "$amount",
-                            {
-                                $cond: [
-                                    { $eq: ["$transactionType", "withdrawal"] },
-                                    { $multiply: ["$amount", -1] },
-                                    0
-                                ]
-                            }
-                        ]
+                        $switch: {
+                            branches: [
+                                {
+                                    case: { $in: ["$transactionType", ["deposit", "interest", "loanDisbursed", "openingBalance"]] },
+                                    then: "$amount"
+                                },
+                                {
+                                    case: { $in: ["$transactionType", ["withdrawal", "penalty", "loanRepayment"]] },
+                                    then: { $multiply: ["$amount", -1] }
+                                }
+                            ],
+                            default: 0
+                        }
                     }
                 }
+                // balance: {
+                //     $sum: {
+                //         $cond: [
+                //             { $in: ["$transactionType", ["deposit", "interest"]] },
+                //             "$amount",
+                //             {
+                //                 $cond: [
+                //                     { $eq: ["$transactionType", "withdrawal"] },
+                //                     { $multiply: ["$amount", -1] },
+                //                     0
+                //                 ]
+                //             }
+                //         ]
+                //     },
+                // }
             }
         });
 
@@ -242,7 +260,7 @@ export const getAllLedgers = async (req, res) => {
             { $group: { _id: null, totalBalance: { $sum: "$balance" } } }
         ]);
 
-        const totalBalance = accountTotal[0]?.totalBalance || 0;
+        const totalBalance = accountTotal[0]?.totalBalance + overallInterest || 0;
 
         return successResponse(res, 200, "Grouped ledger entries and summary", {
             summary: {
@@ -251,14 +269,25 @@ export const getAllLedgers = async (req, res) => {
                 overallInterest,
                 overallBalance: overallCredit - overallDebit,
             },
-            entries: paginatedGrouped.map(item => ({
-                particulars: item._id,
-                totalCredit: item.totalCredit,
-                totalDebit: item.totalDebit,
-                totalInterest: item.totalInterest,
-                balance: item.balance,
-                accountType: item.accountType
-            })),
+            entries: paginatedGrouped.map(item => {
+                const initialBalance = item.initialBalance || 0;
+                const totalCredit = item.totalCredit || 0;
+                const totalDebit = item.totalDebit || 0;
+                const totalInterest = item.totalInterest || 0;
+
+                const balance = item?.accountType === 'Auto-Created' ? 0 : totalCredit + totalInterest - totalDebit;
+
+                return {
+                    particulars: item._id,
+                    totalCredit,
+                    totalDebit,
+                    totalInterest: item.totalInterest || 0,
+                    accountType: item.accountType,
+                    balance,
+                    isAutoCreated: item?.accountType === 'Auto-Created' ? true : false,
+                    lastTransactionDate: item.lastTransactionDate,
+                };
+            }),
             totalBalance,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
@@ -293,19 +322,29 @@ export const getLedgerSummaryByParticular = async (req, res) => {
             const amt = entry.amount || 0;
             switch (entry.transactionType) {
                 case 'deposit':
-                    totalCredit += amt;
-                    balance += amt;
-                    break;
                 case 'interest':
+                case 'loanDisbursed':
+                case 'openingBalance':
                     totalCredit += amt;
-                    totalInterest += amt;
+                    if (entry.transactionType === 'interest') totalInterest += amt;
                     balance += amt;
                     break;
+
                 case 'withdrawal':
+                case 'penalty':
+                case 'loanRepayment':
                     totalDebit += amt;
                     balance -= amt;
                     break;
+
+                case 'adjustment':
+                case 'transfer':
+                case 'autoCreated':
+                case 'closingBalance':
+                    // No effect or custom logic
+                    break;
             }
+
         });
 
         const paginatedEntries = allEntries.slice(skip, skip + limit);
@@ -487,7 +526,6 @@ export const importLedgerFromCSV = async (req, res) => {
             });
 
         await parseCSV();
-
         for (let i = 0; i < results.length; i++) {
             const row = results[i];
             try {

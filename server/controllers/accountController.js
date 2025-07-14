@@ -10,6 +10,7 @@ import {
     notFoundResponse
 } from "../utils/response.js";
 import { createTransactionAndLedger } from "../utils/accountLedger.js";
+import Config from '../models/Config.js';
 
 const withFullUrl = (path, baseUrl) => {
     if (!path) return null;
@@ -31,6 +32,7 @@ export const generateAccountNumberAPI = async (req, res) => {
     }
 };
 
+// ✅ Account Creation + Initial Deposit
 export const upsertAccount = async (req, res) => {
     try {
         const {
@@ -43,24 +45,24 @@ export const upsertAccount = async (req, res) => {
             lekhpalOrRokapal, formDate, accountOpenDate,
         } = req.body;
 
-        const formatPhone = (num) =>
-            num?.replace(/\D/g, '').slice(0, 10).replace(/(\d{5})(\d{0,5})/, '$1 $2').trim();
+        const config = await Config.findOne();
+        const defaultDeposit = config?.initialDeposits?.[accountType?.toLowerCase()] || 0;
+        const actualDeposit = depositAmount || defaultDeposit;
 
         const payload = {
             accountType,
-            tenure: isNaN(parseInt(row.tenure)) ? null : parseInt(row.tenure),
+            tenure: isNaN(parseInt(tenure)) ? null : parseInt(tenure),
             branch,
             applicantName,
             gender,
-            phone,
             dob,
             occupation,
-            mobile: formatPhone(phone),
+            phone,
             fatherOrHusbandName,
             relation,
             address: typeof address === 'string' ? JSON.parse(address) : address,
             aadhar,
-            depositAmount,
+            depositAmount: actualDeposit,
             introducerName,
             membershipNumber,
             introducerKnownSince,
@@ -74,39 +76,33 @@ export const upsertAccount = async (req, res) => {
             accountOpenDate,
         };
 
-        // Handle file uploads
         if (req.files) {
-            if (req.files.signature?.[0]) {
+            if (req.files.signature?.[0])
                 payload.signaturePath = `/uploads/signatures/${req.files.signature[0].filename}`;
-            }
-            if (req.files.verifierSignature?.[0]) {
+            if (req.files.verifierSignature?.[0])
                 payload.verifierSignaturePath = `/uploads/verifierSignatures/${req.files.verifierSignature[0].filename}`;
-            }
-            if (req.files.profileImage?.[0]) {
+            if (req.files.profileImage?.[0])
                 payload.profileImage = `/uploads/profileImages/${req.files.profileImage[0].filename}`;
-            }
         }
+
         let account;
         if (accId) {
             account = await Account.findByIdAndUpdate(accId, payload, { new: true });
         } else {
-            payload.balance = payload.depositAmount;
+            payload.balance = actualDeposit;
             account = await Account.create(payload);
-            await Transaction.create({
-                accountId: account._id,
-                type: 'deposit',
-                amount: payload.depositAmount,
-                description: 'Initial deposit',
-                date: payload.accountOpenDate || new Date(),
-            });
-            await createTransactionAndLedger({
-                account,
-                type: 'deposit',
-                amount: payload.depositAmount,
-                description: 'Initial deposit',
-                date: payload.accountOpenDate || new Date(),
-                createdBy: req.user?.name || 'System'
-            });
+
+            if (actualDeposit > 0) {
+                await createTransactionAndLedger({
+                    account,
+                    type: 'deposit',
+                    amount: actualDeposit,
+                    description: 'Initial deposit',
+                    date: payload.accountOpenDate || new Date(),
+                    createdBy: req.user?.name || 'System',
+                });
+            }
+
             await notify(req.user || {}, "Account Created", `Account #${payload.accountNumber} created`);
         }
 
@@ -272,7 +268,7 @@ export const importAccountsFromCSV = async (req, res) => {
                     account,
                     type: 'deposit',
                     amount: payload.depositAmount,
-                    description: 'Initial deposit',
+                    description: 'Initial deposit on account opening (CSV Import)',
                     date: payload.accountOpenDate || new Date(),
                     createdBy: req.user?.name || 'System'
                 });
@@ -358,5 +354,30 @@ export const getAccountsCount = async (req, res) => {
         return successResponse(res, 200, "Total Account fetched sucessfully", { count });
     } catch (err) {
         return errorResponse(res, 500, "Failed to count accounts", err.message);
+    }
+};
+
+// ✅ GET /accounts/search?query=abc
+export const searchAccounts = async (req, res) => {
+    try {
+        const { query = '' } = req.query;
+
+        if (!query.trim()) {
+            return badRequestResponse(res, 400, "Search query is required");
+        }
+
+        const regex = new RegExp(query, 'i'); // case-insensitive search
+
+        const results = await Account.find({
+            $or: [
+                { applicantName: { $regex: regex } },
+                { accountNumber: { $regex: regex } }
+            ]
+        }).limit(20); // limit to top 20 matches
+
+        return successResponse(res, 200, "Search results fetched", { results });
+    } catch (err) {
+        console.error('❌ Account search error:', err);
+        return errorResponse(res, 500, "Failed to search accounts", err.message);
     }
 };

@@ -129,7 +129,7 @@ const Transactions = () => {
                                 <tr>
                                     <th>Date</th>
                                     <th>Account No.</th>
-                                    <th>Applicant Name</th>
+                                    <th>Customer Name</th>
                                     <th>Account Type</th>
                                     <th>Type</th>
                                     <th>Amount</th>
@@ -148,8 +148,29 @@ const Transactions = () => {
                                             <td>{tx.accountId?.accountNumber || '-'}</td>
                                             <td>{tx.accountId?.applicantName || '-'}</td>
                                             <td>{tx.accountId?.accountType || '-'}</td>
-                                            <td className={tx.type === 'deposit' ? 'text-success' : 'text-danger'}>
-                                                {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
+                                            <td className={
+                                                tx.type === 'deposit' ? 'text-success' :
+                                                    tx.type === 'loanDisbursed' ? 'text-primary' :
+                                                        tx.type === 'loanRepayment' ? 'text-warning' :
+                                                            tx.type === 'transfer' ? 'text-info' :
+                                                                'text-danger'
+                                            }>
+                                                {(() => {
+                                                    switch (tx.type) {
+                                                        case 'deposit':
+                                                            return 'Deposit / जमा';
+                                                        case 'withdrawal':
+                                                            return 'Withdrawal / निकासी';
+                                                        case 'transfer':
+                                                            return 'Transfer / ट्रांसफर';
+                                                        case 'loanDisbursed':
+                                                            return 'Loan Disbursed / ऋण वितरण';
+                                                        case 'loanRepayment':
+                                                            return 'Loan Repayment / ऋण भुगतान';
+                                                        default:
+                                                            return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
+                                                    }
+                                                })()}
                                             </td>
                                             <td>{tx.amount?.toFixed(2)}</td>
                                             <td>{tx.description || '-'}</td>

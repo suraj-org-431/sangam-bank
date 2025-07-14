@@ -5,7 +5,14 @@ const { Schema } = mongoose;
 
 const ledgerSchema = new Schema({
     particulars: { type: String, required: true },
-    transactionType: { type: String, enum: ['deposit', 'withdrawal', 'interest'], required: true },
+    transactionType: {
+        type: String,
+        enum: [
+            'deposit', 'withdrawal', 'interest',
+            'loanDisbursed', 'loanRepayment', 'adjustment'
+        ],
+        required: true
+    },
     description: { type: String },
     date: { type: Date, default: Date.now },
     amount: { type: Number, required: true },

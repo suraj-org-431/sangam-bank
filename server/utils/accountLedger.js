@@ -1,9 +1,8 @@
 import Transaction from "../models/Transaction.js";
 import Ledger from "../models/Ledger.js";
 
-export const createTransactionAndLedger = async ({ account, type, amount, description, date, createdBy }) => {
+export const createTransactionAndLedger = async ({ account, type, amount, description, date, loanId, createdBy }) => {
     const parsedAmount = parseFloat(amount);
-
     // ✅ Create transaction
     const tx = await Transaction.create({
         accountId: account._id,
@@ -11,12 +10,21 @@ export const createTransactionAndLedger = async ({ account, type, amount, descri
         amount: parsedAmount,
         description,
         date,
+        loanId, // Optional, for loan-related transactions
     });
-
     // 🧮 Update account balance
-    account.balance = type === 'deposit'
-        ? account.balance + parsedAmount
-        : account.balance - parsedAmount;
+    if (type === 'deposit' || type === 'loanDisbursed') {
+        // account.balance = parsedAmount;
+        // console.log(account.balance, "Account Balance ");
+        // console.log(parsedAmount, "Parsed Account Balance ");
+        // console.log(account.balance + parsedAmount, "Account Balance after transaction");
+
+    } else if (type === 'withdrawal' || type === 'loanRepayment') {
+        if (account.balance < parsedAmount) {
+            throw new Error('Insufficient balance for this transaction');
+        }
+        account.balance -= parsedAmount;
+    }
 
     await account.save();
 

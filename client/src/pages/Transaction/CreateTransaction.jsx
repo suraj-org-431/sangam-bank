@@ -1,47 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { createTransaction } from '../../api/transaction';
-import { getAllAccounts } from '../../api/account'; // ✅ Fetch account list
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { searchAccounts } from '../../api/account';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminRoute } from '../../utils/router';
 
-const transactionTypes = ['deposit', 'withdrawal', 'transfer'];
+const allowedTransactionTypes = {
+    Savings: ['deposit', 'withdrawal'],
+    Current: ['deposit', 'withdrawal'],
+    Fixed: ['deposit'],
+    Recurring: ['deposit'],
+    Loan: ['deposit'],
+};
 
 const CreateTransaction = () => {
     const navigate = useNavigate();
-    const { accountId } = useParams(); // Optional if passed in URL
-    const { state } = useLocation();
-    const { transactionData } = state || {};
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedAccount, setSelectedAccount] = useState(null);
 
-    const [accounts, setAccounts] = useState([]);
     const [formData, setFormData] = useState({
-        accountId: accountId || transactionData?.accountId || '',
-        type: transactionData?.type || '',
-        amount: transactionData?.amount || '',
-        description: transactionData?.description || '',
-        date: transactionData?.date?.slice(0, 10) || '',
+        accountId: '',
+        type: '',
+        amount: '',
+        description: '',
+        date: ''
     });
 
     useEffect(() => {
         if (!formData.date) {
-            const today = new Date();
-            const formatted = today.toISOString().split('T')[0];
-            setFormData((prev) => ({ ...prev, date: formatted }));
+            const today = new Date().toISOString().split('T')[0];
+            setFormData((prev) => ({ ...prev, date: today }));
         }
     }, [formData.date]);
 
-    useEffect(() => {
-        if (!accountId) {
-            loadAccounts();
-        }
-    }, [accountId]);
-
-    const loadAccounts = async () => {
+    const handleSearch = async () => {
         try {
-            const res = await getAllAccounts({ page: 1, limit: 1000 }); // adjust as needed
-            setAccounts(res.accounts || []);
+            const res = await searchAccounts(searchQuery);
+            if (res.length > 0) {
+                const acc = res[0];
+                setSelectedAccount(acc);
+                setFormData({
+                    accountId: acc._id,
+                    accountType: acc.accountType,
+                    type: acc.accountType === 'Savings' ? 'deposit' : 'withdrawal',
+                    amount: acc.accountType === 'Savings' || acc.accountType === 'Current' ? '' : acc.balance,
+                    description: '',
+                    date: new Date().toISOString().split('T')[0]
+                });
+            } else {
+                toast.error('No matching account found');
+                setSelectedAccount(null);
+            }
         } catch (err) {
-            toast.error('Failed to load accounts');
+            toast.error('Failed to search account');
         }
     };
 
@@ -61,7 +72,7 @@ const CreateTransaction = () => {
         try {
             await createTransaction(formData);
             toast.success('Transaction created successfully');
-            navigate(adminRoute(`/accounts/${accountId}/transactions`));
+            navigate(adminRoute('/transactions'));
         } catch (err) {
             console.error('❌ Transaction failed:', err);
             toast.error(err?.message || 'Failed to create transaction');
@@ -71,91 +82,101 @@ const CreateTransaction = () => {
     return (
         <div className="px-4 py-4">
             <div className="card p-3">
-                <h4>{transactionData ? 'Edit' : 'Create'} Transaction</h4>
-                <form onSubmit={handleSubmit}>
-                    <div className="row">
+                <h4>New Transaction</h4>
 
-                        {!accountId && (
-                            <div className="col-md-6 mb-3">
-                                <label className="theme-label text-black">Select Account <span className="text-danger">*</span></label>
+                {/* 🔍 Search Section */}
+                <div className="row align-items-end">
+                    <div className="col-md-6">
+                        <label className='text-black'>Search Account</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Name or Account No."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className="col-md-2">
+                        <button className="btn btn-lg btn-primary" onClick={handleSearch}>Search</button>
+                    </div>
+                </div>
+
+                {/* 📋 Account Summary */}
+                {selectedAccount && (
+                    <>
+                        <hr />
+                        <div className="alert alert-info">
+                            <strong>Customer Name - {selectedAccount.applicantName}</strong> <br />
+                            <strong>Account Number - {selectedAccount.accountNumber}</strong><br />
+                            <small>Type: {selectedAccount.accountType} | Balance: ₹{selectedAccount.balance}</small>
+                        </div>
+                    </>
+                )}
+
+                {/* 💵 Transaction Form */}
+                {selectedAccount && (
+                    <form onSubmit={handleSubmit}>
+                        <div className="row">
+                            <div className="col-md-4 mb-3">
+                                <label className='text-black'>Transaction Type *</label>
                                 <select
-                                    name="accountId"
-                                    value={formData.accountId}
+                                    name="type"
+                                    value={formData.type}
                                     onChange={handleChange}
                                     className="form-select"
                                     required
                                 >
-                                    <option value="">-- Select Account --</option>
-                                    {accounts.map(acc => (
-                                        <option key={acc._id} value={acc._id}>
-                                            {acc.applicantName} ({acc.accountNumber})
-                                        </option>
+                                    <option value="">Select</option>
+                                    {allowedTransactionTypes[selectedAccount?.accountType]?.map(t => (
+                                        <option key={t} value={t}>{t}</option>
                                     ))}
                                 </select>
                             </div>
+                            <div className="col-md-4 mb-3">
+                                <label className='text-black'>Amount *</label>
+                                <input
+                                    type="number"
+                                    name="amount"
+                                    className="form-control"
+                                    value={formData.amount}
+                                    onChange={handleChange}
+                                    required
+                                    disabled={['Fixed', 'Recurring', 'Loan'].includes(selectedAccount.accountType)}
+                                />
+                            </div>
+                            <div className="col-md-4 mb-3">
+                                <label className='text-black'>Date</label>
+                                <input
+                                    type="date"
+                                    name="date"
+                                    value={formData.date}
+                                    onChange={handleChange}
+                                    className="form-control"
+                                />
+                            </div>
+                            <div className="col-md-12 mb-3">
+                                <label className='text-black'>Remarks</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    className="form-control"
+                                    placeholder="Optional notes..."
+                                />
+                            </div>
+                        </div>
+                        {selectedAccount?.accountType !== 'Savings' && (
+                            <div className="alert alert-warning mt-2">
+                                {selectedAccount.accountType === 'Fixed' && "Only initial deposit allowed. Withdrawal requires special approval."}
+                                {selectedAccount.accountType === 'Recurring' && "Only monthly/periodic deposits are allowed."}
+                                {selectedAccount.accountType === 'Loan' && "Only repayment deposits (EMI) allowed. Withdrawals not permitted."}
+                            </div>
                         )}
-
-                        <div className="col-md-4 mb-3">
-                            <label className="theme-label text-black">Transaction Type <span className="text-danger">*</span></label>
-                            <select
-                                name="type"
-                                value={formData.type}
-                                onChange={handleChange}
-                                className="form-select"
-                                required
-                            >
-                                <option value="">Select</option>
-                                {transactionTypes.map((t) => (
-                                    <option key={t} value={t}>
-                                        {t.charAt(0).toUpperCase() + t.slice(1)}
-                                    </option>
-                                ))}
-                            </select>
+                        <div className="text-end">
+                            <button className="btn btn-success" type="submit">Submit Transaction</button>
                         </div>
-
-                        <div className="col-md-4 mb-3">
-                            <label className="theme-label text-black">Amount <span className="text-danger">*</span></label>
-                            <input
-                                type="number"
-                                name="amount"
-                                value={formData.amount}
-                                onChange={handleChange}
-                                className="form-control"
-                                min="1"
-                                required
-                            />
-                        </div>
-
-                        <div className="col-md-4 mb-3">
-                            <label className="theme-label text-black">Date</label>
-                            <input
-                                type="date"
-                                name="date"
-                                value={formData.date}
-                                onChange={handleChange}
-                                className="form-control"
-                            />
-                        </div>
-
-                        <div className="col-md-12 mb-3">
-                            <label className="theme-label text-black">Description</label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                className="form-control"
-                                rows={2}
-                                placeholder="Optional"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="text-end">
-                        <button className="btn btn-primary" type="submit">
-                            {transactionData ? 'Update Transaction' : 'Add Transaction'}
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                )}
             </div>
         </div>
     );

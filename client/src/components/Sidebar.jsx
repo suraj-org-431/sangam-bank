@@ -49,6 +49,13 @@ const Sidebar = () => {
                             </li>
 
                             <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
+                                <Link className="nav-link" to={adminRoute('/loans')}>
+                                    <i className="fa-solid fa-money-check-dollar"></i>
+                                    <span className="nav-link-text">Loans</span>
+                                </Link >
+                            </li>
+
+                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
                                 <Link className="nav-link" to={adminRoute('/daily-expenses')}>
                                     <i className="fa-solid fa-chart-pie"></i>
                                     <span className="nav-link-text">Daily Expenses</span>

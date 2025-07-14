@@ -24,6 +24,11 @@ import LedgerSummary from "../pages/Ledger/LadgerSummary";
 import CreateTransaction from "../pages/Transaction/CreateTransaction";
 import InterestTrigger from "../pages/InterestRate/InterestRate";
 import Transactions from "../pages/Transaction/Transactions";
+import Loans from "../pages/Loans/Loans";
+import EMICalculator from "../pages/Loans/EMICalculator";
+import CreateLoan from "../pages/Loans/CreateLoan";
+import LoanView from "../pages/Loans/LoanView";
+import ConfigSettings from "../pages/Settings/ConfigSettings";
 
 const AdminRoutes = () => {
     return (
@@ -67,7 +72,13 @@ const AdminRoutes = () => {
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="transaction/create" element={<CreateTransaction />} />
 
+                <Route path="loans" element={<Loans />} />
+                <Route path="loan/create" element={<CreateLoan />} />
+                <Route path="loan/view/:loanId" element={<LoanView />} />
+                <Route path="loan/emi-calculator" element={<EMICalculator />} />
 
+
+                <Route path="system-config" element={<ConfigSettings />} />
                 <Route path="interest-management" element={<InterestTrigger />} />
 
                 <Route path="user-settings" element={<Setting />} />

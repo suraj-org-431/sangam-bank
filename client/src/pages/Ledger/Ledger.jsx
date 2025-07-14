@@ -146,6 +146,7 @@ const Ledger = () => {
                     <table className="table table-bordered theme-table">
                         <thead>
                             <tr>
+                                <th>#</th>
                                 <th>Particular</th>
                                 <th>Total Credit (₹)</th>
                                 <th>Total Debit (₹)</th>
@@ -157,8 +158,20 @@ const Ledger = () => {
                         <tbody>
                             {ledgerGroups.length > 0 ? (
                                 ledgerGroups.map((item, index) => (
-                                    <tr key={index}>
-                                        <td>{item.particulars || item._id}</td>
+                                    <tr
+                                        key={index}
+                                        className={item.isAutoCreated ? 'bg-warning-subtle' : ''}
+                                        style={item.isAutoCreated ? { borderLeft: '4px solid #ffc107' } : {}}
+                                    >
+                                        <td>{index + 1}</td>
+                                        <td>
+                                            {item.particulars || item._id}
+                                            {item.isAutoCreated && (
+                                                <span className="badge bg-warning text-dark ms-2">
+                                                    Auto-Created
+                                                </span>
+                                            )}
+                                        </td>
                                         <td>{item.totalCredit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                         <td>{item.totalDebit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                         <td>{item.totalInterest?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -186,6 +199,7 @@ const Ledger = () => {
                             )}
 
                             <tr className="fw-bold bg-light">
+                                <td></td>
                                 <td>Total</td>
                                 <td>{summaryTotals.overallCredit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                 <td>{summaryTotals.overallDebit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>

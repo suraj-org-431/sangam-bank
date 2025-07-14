@@ -4,7 +4,7 @@
   --bg-color: #ffffff;
   --text-color: #000000;
   --primary-color: #00bcd4;
-  --secondary-color:#1f7e20;
+  --secondary-color: #1f7e20;
   --hover-bg-color: #1f7e20;
   --hover-text-color: #ffffff;
   --input-bg-color: #d9f4ff;
@@ -25,9 +25,9 @@
 [data-theme="dark"] {
   --bg-color: #082008;
   --text-color: #d9f4ff;
-  --primary-color:#082008;
-  --secondary-color:#082008;
-  --hover-bg-color:#1f7e20;
+  --primary-color: #082008;
+  --secondary-color: #082008;
+  --hover-bg-color: #1f7e20;
   --hover-text-color: #ffffff;
   --input-bg-color: #0e0e3d;
   --input-text-color: #ffffff;
@@ -56,7 +56,7 @@ header.top-header {
   width: 100%;
   left: 0;
   position: fixed;
-  z-index:1;
+  z-index: 1;
   background-color: var(--header-bg-color);
   color: var(--header-text-color);
   background-color: var(--header-bg);
@@ -214,7 +214,7 @@ header.top-header .logo {
   padding: 10px 0px;
 }
 .logo img {
-    max-width: 90px;
+  max-width: 90px;
 }
 
 .top-navbar ul.nav li.dropdown .dropdown-toggle:after {
@@ -231,14 +231,14 @@ header.top-header .logo {
 }
 
 ul.dropdown-menu li a {
-  color:var(--text-color);
+  color: var(--text-color);
   border-bottom: solid 1px var(--border-color);
   margin-bottom: 4px;
   padding-bottom: 4px;
 }
-ul.dropdown-menu li a:hover{
-background-color:var(--hover-bg-color);
-color:#fff;
+ul.dropdown-menu li a:hover {
+  background-color: var(--hover-bg-color);
+  color: #fff;
 }
 ul.dropdown-menu li:last-child a {
   border-bottom: 0px;
@@ -252,12 +252,12 @@ ul.dropdown-menu li:last-child a {
   height: 100vh;
   overflow-x: hidden;
   position: fixed;
-  top:0px;
+  top: 0px;
   /* border-right: solid 1px var(--border-color); */
   background-color: var(--sidebar-bg-color);
   color: var(--sidebar-text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
-  z-index:2;
+  z-index: 2;
 }
 
 .sidebar ul.nav li.nav-item a {
@@ -957,7 +957,7 @@ label.switch input:checked + .slider:before {
 
 .form_row .col-sm-2 select.form-control,
 select.form-control {
-  background-color: var(--input-bg-color);
+  /* background-color: var(--input-bg-color); */
   background-image: url(down-arrow.png);
   background-repeat: no-repeat;
   background-position: center right 10px;
@@ -1116,7 +1116,7 @@ a.badge:hover,
 
 ul.dropdown-menu,
 .dropdown div.dropdown-menu {
-  background-color:var(--header-bg);
+  background-color: var(--header-bg);
   border: solid 2px var(--border-color);
 }
 
@@ -1152,6 +1152,6 @@ ul.dropdown-menu,
 .accordion_box_1 .card-header a {
   color: var(--text-color);
 }
-select.form-select{
-  color:#041004;
+select.form-select {
+  color: #041004;
 }

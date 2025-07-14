@@ -12,7 +12,7 @@ const addressSchema = new Schema({
 }, { _id: false });
 
 const accountsSchema = new Schema({
-    accountType: { type: String },
+    accountType: { type: String, enum: ['Savings', 'Recurring', 'Fixed', 'Current', 'Loan', 'MIS'] },
     tenure: { type: Number, default: 0 },
     branch: { type: String },
     applicantName: { type: String },
@@ -40,6 +40,17 @@ const accountsSchema = new Schema({
     verifierSignaturePath: { type: String },
     profileImage: { type: String },
     balance: { type: Number, default: 0 },
+    hasLoan: { type: Boolean, default: false },
+    loanDetails: {
+        totalLoanAmount: { type: Number, default: 0 },
+        disbursedAmount: { type: Number, default: 0 },
+        interestRate: { type: Number },
+        tenureMonths: { type: Number },
+        emiAmount: { type: Number },
+        disbursedDate: { type: Date },
+        status: { type: String, enum: ['approved', 'disbursed', 'repaid', 'defaulted'], default: 'approved' },
+        nextDueDate: { type: Date },
+    },
     status: { type: Boolean, default: true },
 }, { timestamps: true });
 

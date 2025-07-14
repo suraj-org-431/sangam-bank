@@ -97,3 +97,15 @@ export const getAllAccountsCount = async () => {
         throw new Error(err?.response?.data?.message || 'Error in generating account number');
     }
 };
+
+// 🔹 Search accounts by applicant name or account number
+export const searchAccounts = async (query) => {
+    try {
+        const res = await API.get('/accounts/search', {
+            params: { query }
+        });
+        return res.data?.data?.results || [];
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Failed to search accounts');
+    }
+};
