@@ -299,7 +299,7 @@ const Accounts = () => {
                                     <td>{acc.applicantName}</td>
                                     <td>{acc.accountType || '-'}</td>
                                     <td>{acc.accountNumber || '-'}</td>
-                                    <td>{acc.balance || '-'}</td>
+                                    <td>{acc.balance?.toFixed(2) || '-'}</td>
                                     <td>{format(new Date(acc.accountOpenDate), 'dd MMM yyyy')}</td>
                                     <td className="text-center">
                                         <button className="btn btn-sm btn-outline-info me-2" onClick={() => {
@@ -309,13 +309,13 @@ const Accounts = () => {
                                             }
                                             navigate(adminRoute(`/account/view/${acc?._id}`), { state: { accountData: acc } });
                                         }}>View</button>
-                                        {/* <button className="btn btn-sm btn-outline-secondary" onClick={() => {
+                                        <button className="btn btn-sm btn-outline-secondary" onClick={() => {
                                             if (!hasPermission(userPermissions, 'POST:/accounts')) {
                                                 setShow403Modal(true);
                                                 return;
                                             }
                                             navigate(adminRoute(`/account/edit/${acc?._id}`), { state: { accountData: acc } });
-                                        }}>Edit</button> */}
+                                        }}>Edit</button>
                                     </td>
                                 </tr>
                             ))}

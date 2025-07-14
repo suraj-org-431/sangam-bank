@@ -48,7 +48,7 @@ const accountsSchema = new Schema({
         tenureMonths: { type: Number },
         emiAmount: { type: Number },
         disbursedDate: { type: Date },
-        status: { type: String, enum: ['approved', 'disbursed', 'repaid', 'defaulted'], default: 'approved' },
+        status: { type: String, enum: ['draft', 'approved', 'disbursed', 'repaid', 'defaulted'], default: 'approved' },
         nextDueDate: { type: Date },
     },
     status: { type: Boolean, default: true },

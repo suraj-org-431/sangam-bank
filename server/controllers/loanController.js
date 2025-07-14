@@ -122,17 +122,23 @@ export const getLoanById = async (req, res) => {
     }
 };
 
-// ✅ Approve Loan
 export const approveLoan = async (req, res) => {
     try {
         const { loanId } = req.params;
-        const loan = await Loan.findById(loanId);
+        const loan = await Loan.findById(loanId).populate('borrower');
 
         if (!loan) return badRequestResponse(res, 404, 'Loan not found');
         if (loan.status !== 'draft') return badRequestResponse(res, 400, 'Loan cannot be approved');
 
         loan.status = 'approved';
         await loan.save();
+
+        // Update account.loanDetails.status
+        if (loan.borrower) {
+            loan.borrower.loanDetails = loan.borrower.loanDetails || {};
+            loan.borrower.loanDetails.status = 'approved';
+            await loan.borrower.save();
+        }
 
         return successResponse(res, 200, 'Loan approved successfully', loan);
     } catch (err) {
@@ -144,45 +150,97 @@ export const approveLoan = async (req, res) => {
 export const disburseLoan = async (req, res) => {
     try {
         const { loanId } = req.params;
+
         const loan = await Loan.findById(loanId).populate('borrower');
         if (!loan) return badRequestResponse(res, 404, 'Loan not found');
-        if (loan.status !== 'approved') return badRequestResponse(res, 400, 'Loan already disbursed or closed');
+
+        if (loan.status !== 'approved') {
+            return badRequestResponse(res, 400, 'Loan must be approved before disbursement');
+        }
 
         const disbursedDate = new Date();
         const borrower = loan.borrower;
 
-        // Add disbursement to balance
+        // 🧮 Update account balance
         borrower.balance += loan.loanAmount;
+
+        // 📝 Update loan details in account
         borrower.loanDetails = {
             totalLoanAmount: loan.loanAmount,
             disbursedAmount: loan.loanAmount,
             interestRate: loan.interestRate,
             tenureMonths: loan.tenureMonths,
-            disbursedDate,
+            disbursedDate: disbursedDate,
             status: 'disbursed'
         };
+        borrower.hasLoan = true;
         await borrower.save();
 
+        // 🏦 Update loan model
         loan.status = 'disbursed';
         loan.disbursedAmount = loan.loanAmount;
         loan.disbursedDate = disbursedDate;
         await loan.save();
 
+        // 🧾 Create ledger + transaction entry
         await createTransactionAndLedger({
             account: borrower,
             type: 'loanDisbursed',
             amount: loan.loanAmount,
             description: `Loan Disbursed for ₹${loan.loanAmount}`,
             date: disbursedDate,
-            loanId: loan?._id,
+            loanId: loan._id,
             createdBy: req.user?.name || 'Loan Admin'
         });
 
         return successResponse(res, 200, 'Loan disbursed successfully', loan);
     } catch (err) {
+        console.error('❌ Loan disbursement error:', err);
         return errorResponse(res, 500, 'Loan disbursement failed', err.message);
     }
 };
+// export const disburseLoan = async (req, res) => {
+//     try {
+//         const { loanId } = req.params;
+//         const loan = await Loan.findById(loanId).populate('borrower');
+//         if (!loan) return badRequestResponse(res, 404, 'Loan not found');
+//         if (loan.status !== 'approved') return badRequestResponse(res, 400, 'Loan already disbursed or closed');
+
+//         const disbursedDate = new Date();
+//         const borrower = loan.borrower;
+
+//         // Add disbursement to balance
+//         borrower.balance += loan.loanAmount;
+//         borrower.loanDetails = {
+//             totalLoanAmount: loan.loanAmount,
+//             disbursedAmount: loan.loanAmount,
+//             interestRate: loan.interestRate,
+//             tenureMonths: loan.tenureMonths,
+//             disbursedDate,
+//             status: 'disbursed'
+//         };
+//         await borrower.save();
+
+//         loan.status = 'disbursed';
+//         loan.disbursedAmount = loan.loanAmount;
+//         loan.disbursedDate = disbursedDate;
+//         await loan.save();
+
+//         await createTransactionAndLedger({
+//             account: borrower,
+//             type: 'loanDisbursed',
+//             amount: loan.loanAmount,
+//             description: `Loan Disbursed for ₹${loan.loanAmount}`,
+//             date: disbursedDate,
+//             loanId: loan?._id,
+//             createdBy: req.user?.name || 'Loan Admin'
+//         });
+
+//         return successResponse(res, 200, 'Loan disbursed successfully', loan);
+//     } catch (err) {
+//         return errorResponse(res, 500, 'Loan disbursement failed', err.message);
+//     }
+// };
 
 // ✅ Repay Loan
 export const repayLoan = async (req, res) => {
@@ -196,6 +254,8 @@ export const repayLoan = async (req, res) => {
         if (!loan || loan.status !== 'disbursed') return badRequestResponse(res, 400, 'Invalid loan');
 
         const borrower = loan.borrower;
+        console.log('Borrower:', borrower.balance);
+        console.log('amount:', amount);
         if (borrower.balance < amount) return badRequestResponse(res, 400, 'Insufficient balance');
 
         loan.repaymentSchedule = loan.repaymentSchedule || [];

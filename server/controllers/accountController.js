@@ -11,6 +11,7 @@ import {
 } from "../utils/response.js";
 import { createTransactionAndLedger } from "../utils/accountLedger.js";
 import Config from '../models/Config.js';
+import Loan from "../models/Loan.js";
 
 const withFullUrl = (path, baseUrl) => {
     if (!path) return null;
@@ -42,7 +43,7 @@ export const upsertAccount = async (req, res) => {
             address, aadhar, depositAmount, introducerName,
             membershipNumber, introducerKnownSince, accountNumber,
             nomineeName, nomineeRelation, nomineeAge, managerName,
-            lekhpalOrRokapal, formDate, accountOpenDate,
+            lekhpalOrRokapal, formDate, accountOpenDate, loanType
         } = req.body;
 
         const config = await Config.findOne();
@@ -62,7 +63,7 @@ export const upsertAccount = async (req, res) => {
             relation,
             address: typeof address === 'string' ? JSON.parse(address) : address,
             aadhar,
-            depositAmount: actualDeposit,
+            depositAmount: accountType?.toLowerCase() === 'loan' ? 0 : actualDeposit,
             introducerName,
             membershipNumber,
             introducerKnownSince,
@@ -89,18 +90,52 @@ export const upsertAccount = async (req, res) => {
         if (accId) {
             account = await Account.findByIdAndUpdate(accId, payload, { new: true });
         } else {
-            payload.balance = actualDeposit;
-            account = await Account.create(payload);
+            if (accountType?.toLowerCase() === 'loan') {
+                const config = await Config.findOne();
+                const interestRate = config?.interestRates?.find(r => r.type === loanType)?.rate || 12;
 
-            if (actualDeposit > 0) {
-                await createTransactionAndLedger({
-                    account,
-                    type: 'deposit',
-                    amount: actualDeposit,
-                    description: 'Initial deposit',
-                    date: payload.accountOpenDate || new Date(),
-                    createdBy: req.user?.name || 'System',
+                payload.hasLoan = true;
+                payload.loanDetails = {
+                    totalLoanAmount: depositAmount, // You can also call this loanAmount
+                    disbursedAmount: 0,
+                    interestRate: interestRate,
+                    tenureMonths: parseInt(tenure) || 12,
+                    emiAmount: 0,
+                    disbursedDate: null,
+                    status: 'draft',
+                    nextDueDate: null
+                };
+
+                payload.depositAmount = 0;
+                payload.balance = 0;
+
+                account = await Account.create(payload);
+
+                // Optional: Also create a separate Loan record if your system still needs it
+                await Loan.create({
+                    borrower: account._id,
+                    loanAmount: depositAmount,
+                    loanType: loanType,
+                    interestRate: interestRate,
+                    tenureMonths: parseInt(tenure) || 12,
+                    status: 'draft',
+                    remarks: 'Loan created during account creation',
+                    repaymentSchedule: []
                 });
+            } else {
+                payload.balance = actualDeposit;
+                account = await Account.create(payload);
+
+                if (actualDeposit > 0) {
+                    await createTransactionAndLedger({
+                        account,
+                        type: 'deposit',
+                        amount: actualDeposit,
+                        description: 'Initial deposit',
+                        date: payload.accountOpenDate || new Date(),
+                        createdBy: req.user?.name || 'System',
+                    });
+                }
             }
 
             await notify(req.user || {}, "Account Created", `Account #${payload.accountNumber} created`);

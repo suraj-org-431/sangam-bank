@@ -13,11 +13,8 @@ export const createTransactionAndLedger = async ({ account, type, amount, descri
         loanId, // Optional, for loan-related transactions
     });
     // 🧮 Update account balance
-    if (type === 'deposit' || type === 'loanDisbursed') {
-        // account.balance = parsedAmount;
-        // console.log(account.balance, "Account Balance ");
-        // console.log(parsedAmount, "Parsed Account Balance ");
-        // console.log(account.balance + parsedAmount, "Account Balance after transaction");
+    if (type === 'deposit') {
+        account.balance = parsedAmount;
 
     } else if (type === 'withdrawal' || type === 'loanRepayment') {
         if (account.balance < parsedAmount) {

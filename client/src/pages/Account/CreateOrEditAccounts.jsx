@@ -3,12 +3,15 @@ import { toast } from 'react-toastify';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { generateAccountNumber, upsertAccountDetails } from '../../api/account';
 import { adminRoute } from '../../utils/router';
+import { getConfig } from '../../api/config';
 
 const CreateAccounts = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { accountData } = location.state || {};
     const [loading, setLoading] = useState(false);
+    const [interestRates, setInterestRates] = useState({});
+    const [tenureOptions, setTenureOptions] = useState([]);
 
     const [formData, setFormData] = useState({
         accountType: '',
@@ -45,9 +48,29 @@ const CreateAccounts = () => {
         profileImage: null,
         signature: null,
         verifierSignature: null,
-        agreedToTerms: false
+        agreedToTerms: false,
+        loanType: '',
+        interestRate: '',
 
     });
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            const config = await getConfig();
+            if (config?.interestRates) {
+                const ratesMap = {};
+                config.interestRates.forEach(rate => {
+                    ratesMap[rate.type] = rate.rate;
+                });
+                setInterestRates(ratesMap);
+            }
+            if (Array.isArray(config.loanDurations)) {
+                setTenureOptions(config.loanDurations);
+            }
+        };
+
+        fetchConfig();
+    }, []);
 
     useEffect(() => {
         const formatDate = (dateStr) => {
@@ -83,7 +106,6 @@ const CreateAccounts = () => {
         const val = type === 'checkbox' ? checked
             : type === 'file' ? files[0]
                 : value.trimStart();
-
         if (name.includes('address.')) {
             const [_, field] = name.split('.');
             setFormData(prev => ({
@@ -93,6 +115,15 @@ const CreateAccounts = () => {
                     [field]: val
                 }
             }));
+        }
+        else if (name === 'loanType') {
+            const rate = interestRates[value] || '';
+            setFormData(prev => ({
+                ...prev,
+                loanType: value,
+                interestRate: rate
+            }));
+            return;
         } else {
             setFormData(prev => ({ ...prev, [name]: val }));
         }
@@ -214,7 +245,7 @@ const CreateAccounts = () => {
                 'introducerKnownSince', 'accountNumber', 'nomineeName', 'nomineeRelation',
                 'nomineeAge', 'managerName', 'lekhpalOrRokapal', 'formDate',
                 'accountOpenDate', 'address', 'signature', 'verifierSignature',
-                'profileImage'
+                'profileImage', 'loanType', 'interestRate'
             ];
 
             const cleanPayload = {
@@ -234,8 +265,6 @@ const CreateAccounts = () => {
                     formPayload.append(key, value);
                 }
             }
-            console.log('Submitting form with payload:', Object.fromEntries(formPayload.entries()));
-
             await upsertAccountDetails(formPayload); // Update backend to accept multipart/form-data
             toast.success(accountData ? 'Account updated' : 'Account created');
             navigate(adminRoute('/accounts'));
@@ -283,10 +312,55 @@ const CreateAccounts = () => {
                                 <option value="Loan">Loan / ऋण</option>
                             </select>
                         </div>
-                        {formData.accountType === 'Recurring' && (
+                        {formData.accountType === 'Loan' && (
+                            <>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-black">Loan Type / ऋण प्रकार</label>
+                                    <select
+                                        name="loanType"
+                                        value={formData.loanType}
+                                        onChange={handleChange}
+                                        className="form-select"
+                                    >
+                                        <option value="">Select / चुनें</option>
+                                        <option value="personal">Personal / व्यक्तिगत</option>
+                                        <option value="education">Education / शिक्षा</option>
+                                        <option value="gold">Gold / सोना</option>
+                                        <option value="vehicle">Vehicle / वाहन</option>
+                                        <option value="home">Home / आवास</option>
+                                        <option value="business">Business / व्यवसाय</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-black">Interest Rate (%) / ब्याज दर</label>
+                                    <input
+                                        name="interestRate"
+                                        type="number"
+                                        className="form-control"
+                                        value={formData.interestRate}
+                                        readOnly
+                                    />
+                                </div>
+                            </>
+                        )}
+                        {formData.accountType === 'Recurring' || formData.accountType === 'Loan' && (
                             <div className="col-md-6 mb-3">
                                 <label className="form-label text-black">Tenure (months) / अवधि</label>
-                                <input name="tenure" type="number" value={formData.tenure} onChange={handleChange} className="form-control" />
+                                <select
+                                    name="tenure"
+                                    className="form-control"
+                                    value={formData.tenure}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="">Select tenure</option>
+                                    {tenureOptions.map(month => (
+                                        <option key={month} value={month}>
+                                            {month} months
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         )}
                         <div className="col-md-6 mb-3">
@@ -366,7 +440,7 @@ const CreateAccounts = () => {
                             <input name="aadhar" value={formData.aadhar} onChange={handleChange} className="form-control" />
                         </div>
                         <div className="col-md-6 mb-3">
-                            <label className="form-label text-black">Deposit Amount / जमा राशि</label>
+                            <label className="form-label text-black">{formData?.accountType === "Loan" ? 'Loan Amount / ऋण राशि' : 'Deposit Amount / जमा राशि'}</label>
                             <input name="depositAmount" type="number" value={formData.depositAmount} onChange={handleChange} className="form-control" />
                         </div>
 

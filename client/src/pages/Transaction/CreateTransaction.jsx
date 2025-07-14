@@ -42,8 +42,8 @@ const CreateTransaction = () => {
                 setFormData({
                     accountId: acc._id,
                     accountType: acc.accountType,
-                    type: acc.accountType === 'Savings' ? 'deposit' : 'withdrawal',
-                    amount: acc.accountType === 'Savings' || acc.accountType === 'Current' ? '' : acc.balance,
+                    type: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
+                    amount: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? acc.balance : '',
                     description: '',
                     date: new Date().toISOString().split('T')[0]
                 });
@@ -125,6 +125,7 @@ const CreateTransaction = () => {
                                     onChange={handleChange}
                                     className="form-select"
                                     required
+                                    disabled={['Fixed', 'Recurring', 'Loan'].includes(selectedAccount?.accountType)}
                                 >
                                     <option value="">Select</option>
                                     {allowedTransactionTypes[selectedAccount?.accountType]?.map(t => (
