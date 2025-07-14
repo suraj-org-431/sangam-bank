@@ -29,7 +29,6 @@ import messageRoutes from "./routes/messagesRoutes.js";
 import accountRoutes from "./routes/accountRoutes.js";
 import ledgerRoutes from "./routes/ledgerRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
-import interestRoutes from './routes/interestRoutes.js';
 import loanRoutes from './routes/loanRoutes.js';
 import configRoutes from './routes/configRoutes.js';
 import { applyInterestToAllAccounts } from "./utils/interestService.js";
@@ -100,7 +99,6 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/ledger", ledgerRoutes);
 app.use("/api/transactions", transactionRoutes);
-app.use('/api/interest', interestRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/config', configRoutes);
 

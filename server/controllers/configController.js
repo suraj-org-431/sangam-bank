@@ -1,5 +1,6 @@
 import Config from '../models/Config.js';
-import { successResponse, errorResponse, badRequestResponse } from '../utils/response.js';
+import { applyInterestToAllAccounts } from "../utils/interestService.js";
+import { successResponse, errorResponse } from '../utils/response.js';
 
 // 🔍 Get config
 export const getConfig = async (req, res) => {
@@ -26,5 +27,16 @@ export const updateConfig = async (req, res) => {
         return successResponse(res, 200, 'Config updated successfully', config);
     } catch (err) {
         return errorResponse(res, 500, 'Failed to update config', err.message);
+    }
+};
+
+
+// ✅ Apply Interest to All Accounts
+export const applyMonthlyInterest = async (req, res) => {
+    try {
+        const result = await applyInterestToAllAccounts();
+        return successResponse(res, 200, "Monthly interest applied", result);
+    } catch (err) {
+        return errorResponse(res, 500, "Interest application failed", err.message);
     }
 };

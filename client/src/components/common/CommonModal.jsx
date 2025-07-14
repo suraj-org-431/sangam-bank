@@ -59,7 +59,7 @@ const CommonModal = ({
                         : emoji ? (
                             <div className="text-center py-4">
                                 <div style={{ fontSize: '4rem' }}>{emoji}</div>
-                                <p className="mt-3">{body}</p>
+                                <div className="mt-3">{body}</div>
                             </div>
                         ) : (
                             children || <p>{body}</p>

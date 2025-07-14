@@ -1,13 +1,16 @@
 import Account from '../models/Account.js';
 import Ledger from '../models/Ledger.js';
-import InterestRate from '../models/InterestRate.js';
+import Config from '../models/Config.js';
 
 export const applyInterestToAllAccounts = async () => {
     try {
-        const interestRates = await InterestRate.find().lean();
+        const config = await Config.findOne().lean();
+        const interestRates = config?.interestRates || [];
+        const now = new Date();
+
         const accounts = await Account.find();
 
-        const now = new Date();
+        let appliedCount = 0;
 
         for (const account of accounts) {
             // ⛔ Skip auto-created accounts
@@ -16,18 +19,25 @@ export const applyInterestToAllAccounts = async () => {
                 continue;
             }
 
-            const rate = interestRates.find(r => r.accountType === account.accountType);
-            const monthlyRate = rate?.rate || 0;
+            // 🔍 Find interest rate for the account type
+            const rateEntry = interestRates.find(r => r?.type?.toLowerCase() === account.accountType?.toLowerCase());
+            if (!rateEntry) {
+                console.warn(`⚠️ No rate found for type: ${account.accountType}`);
+                continue;
+            }
+            const monthlyRate = rateEntry?.rate || 0;
 
-            if (!rate || !monthlyRate) continue;
+            if (!monthlyRate || monthlyRate <= 0) continue;
 
             const interestAmount = parseFloat(((account.balance * monthlyRate) / 100).toFixed(2));
             if (interestAmount <= 0) continue;
 
             account.balance += interestAmount;
-            const upd = await account.save();
 
-            await Ledger.create({
+            const updated = await account.save();
+            console.log(`✅ Account updated: ${account.accountNumber}, New Balance: ₹${updated.balance}`);
+
+            const ledgerEntry = await Ledger.create({
                 accountId: account._id,
                 particulars: account.applicantName || 'Unnamed',
                 transactionType: 'interest',
@@ -37,13 +47,14 @@ export const applyInterestToAllAccounts = async () => {
                 date: now,
                 createdBy: 'Auto Interest',
             });
+            console.log(`📘 Ledger created: ID ${ledgerEntry._id}`);
+
+            appliedCount++;
         }
 
-        return { success: true, appliedTo: accounts.length };
+        return { success: true, updatedCount: appliedCount };
+    } catch (err) {
+        console.error('❌ Error applying interest:', err);
+        throw new Error('Failed to apply interest');
     }
-    catch (err) {
-        console.error("❌ Error applying interest:", err);
-        throw new Error("Failed to apply interest");
-    }
-
 };
