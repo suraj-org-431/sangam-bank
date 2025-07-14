@@ -149,7 +149,7 @@ const AdminHeader = () => {
                             </button>
                             <ul className="dropdown-menu dropdown-menu-end">
                                 <li><Link className="dropdown-item" to={adminRoute("/user-profile")}>Profile</Link></li>
-                                <li><Link className="dropdown-item" to={adminRoute("/user-settings")}>Settings</Link></li>
+                                <li><Link className="dropdown-item" to={adminRoute("/system-settings")}>Settings</Link></li>
                                 <li><hr className="dropdown-divider" /></li>
                                 <li><Link className="dropdown-item" components="button" onClick={handleLogout}>Logout</Link></li>
                             </ul>

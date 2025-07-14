@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import './Login.css';
 import logo from '../../assets/images/logo.png';
 import { Link, useNavigate } from 'react-router-dom';
-
 import { login } from '../../api/auth';
 import { getToken, getUser, setToken, setUser } from '../../utils/auth';
 import { adminRoute } from '../../utils/router';
@@ -39,18 +38,25 @@ const Login = () => {
 
         try {
             setLoading(true);
-            const { token, user } = await login(email, password);
+            const res = await login(email, password);
 
-            setToken(token);
-            setUser(user);
+            if (!res?.token || !res?.user) {
+                setError("Invalid login response.");
+                return;
+            }
 
-            navigate('/admin/dashboard');
+            setToken(res.token);
+            setUser(res.user);
+
+            navigate(adminRoute('/dashboard'));
         } catch (err) {
-            setError(err.response?.data?.message || "Login failed.");
+            console.error("Login failed:", err); // ✅ Log the error
+            setError(err.message || "Login failed.");
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="login-container d-flex align-items-center justify-content-center">
@@ -58,7 +64,7 @@ const Login = () => {
                 {/* Left Side */}
                 <div className="left-side d-flex align-items-center justify-content-center flex-column text-center">
                     <img src={logo} alt="Bailey and Co." className="logo mb-3" />
-                    <h2 className="brand-text">Bailey and Co.</h2>
+                    <h2 className="brand-text">संगम परिवार साख स्वावलंबी <br />सहकारी समिति</h2>
                 </div>
 
                 {/* Vertical Divider Line */}
@@ -72,7 +78,7 @@ const Login = () => {
 
                         {error && <div className="alert alert-danger py-2">{error}</div>}
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmit} noValidate>
                             <div className="mb-3">
                                 <input
                                     type="email"
@@ -107,7 +113,7 @@ const Login = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
