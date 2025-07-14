@@ -148,30 +148,32 @@ const Transactions = () => {
                                             <td>{tx.accountId?.accountNumber || '-'}</td>
                                             <td>{tx.accountId?.applicantName || '-'}</td>
                                             <td>{tx.accountId?.accountType || '-'}</td>
-                                            <td className={
-                                                tx.type === 'deposit' ? 'text-success' :
-                                                    tx.type === 'loanDisbursed' ? 'text-primary' :
-                                                        tx.type === 'loanRepayment' ? 'text-warning' :
-                                                            tx.type === 'transfer' ? 'text-info' :
-                                                                'text-danger'
-                                            }>
-                                                {(() => {
-                                                    switch (tx.type) {
-                                                        case 'deposit':
-                                                            return 'Deposit / जमा';
-                                                        case 'withdrawal':
-                                                            return 'Withdrawal / निकासी';
-                                                        case 'transfer':
-                                                            return 'Transfer / ट्रांसफर';
-                                                        case 'loanDisbursed':
-                                                            return 'Loan Disbursed / ऋण वितरण';
-                                                        case 'loanRepayment':
-                                                            return 'Loan Repayment / ऋण भुगतान';
-                                                        default:
-                                                            return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
-                                                    }
-                                                })()}
+                                            <td>
+                                                <span className={`badge ${tx.type === 'deposit' ? 'bg-success' :
+                                                    tx.type === 'loanDisbursed' ? 'bg-primary' :
+                                                        tx.type === 'loanRepayment' ? 'bg-warning text-dark' :
+                                                            tx.type === 'transfer' ? 'bg-info text-dark' :
+                                                                'bg-danger'
+                                                    }`}>
+                                                    {(() => {
+                                                        switch (tx.type) {
+                                                            case 'deposit':
+                                                                return 'Deposit / जमा';
+                                                            case 'withdrawal':
+                                                                return 'Withdrawal / निकासी';
+                                                            case 'transfer':
+                                                                return 'Transfer / ट्रांसफर';
+                                                            case 'loanDisbursed':
+                                                                return 'Loan Disbursed / ऋण वितरण';
+                                                            case 'loanRepayment':
+                                                                return 'Loan Repayment / ऋण भुगतान';
+                                                            default:
+                                                                return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
+                                                        }
+                                                    })()}
+                                                </span>
                                             </td>
+
                                             <td>{tx.amount?.toFixed(2)}</td>
                                             <td>{tx.description || '-'}</td>
                                         </tr>

@@ -70,29 +70,30 @@ const LedgerSummary = () => {
                                         <tr key={entry._id}>
                                             <td>{idx + 1}</td>
                                             <td>{new Date(entry?.date).toLocaleDateString('en-IN')}</td>
-                                            <td className={
-                                                entry.transactionType === 'deposit' ? 'text-success' :
-                                                    entry.transactionType === 'loanDisbursed' ? 'text-primary' :
-                                                        entry.transactionType === 'loanRepayment' ? 'text-warning' :
-                                                            entry.transactionType === 'transfer' ? 'text-info' :
-                                                                'text-danger'
-                                            }>
-                                                {(() => {
-                                                    switch (entry.transactionType) {
-                                                        case 'deposit':
-                                                            return 'Deposit / जमा';
-                                                        case 'withdrawal':
-                                                            return 'Withdrawal / निकासी';
-                                                        case 'transfer':
-                                                            return 'Transfer / ट्रांसफर';
-                                                        case 'loanDisbursed':
-                                                            return 'Loan Disbursed / ऋण वितरण';
-                                                        case 'loanRepayment':
-                                                            return 'Loan Repayment / ऋण भुगतान';
-                                                        default:
-                                                            return entry.transactionType.charAt(0).toUpperCase() + entry.transactionType.slice(1);
-                                                    }
-                                                })()}
+                                            <td>
+                                                <span className={`badge ${entry.transactionType === 'deposit' ? 'bg-success' :
+                                                    entry.transactionType === 'loanDisbursed' ? 'bg-primary' :
+                                                        entry.transactionType === 'loanRepayment' ? 'bg-warning text-dark' :
+                                                            entry.transactionType === 'transfer' ? 'bg-info text-dark' :
+                                                                'bg-danger'
+                                                    }`}>
+                                                    {(() => {
+                                                        switch (entry.transactionType) {
+                                                            case 'deposit':
+                                                                return 'Deposit / जमा';
+                                                            case 'withdrawal':
+                                                                return 'Withdrawal / निकासी';
+                                                            case 'transfer':
+                                                                return 'Transfer / ट्रांसफर';
+                                                            case 'loanDisbursed':
+                                                                return 'Loan Disbursed / ऋण वितरण';
+                                                            case 'loanRepayment':
+                                                                return 'Loan Repayment / ऋण भुगतान';
+                                                            default:
+                                                                return entry.transactionType.charAt(0).toUpperCase() + entry.transactionType.slice(1);
+                                                        }
+                                                    })()}
+                                                </span>
                                             </td>
                                             <td>₹ {entry.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                             <td>{entry.description || '-'}</td>

@@ -177,10 +177,31 @@ const Dashboard = () => {
                                     <td>{format(new Date(tx.date), 'dd MMM yyyy')}</td>
                                     <td>{tx?.accountId?.accountNumber}</td>
                                     <td>
-                                        <span className={`badge ${tx.type === "deposit" ? "bg-success" : "bg-danger"}`}>
-                                            {tx.type}
+                                        <span className={`badge ${tx.type === 'deposit' ? 'bg-success' :
+                                            tx.type === 'loanDisbursed' ? 'bg-primary' :
+                                                tx.type === 'loanRepayment' ? 'bg-warning text-dark' :
+                                                    tx.type === 'transfer' ? 'bg-info text-dark' :
+                                                        'bg-danger'
+                                            }`}>
+                                            {(() => {
+                                                switch (tx.type) {
+                                                    case 'deposit':
+                                                        return 'Deposit / जमा';
+                                                    case 'withdrawal':
+                                                        return 'Withdrawal / निकासी';
+                                                    case 'transfer':
+                                                        return 'Transfer / ट्रांसफर';
+                                                    case 'loanDisbursed':
+                                                        return 'Loan Disbursed / ऋण वितरण';
+                                                    case 'loanRepayment':
+                                                        return 'Loan Repayment / ऋण भुगतान';
+                                                    default:
+                                                        return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
+                                                }
+                                            })()}
                                         </span>
                                     </td>
+
                                     <td>₹{tx.amount.toLocaleString()}</td>
                                     <td>
                                         <span className={`badge ${tx?.accountId?.status === true ? "bg-success" :

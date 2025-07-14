@@ -86,9 +86,10 @@ const Loans = () => {
                                 onChange={handleFilterChange}
                             >
                                 <option value="">All</option>
-                                <option value="pending">Pending</option>
+                                <option value="draft">Draft</option>
                                 <option value="approved">Approved</option>
                                 <option value="disbursed">Disbursed</option>
+                                <option value="prepaid">Prepaid</option>
                                 <option value="closed">Closed</option>
                             </Form.Select>
                         </div>
@@ -106,22 +107,26 @@ const Loans = () => {
 
                 {/* Search */}
                 <div className="d-flex justify-content-end gap-2 mb-3">
-                    <input
-                        type="text"
-                        placeholder="Search borrower..."
-                        className="form-control form-control-sm"
-                        value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                    />
-                    <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => navigate(adminRoute('/loan/create'))}
-                    >
-                        + Create Loan
-                    </button>
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Search borrower..."
+                            className="form-control form-control-sm"
+                            value={query}
+                            onChange={(e) => {
+                                setQuery(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => navigate(adminRoute('/loan/create'))}
+                        >
+                            + Create Loan
+                        </button>
+                    </div>
                 </div>
 
                 {/* Table */}
