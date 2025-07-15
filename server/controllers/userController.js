@@ -123,7 +123,6 @@ export const createUser = async (req, res) => {
             newUser.profilePic = `/uploads/profilePics/${req.file.filename}`;
         }
         const user = await createNewUser(newUser);
-        await notify(user._id, "New User Registered", `User ${user.name} has been created.`);
 
         return successResponse(res, 201, "User created successfully", user);
     } catch (err) {

@@ -12,7 +12,7 @@ const addressSchema = new Schema({
 }, { _id: false });
 
 const accountsSchema = new Schema({
-    accountType: { type: String, enum: ['Savings', 'Recurring', 'Fixed', 'Current', 'Loan', 'MIS'] },
+    accountType: { type: String, enum: ['Savings', 'Recurring', 'Fixed', 'Current', 'Loan', 'MIS', 'Auto-Created'] },
     tenure: { type: Number, default: 0 },
     branch: { type: String },
     applicantName: { type: String },

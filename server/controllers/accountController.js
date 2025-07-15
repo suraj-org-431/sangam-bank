@@ -138,7 +138,7 @@ export const upsertAccount = async (req, res) => {
                 }
             }
 
-            await notify(req.user || {}, "Account Created", `Account #${payload.accountNumber} created`);
+            await notify(account._id || {}, "Account Created", `Account #${payload.accountNumber} created`);
         }
 
         return successResponse(res, 200, "Account saved successfully", account);

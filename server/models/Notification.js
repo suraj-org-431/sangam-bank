@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const notificationSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     title: String,
     body: String,
     isRead: { type: Boolean, default: false },

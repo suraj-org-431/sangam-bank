@@ -204,7 +204,6 @@ select.form-select-md {
 }
 
 .profile-avatar {
-  width: 84px;
   height: 40px;
   object-fit: cover;
   border-radius: 50%;

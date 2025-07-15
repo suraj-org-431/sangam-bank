@@ -3,6 +3,7 @@ import Ledger from "../models/Ledger.js";
 
 export const createTransactionAndLedger = async ({ account, type, amount, description, date, loanId, createdBy }) => {
     const parsedAmount = parseFloat(amount);
+
     // ✅ Create transaction
     const tx = await Transaction.create({
         accountId: account._id,
@@ -12,9 +13,10 @@ export const createTransactionAndLedger = async ({ account, type, amount, descri
         date,
         loanId, // Optional, for loan-related transactions
     });
+
     // 🧮 Update account balance
     if (type === 'deposit') {
-        account.balance = parsedAmount;
+        account.balance += parsedAmount;
 
     } else if (type === 'withdrawal' || type === 'loanRepayment') {
         if (account.balance < parsedAmount) {

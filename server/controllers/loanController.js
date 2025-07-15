@@ -1,8 +1,6 @@
 // controllers/loanController.js
 import Loan from '../models/Loan.js';
 import Account from '../models/Account.js';
-import Ledger from '../models/Ledger.js';
-import Transaction from '../models/Transaction.js';
 import { createTransactionAndLedger } from '../utils/accountLedger.js'; // adjust path if needed
 import { successResponse, errorResponse, badRequestResponse } from '../utils/response.js';
 
@@ -74,7 +72,7 @@ export const getAllLoans = async (req, res) => {
                         (loan.loanAmount * monthlyInterestRate *
                             Math.pow(1 + monthlyInterestRate, loan.tenureMonths)) /
                         (Math.pow(1 + monthlyInterestRate, loan.tenureMonths) - 1)
-                    ).toFixed(2)
+                    )
                     : null;
 
             return {
@@ -254,8 +252,6 @@ export const repayLoan = async (req, res) => {
         if (!loan || loan.status !== 'disbursed') return badRequestResponse(res, 400, 'Invalid loan');
 
         const borrower = loan.borrower;
-        console.log('Borrower:', borrower.balance);
-        console.log('amount:', amount);
         if (borrower.balance < amount) return badRequestResponse(res, 400, 'Insufficient balance');
 
         loan.repaymentSchedule = loan.repaymentSchedule || [];

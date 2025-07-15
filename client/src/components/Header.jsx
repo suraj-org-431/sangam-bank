@@ -70,7 +70,7 @@ const AdminHeader = () => {
                     <div className='d-flex align-items-center gap-3'>
 
                         {/* Country Selector */}
-                        <input type="text" className='form-control' placeholder="Search Account..." />
+                        {/* <input type="text" className='form-control' placeholder="Search Account..." /> */}
 
                         {/* Notifications */}
                         <div className="dropdown">

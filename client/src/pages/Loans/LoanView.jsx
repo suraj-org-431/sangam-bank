@@ -4,6 +4,7 @@ import { getLoanById, disburseLoan, repayLoan, approveLoan } from '../../api/loa
 import { adminRoute } from '../../utils/router';
 import { toast } from 'react-toastify';
 import EMICalculator from './EMICalculator';
+import { getConfig } from '../../api/config';
 
 const LoanView = () => {
     const { loanId } = useParams();
@@ -11,10 +12,22 @@ const LoanView = () => {
     const [loan, setLoan] = useState(null);
     const [repayAmount, setRepayAmount] = useState('');
     const [repayMode, setRepayMode] = useState('emi');
+    const [repaymentModes, setRepaymentModes] = useState([]);
+
 
     useEffect(() => {
         fetchLoan();
+        fetchConfig();
     }, [loanId]);
+
+    const fetchConfig = async () => {
+        try {
+            const res = await getConfig();
+            setRepaymentModes(res?.repaymentModes);
+        } catch (err) {
+            toast.error('Failed to fetch config');
+        }
+    };
 
     const fetchLoan = async () => {
         try {
@@ -57,8 +70,15 @@ const LoanView = () => {
     const getTotalPaid = () =>
         loan?.repaymentSchedule?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
 
-    const getRemainingBalance = () =>
-        Math.max(loan?.loanAmount - getTotalPaid(), 0).toFixed(2);
+    const getRemainingBalance = () => {
+        const emi = calculateEMI();
+        if (!emi || !loan?.tenureMonths) return '0.00';
+
+        const totalPayable = emi * loan.tenureMonths;
+        const totalPaid = getTotalPaid();
+
+        return Math.max(totalPayable - totalPaid, 0).toFixed(2);
+    };
 
     const handleRepayment = async () => {
         let amount = 0;
@@ -140,13 +160,16 @@ const LoanView = () => {
                         <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN')}</p>
                         <p><strong>Interest Rate:</strong> {loan.interestRate}%</p>
                         <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
+                        <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
+                        <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
+
                     </div>
                     <div className="col-md-6">
-                        <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
                         <p><strong>Monthly EMI:</strong> ₹{calculateEMI()?.toLocaleString('en-IN')}</p>
-                        <p><strong>Total Payable:</strong> ₹{(calculateEMI() * loan.tenureMonths).toLocaleString('en-IN')}</p>
+                        <p><strong>Principal:</strong> ₹{loan.loanAmount.toLocaleString('en-IN')}</p>
+                        <p><strong>Total Interest:</strong> ₹{((calculateEMI() * loan.tenureMonths) - loan.loanAmount).toFixed(2).toLocaleString('en-IN')}</p>
+                        <p><strong>Total Payable:</strong> ₹{(calculateEMI() * loan.tenureMonths).toFixed(2).toLocaleString('en-IN')}</p>
                         <p><strong>Total Paid:</strong> ₹{getTotalPaid().toLocaleString('en-IN')}</p>
-                        <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
                     </div>
                 </div>
 
@@ -172,9 +195,11 @@ const LoanView = () => {
                                 value={repayMode}
                                 onChange={(e) => setRepayMode(e.target.value)}
                             >
-                                <option value="emi">Monthly EMI</option>
-                                <option value="full">Repay Full</option>
-                                <option value="custom">Custom Amount</option>
+                                {repaymentModes.map((mode) => (
+                                    <option key={mode} value={mode}>
+                                        {mode?.toUpperCase()} {mode === 'emi' ? '(₹' + calculateEMI()?.toLocaleString('en-IN') + ')' : mode === 'full' ? '(₹' + getRemainingBalance() + ')' : ''}
+                                    </option>
+                                ))}
                             </select>
 
                             {repayMode === 'custom' && (

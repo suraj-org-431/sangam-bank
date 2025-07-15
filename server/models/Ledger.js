@@ -17,6 +17,13 @@ const ledgerSchema = new Schema({
     date: { type: Date, default: Date.now },
     amount: { type: Number, required: true },
     balance: { type: Number, default: 0 }, // Running balance after this transaction
+    adjustmentType: {
+        type: String,
+        enum: ['waiver', 'partial', 'restructure'],
+        required: function () {
+            return this.type === 'loanAdjustment';
+        }
+    },
     createdBy: { type: String }, // admin/manager name or ID
 }, { timestamps: true });
 
