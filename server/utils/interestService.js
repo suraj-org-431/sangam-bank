@@ -5,7 +5,7 @@ import Config from '../models/Config.js';
 export const applyInterestToAllAccounts = async () => {
     try {
         const config = await Config.findOne().lean();
-        const interestRates = config?.interestRates || [];
+        const interestRates = config?.monthlyInterestRates || [];
         const now = new Date();
 
         const accounts = await Account.find();

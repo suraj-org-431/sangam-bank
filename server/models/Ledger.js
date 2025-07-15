@@ -9,7 +9,7 @@ const ledgerSchema = new Schema({
         type: String,
         enum: [
             'deposit', 'withdrawal', 'interest',
-            'loanDisbursed', 'loanRepayment', 'adjustment'
+            'loanDisbursed', 'loanRepayment', 'adjustment', 'rdInstallment'
         ],
         required: true
     },

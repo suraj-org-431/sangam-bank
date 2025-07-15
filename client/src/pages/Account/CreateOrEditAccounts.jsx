@@ -57,9 +57,9 @@ const CreateAccounts = () => {
     useEffect(() => {
         const fetchConfig = async () => {
             const config = await getConfig();
-            if (config?.interestRates) {
+            if (config?.loanInterestRates) {
                 const ratesMap = {};
-                config.interestRates.forEach(rate => {
+                config.loanInterestRates.forEach(rate => {
                     ratesMap[rate.type] = rate.rate;
                 });
                 setInterestRates(ratesMap);
@@ -461,8 +461,27 @@ const CreateAccounts = () => {
                             <input name="aadhar" value={formData.aadhar} onChange={handleChange} className="form-control" />
                         </div>
                         <div className="col-md-6 mb-3">
-                            <label className="form-label text-black">{formData?.accountType === "Loan" ? 'Loan Amount / ऋण राशि' : 'Deposit Amount / जमा राशि'}</label>
-                            <input name="depositAmount" type="number" value={formData.depositAmount} onChange={handleChange} className="form-control" />
+                            <label className="form-label text-black">
+                                {formData?.accountType === "Loan"
+                                    ? "Loan Amount / ऋण राशि"
+                                    : formData?.accountType === "Recurring"
+                                        ? "Monthly Installment / मासिक क़िस्त"
+                                        : "Deposit Amount / जमा राशि"}
+                            </label>
+                            <input
+                                name="depositAmount"
+                                type="number"
+                                value={formData.depositAmount}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder={
+                                    formData?.accountType === "Loan"
+                                        ? "Enter loan amount"
+                                        : formData?.accountType === "Recurring"
+                                            ? "Enter monthly installment"
+                                            : "Enter deposit amount"
+                                }
+                            />
                         </div>
 
                         <div className="col-md-6 mb-3">

@@ -170,7 +170,7 @@ export const getAllLedgers = async (req, res) => {
                 totalCredit: {
                     $sum: {
                         $cond: [
-                            { $in: ["$transactionType", ["deposit", "interest", "loanDisbursed", "openingBalance"]] },
+                            { $in: ["$transactionType", ["deposit", "loanDisbursed", "openingBalance", "rdInstallment"]] },
                             "$amount",
                             0
                         ]
@@ -202,7 +202,7 @@ export const getAllLedgers = async (req, res) => {
                         $switch: {
                             branches: [
                                 {
-                                    case: { $in: ["$transactionType", ["deposit", "interest", "loanDisbursed", "openingBalance"]] },
+                                    case: { $in: ["$transactionType", ["deposit", "loanDisbursed", "openingBalance", "rdInstallment"]] },
                                     then: "$amount"
                                 },
                                 {
@@ -325,6 +325,7 @@ export const getLedgerSummaryByParticular = async (req, res) => {
                 case 'interest':
                 case 'loanDisbursed':
                 case 'openingBalance':
+                case 'rdInstallment':
                     totalCredit += amt;
                     if (entry.transactionType === 'interest') totalInterest += amt;
                     balance += amt;
@@ -605,7 +606,7 @@ export const getOverallFinancialSummary = async (req, res) => {
             const amt = entry.amount || 0;
             totalLedgerAmount += amt;
 
-            if (entry.transactionType === 'deposit') {
+            if (["deposit", "rdInstallment"].includes(entry.transactionType)) {
                 totalDebit += amt;
                 closingBalance += amt;
             } else if (entry.transactionType === 'interest') {

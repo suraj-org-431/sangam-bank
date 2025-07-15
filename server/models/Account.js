@@ -48,8 +48,23 @@ const accountsSchema = new Schema({
         tenureMonths: { type: Number },
         emiAmount: { type: Number },
         disbursedDate: { type: Date },
-        status: { type: String, enum: ['draft', 'approved', 'disbursed', 'repaid', 'defaulted'], default: 'approved' },
+        status: { type: String, enum: ['draft', 'approved', 'disbursed', 'repaid', 'defaulted'], default: 'draft' },
         nextDueDate: { type: Date },
+    },
+    recurringDetails: {
+        installmentAmount: { type: Number },            // Monthly deposit
+        schedule: [{
+            month: Number,
+            dueDate: Date,
+            paid: { type: Boolean, default: false },
+            paidDate: Date,
+            fine: { type: Number, default: 0 },
+            paymentRef: String // transaction ID (optional)
+        }],
+        fineTotal: { type: Number, default: 0 },
+        completedInstallments: { type: Number, default: 0 },
+        isMatured: { type: Boolean, default: false },
+        maturityDate: Date
     },
     status: { type: Boolean, default: true },
 }, { timestamps: true });

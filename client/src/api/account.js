@@ -109,3 +109,13 @@ export const searchAccounts = async (query) => {
         throw new Error(err?.response?.data?.message || 'Failed to search accounts');
     }
 };
+
+// 🔹 Pay installment for RD account
+export const payRecurringInstallment = async (accountId) => {
+    try {
+        const res = await API.post(`/accounts/${accountId}/pay-installment`);
+        return res.data?.data;
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Failed to pay installment');
+    }
+};

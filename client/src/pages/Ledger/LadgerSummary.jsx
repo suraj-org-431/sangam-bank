@@ -6,7 +6,7 @@ import { adminRoute } from '../../utils/router';
 
 const LedgerSummary = () => {
     const { particular } = useParams();
-    const originalParticular = particular.replace(/-/g, '-');
+    const originalParticular = particular?.replace(/-/g, ' ');
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -15,14 +15,13 @@ const LedgerSummary = () => {
     useEffect(() => {
         const fetchEntries = async () => {
             try {
-                const res = await getLedgerSummaryByParticular(originalParticular, 1, 1000); // Fetch all entries for this particular
-
+                const res = await getLedgerSummaryByParticular(originalParticular, 1, 1000);
                 const filtered = res.entries?.filter(
-                    e => e.particulars?.toLowerCase() === originalParticular.toLowerCase()?.replace(/-/g, ' ')
+                    e => e.particulars?.toLowerCase() === originalParticular.toLowerCase()
                 ) || [];
                 setEntries(filtered);
             } catch (err) {
-                console.log(err);
+                console.error(err);
                 toast.error('Failed to fetch ledger entries');
             } finally {
                 setLoading(false);
@@ -32,10 +31,41 @@ const LedgerSummary = () => {
         fetchEntries();
     }, [originalParticular]);
 
-    const getTotal = (type) =>
+    const getTotal = (types = []) =>
         entries
-            .filter(e => e.transactionType === type)
+            .filter(e => types.includes(e.transactionType))
             .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    const formatAmount = (amount) =>
+        `₹ ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+    const getBadgeClass = (type) => {
+        switch (type) {
+            case 'deposit': return 'bg-success';
+            case 'rdInstallment': return 'bg-success';
+            case 'loanDisbursed': return 'bg-primary';
+            case 'loanRepayment': return 'bg-warning text-dark';
+            case 'transfer': return 'bg-info text-dark';
+            case 'interest': return 'bg-secondary';
+            case 'withdrawal':
+            case 'penalty': return 'bg-danger';
+            default: return 'bg-dark';
+        }
+    };
+
+    const getLabel = (type) => {
+        switch (type) {
+            case 'deposit': return 'Deposit / जमा';
+            case 'withdrawal': return 'Withdrawal / निकासी';
+            case 'transfer': return 'Transfer / ट्रांसफर';
+            case 'loanDisbursed': return 'Loan Disbursed / ऋण वितरण';
+            case 'loanRepayment': return 'Loan Repayment / ऋण भुगतान';
+            case 'interest': return 'Interest / ब्याज';
+            case 'rdInstallment': return 'RD Installment / आरडी जमा';
+            case 'penalty': return 'Penalty / दंड';
+            default: return type.charAt(0).toUpperCase() + type.slice(1);
+        }
+    };
 
     return (
         <div className="px-4 py-4">
@@ -65,57 +95,35 @@ const LedgerSummary = () => {
                                 <tr><td colSpan="5" className="text-center">No entries found.</td></tr>
                             ) : (
                                 <>
-                                    {entries.map((entry, idx) =>
-                                    (
+                                    {entries.map((entry, idx) => (
                                         <tr key={entry._id}>
                                             <td>{idx + 1}</td>
                                             <td>{new Date(entry?.date).toLocaleDateString('en-IN')}</td>
                                             <td>
-                                                <span className={`badge ${entry.transactionType === 'deposit' ? 'bg-success' :
-                                                    entry.transactionType === 'loanDisbursed' ? 'bg-primary' :
-                                                        entry.transactionType === 'loanRepayment' ? 'bg-warning text-dark' :
-                                                            entry.transactionType === 'transfer' ? 'bg-info text-dark' :
-                                                                'bg-danger'
-                                                    }`}>
-                                                    {(() => {
-                                                        switch (entry.transactionType) {
-                                                            case 'deposit':
-                                                                return 'Deposit / जमा';
-                                                            case 'withdrawal':
-                                                                return 'Withdrawal / निकासी';
-                                                            case 'transfer':
-                                                                return 'Transfer / ट्रांसफर';
-                                                            case 'loanDisbursed':
-                                                                return 'Loan Disbursed / ऋण वितरण';
-                                                            case 'loanRepayment':
-                                                                return 'Loan Repayment / ऋण भुगतान';
-                                                            default:
-                                                                return entry.transactionType.charAt(0).toUpperCase() + entry.transactionType.slice(1);
-                                                        }
-                                                    })()}
+                                                <span className={`badge ${getBadgeClass(entry.transactionType)}`}>
+                                                    {getLabel(entry.transactionType)}
                                                 </span>
                                             </td>
-                                            <td>₹ {entry.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            <td>{formatAmount(entry.amount || 0)}</td>
                                             <td>{entry.description || '-'}</td>
                                         </tr>
-                                    )
-                                    )}
+                                    ))}
                                     <tr className="fw-bold bg-light">
-                                        <td colSpan="4" className="text-end">Total Credit</td>
+                                        <td colSpan="4" className="text-end">Total Credit (Deposit + RD)</td>
                                         <td colSpan="1">
-                                            ₹ {getTotal('deposit').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            {formatAmount(getTotal(['deposit', 'rdInstallment']))}
                                         </td>
                                     </tr>
                                     <tr className="fw-bold bg-light">
                                         <td colSpan="4" className="text-end">Total Debit</td>
                                         <td colSpan="1">
-                                            ₹ {getTotal('withdrawal').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            {formatAmount(getTotal(['withdrawal', 'penalty', 'loanRepayment']))}
                                         </td>
                                     </tr>
                                     <tr className="fw-bold bg-light">
                                         <td colSpan="4" className="text-end">Total Interest</td>
                                         <td colSpan="1">
-                                            ₹ {getTotal('interest').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            {formatAmount(getTotal(['interest']))}
                                         </td>
                                     </tr>
                                 </>
