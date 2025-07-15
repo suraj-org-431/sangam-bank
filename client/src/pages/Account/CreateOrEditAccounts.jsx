@@ -124,6 +124,16 @@ const CreateAccounts = () => {
                 interestRate: rate
             }));
             return;
+        } else if (name === 'accountType') {
+            let updatedFields = { accountType: value };
+            if (value === 'MIS') {
+                updatedFields.tenure = 72;
+            }
+            setFormData(prev => ({
+                ...prev,
+                ...updatedFields
+            }));
+            return;
         } else {
             setFormData(prev => ({ ...prev, [name]: val }));
         }
@@ -308,7 +318,7 @@ const CreateAccounts = () => {
                                 <option value="Recurring">RD / आवर्ती जमा</option>
                                 <option value="Savings">Saving / बचत</option>
                                 <option value="Fixed">Fixed / सावधि जमा</option>
-                                <option value="Mis">MIS / मासिक आय योजना</option>
+                                <option value="MIS">MIS / मासिक आय योजना</option>
                                 <option value="Loan">Loan / ऋण</option>
                             </select>
                         </div>
@@ -344,23 +354,34 @@ const CreateAccounts = () => {
                                 </div>
                             </>
                         )}
-                        {formData.accountType === 'Recurring' || formData.accountType === 'Loan' && (
+                        {['Recurring', 'Loan', 'MIS'].includes(formData.accountType) && (
                             <div className="col-md-6 mb-3">
                                 <label className="form-label text-black">Tenure (months) / अवधि</label>
-                                <select
-                                    name="tenure"
-                                    className="form-control"
-                                    value={formData.tenure}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <option value="">Select tenure</option>
-                                    {tenureOptions.map(month => (
-                                        <option key={month} value={month}>
-                                            {month} months
-                                        </option>
-                                    ))}
-                                </select>
+                                {formData.accountType === 'MIS' ? (
+                                    <input
+                                        type="number"
+                                        name="tenure"
+                                        className="form-control"
+                                        value={72}
+                                        readOnly
+                                        disabled
+                                    />
+                                ) : (
+                                    <select
+                                        name="tenure"
+                                        className="form-control"
+                                        value={formData.tenure}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Select tenure</option>
+                                        {tenureOptions.map(month => (
+                                            <option key={month} value={month}>
+                                                {month} months
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         )}
                         <div className="col-md-6 mb-3">

@@ -123,7 +123,7 @@ export const upsertAccount = async (req, res) => {
                     repaymentSchedule: []
                 });
             } else {
-                payload.balance = actualDeposit;
+                // payload.balance = actualDeposit;
                 account = await Account.create(payload);
 
                 if (actualDeposit > 0) {
@@ -131,7 +131,7 @@ export const upsertAccount = async (req, res) => {
                         account,
                         type: 'deposit',
                         amount: actualDeposit,
-                        description: 'Initial deposit',
+                        description: 'Initial deposit on account opening',
                         date: payload.accountOpenDate || new Date(),
                         createdBy: req.user?.name || 'System',
                     });
