@@ -57,7 +57,7 @@ const CreateTransaction = () => {
                         accountId: acc._id,
                         accountType: acc.accountType,
                         type: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
-                        amount: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? acc.balance : '',
+                        amount: ['Fixed', 'Recurring'].includes(acc.accountType) ? acc.balance : acc?.accountType === 'Loan' ? acc?.loanDetails?.emiAmount : '',
                         description: '',
                         date: new Date().toISOString().split('T')[0],
                         noteBreakdown: {
@@ -131,12 +131,19 @@ const CreateTransaction = () => {
     };
 
     const handleNoteChange = (denomination, value) => {
+        const updatedNoteBreakdown = {
+            ...formData.noteBreakdown,
+            [denomination]: value
+        };
+
+        const total = Object.entries(updatedNoteBreakdown).reduce(
+            (sum, [denom, count]) => sum + (parseInt(denom) * parseInt(count || 0)), 0
+        );
+
         setFormData(prev => ({
             ...prev,
-            noteBreakdown: {
-                ...prev.noteBreakdown,
-                [denomination]: value
-            }
+            noteBreakdown: updatedNoteBreakdown,
+            amount: total
         }));
     };
 
@@ -203,7 +210,7 @@ const CreateTransaction = () => {
                                     value={formData.amount}
                                     onChange={handleChange}
                                     required
-                                    disabled={['Fixed', 'Recurring', 'Loan'].includes(selectedAccount.accountType)}
+                                    disabled={['Fixed', 'Recurring'].includes(selectedAccount.accountType)}
                                 />
                             </div>
                             <div className="col-md-4 mb-3">
@@ -230,6 +237,7 @@ const CreateTransaction = () => {
                                                     value={formData?.noteBreakdown[denom] || {}}
                                                     onChange={(e) => handleNoteChange(denom, e.target.value)}
                                                     placeholder="0"
+                                                    disabled={['Fixed', 'Recurring'].includes(selectedAccount?.accountType)}
                                                 />
                                             </div>
                                         </div>

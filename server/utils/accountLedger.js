@@ -31,6 +31,7 @@ export const createTransactionAndLedger = async ({
     });
 
     // 🧮 Balance Update Logic
+
     if (type === 'deposit') {
         account.balance += parsedAmount;
 
@@ -52,6 +53,9 @@ export const createTransactionAndLedger = async ({
         // Simply log to ledger/transaction
     }
 
+    if (account?.accountType === 'Loan') {
+        account.depositAmount += parsedAmount;
+    }
     await account.save();
 
     // 🧾 Ledger Entry

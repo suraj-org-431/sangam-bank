@@ -29,6 +29,7 @@ import EMICalculator from "../pages/Loans/EMICalculator";
 import CreateLoan from "../pages/Loans/CreateLoan";
 import LoanView from "../pages/Loans/LoanView";
 import ConfigSettings from "../pages/Settings/ConfigSettings";
+import TransactionReceipt from "../pages/Transaction/TransactionReceipt";
 
 const AdminRoutes = () => {
     return (
@@ -71,6 +72,7 @@ const AdminRoutes = () => {
 
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="transaction/create" element={<CreateTransaction />} />
+                <Route path="transaction/view/:txnId" element={<TransactionReceipt />} />
 
                 <Route path="loans" element={<Loans />} />
                 <Route path="loan/create" element={<CreateLoan />} />

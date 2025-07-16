@@ -9,18 +9,44 @@ import { createTransactionAndLedger } from "../utils/accountLedger.js";
 export const createTransaction = async (req, res) => {
     try {
         const { accountId, type, amount, description, date, noteBreakdown } = req.body;
+
         if (!accountId || !type || !amount)
             return badRequestResponse(res, 400, "Missing required fields");
 
         const account = await Account.findById(accountId);
         if (!account) return notFoundResponse(res, 404, "Account not found");
 
-        if (account?.accountType?.toLowerCase() === "mis") {
-            return badRequestResponse(res, 400, 'Transaction Blocked: No transactions are allowed on MIS (Monthly Income Scheme) accounts before maturity.');
+        const accountType = account?.accountType?.toLowerCase();
+
+        // ⛔ Block MIS accounts
+        if (accountType === "mis") {
+            return badRequestResponse(
+                res,
+                400,
+                "Transaction Blocked: No transactions are allowed on MIS (Monthly Income Scheme) accounts before maturity."
+            );
         }
 
+        // 💡 Validate withdrawal balance
         if (type === 'withdrawal' && account.balance < parseFloat(amount)) {
-            return badRequestResponse(res, 400, `Insufficient balance. Current balance is ₹${account.balance}`);
+            return badRequestResponse(
+                res,
+                400,
+                `Insufficient balance. Current balance is ₹${account.balance}`
+            );
+        }
+
+        // ✅ Ensure exact match for Fixed and Recurring accounts
+        if (
+            ['fixed', 'recurring'].includes(accountType) &&
+            type === 'deposit' &&
+            parseFloat(amount) !== parseFloat(account.balance)
+        ) {
+            return badRequestResponse(
+                res,
+                400,
+                `Transaction amount must be exactly ₹${account.balance} for ${account.accountType} account`
+            );
         }
 
         const tx = await createTransactionAndLedger({
@@ -39,6 +65,7 @@ export const createTransaction = async (req, res) => {
         return errorResponse(res, 500, "Transaction failed", err.message);
     }
 };
+
 
 export const getTransactions = async (req, res) => {
     try {
@@ -96,7 +123,7 @@ export const getTransactions = async (req, res) => {
             .sort({ updatedAt: -1 })
             .skip(skip)
             .limit(pageLimit)
-            .populate('accountId', 'applicantName accountNumber accountType status');
+            .populate('accountId', 'applicantName accountNumber accountType status, balance');
 
         const totalPages = Math.ceil(totalCount / pageLimit);
 

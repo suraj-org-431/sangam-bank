@@ -135,6 +135,7 @@ const Transactions = () => {
                                     <th>Type</th>
                                     <th>Amount</th>
                                     <th>Description</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -181,6 +182,11 @@ const Transactions = () => {
 
                                             <td>{tx.amount?.toFixed(2)}</td>
                                             <td>{tx.description || '-'}</td>
+                                            <td>
+                                                <button className="btn btn-sm btn-outline-info me-2" onClick={() => {
+                                                    navigate(adminRoute(`/transaction/view/${tx?._id}`), { state: { transaction: tx } });
+                                                }}>Receipt</button>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
