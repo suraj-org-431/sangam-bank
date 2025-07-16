@@ -37,9 +37,7 @@ export const createTransaction = async (req, res) => {
         }
 
         // ✅ Ensure exact match for Fixed and Recurring accounts
-        if (
-            ['recurring'].includes(accountType) &&
-            type === 'deposit' &&
+        if (['recurring'].includes(accountType) && type === 'deposit' &&
             parseFloat(amount) !== parseFloat(account?.recurringDetails?.installmentAmount)
         ) {
             return badRequestResponse(

@@ -154,9 +154,10 @@ const Transactions = () => {
                                             <td>
                                                 <span className={`badge ${tx.type === 'deposit' ? 'bg-success' :
                                                     tx.type === 'loanDisbursed' ? 'bg-primary' :
-                                                        tx.type === 'loanRepayment' ? 'bg-warning text-dark' :
-                                                            tx.type === 'transfer' ? 'bg-info text-dark' :
-                                                                'bg-danger'
+                                                        tx.type === 'rdInstallment' ? 'bg-primary text-dark' :
+                                                            tx.type === 'loanRepayment' ? 'bg-warning text-dark' :
+                                                                tx.type === 'transfer' ? 'bg-info text-dark' :
+                                                                    'bg-danger'
                                                     }`}>
                                                     {(() => {
                                                         switch (tx.type) {
@@ -168,11 +169,14 @@ const Transactions = () => {
                                                                 return 'Transfer / ट्रांसफर';
                                                             case 'loanDisbursed':
                                                                 return 'Loan Disbursed / ऋण वितरण';
+                                                            case 'rdInstallment':
+                                                                return 'Recurring Installment / आवर्ती किस्त';
                                                             case 'loanRepayment':
                                                                 return 'Loan Repayment / ऋण भुगतान';
                                                             case 'fine': return 'Penalty / दंड';
                                                             case 'interestPayment': return 'Interest Paid / ब्याज भुगतान';
                                                             case 'principle': return 'Principal Paid / मूलधन भुगतान';
+                                                            case '': return 'Principal Paid / मूलधन भुगतान';
                                                             default:
                                                                 return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
                                                         }

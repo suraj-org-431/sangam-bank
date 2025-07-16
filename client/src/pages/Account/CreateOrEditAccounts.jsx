@@ -16,7 +16,7 @@ const CreateAccounts = () => {
     const [formData, setFormData] = useState({
         accountType: '',
         tenure: '',
-        branch: '',
+        branch: 'Shivadih',
         applicantName: '',
         gender: '',
         dob: '',
