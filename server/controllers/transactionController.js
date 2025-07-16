@@ -227,6 +227,7 @@ export const exportTransactions = async (req, res) => {
             const sheet = workbook.addWorksheet('Transactions');
 
             sheet.columns = [
+                { header: 'Sr No', key: 'srNo', width: 15 },
                 { header: 'Date', key: 'date', width: 15 },
                 { header: 'Type', key: 'type', width: 15 },
                 { header: 'Amount', key: 'amount', width: 15 },
@@ -235,8 +236,9 @@ export const exportTransactions = async (req, res) => {
                 { header: 'Description', key: 'description', width: 30 },
             ];
 
-            transactions.forEach(txn => {
+            transactions.forEach((txn, idx) => {
                 sheet.addRow({
+                    srNo: idx + 1,
                     date: txn.date.toISOString().split('T')[0],
                     type: txn.type,
                     amount: txn.amount,
