@@ -148,7 +148,7 @@ const LedgerSummary = () => {
                                         </td>
                                     </tr>
                                     <tr className="fw-bold bg-light">
-                                        <td colSpan="4" className="text-end">Total Debit</td>
+                                        <td colSpan="5" className="text-end">Total Debit</td>
                                         <td colSpan="1">
                                             {formatAmount(getTotal(['withdrawal', 'penalty', 'loanRepayment', 'interestPayment', 'fine', 'principle']))}
                                         </td>
