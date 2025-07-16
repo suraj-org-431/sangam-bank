@@ -23,7 +23,16 @@ const CreateTransaction = () => {
         type: '',
         amount: '',
         description: '',
-        date: ''
+        date: '',
+        noteBreakdown: {
+            2000: '',
+            500: '',
+            200: '',
+            100: '',
+            50: '',
+            20: '',
+            10: ''
+        }
     });
 
     useEffect(() => {
@@ -50,7 +59,16 @@ const CreateTransaction = () => {
                         type: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
                         amount: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? acc.balance : '',
                         description: '',
-                        date: new Date().toISOString().split('T')[0]
+                        date: new Date().toISOString().split('T')[0],
+                        noteBreakdown: {
+                            2000: '',
+                            500: '',
+                            200: '',
+                            100: '',
+                            50: '',
+                            20: '',
+                            10: ''
+                        }
                     });
                 } else {
                     setFormData({
@@ -59,7 +77,16 @@ const CreateTransaction = () => {
                         type: '',
                         amount: '',
                         description: '',
-                        date: new Date().toISOString().split('T')[0]
+                        date: new Date().toISOString().split('T')[0],
+                        noteBreakdown: {
+                            2000: '',
+                            500: '',
+                            200: '',
+                            100: '',
+                            50: '',
+                            20: '',
+                            10: ''
+                        }
                     });
                 }
             } else {
@@ -84,14 +111,33 @@ const CreateTransaction = () => {
             return;
         }
 
+        const cleanedNotes = Object.fromEntries(
+            Object.entries(formData.noteBreakdown)
+                .filter(([_, val]) => parseInt(val) > 0)
+                .map(([key, val]) => [key, parseInt(val)])
+        );
+
         try {
-            await createTransaction(formData);
+            await createTransaction({
+                ...formData,
+                noteBreakdown: cleanedNotes
+            });
             toast.success('Transaction created successfully');
             navigate(adminRoute('/transactions'));
         } catch (err) {
             console.error('❌ Transaction failed:', err);
             toast.error(err?.message || 'Failed to create transaction');
         }
+    };
+
+    const handleNoteChange = (denomination, value) => {
+        setFormData(prev => ({
+            ...prev,
+            noteBreakdown: {
+                ...prev.noteBreakdown,
+                [denomination]: value
+            }
+        }));
     };
 
     return (
@@ -169,6 +215,37 @@ const CreateTransaction = () => {
                                     onChange={handleChange}
                                     className="form-control"
                                 />
+                            </div>
+                            <div className="col-md-12">
+                                <label className="text-black">Denomination-wise Notes (optional)</label>
+                                <div className="row">
+                                    {[2000, 500, 200, 100, 50, 20, 10].map((denom) => (
+                                        <div className="col-md-2 mb-2" key={denom}>
+                                            <div className="input-group">
+                                                <span className="input-group-text">₹{denom}</span>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    min={0}
+                                                    value={formData?.noteBreakdown[denom] || {}}
+                                                    onChange={(e) => handleNoteChange(denom, e.target.value)}
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="text-muted mt-2">
+                                    <strong>
+                                        Total Notes Value: ₹
+                                        {
+                                            Object.entries(formData.noteBreakdown).reduce(
+                                                (total, [denom, count]) =>
+                                                    total + (parseInt(denom) * parseInt(count || 0)), 0
+                                            )
+                                        }
+                                    </strong>
+                                </div>
                             </div>
                             <div className="col-md-12 mb-3">
                                 <label className='text-black'>Remarks</label>

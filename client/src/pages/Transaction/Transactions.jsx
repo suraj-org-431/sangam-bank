@@ -127,6 +127,7 @@ const Transactions = () => {
                         <table className="table theme-table table-bordered table-hover align-middle">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Date</th>
                                     <th>Account No.</th>
                                     <th>Customer Name</th>
@@ -139,11 +140,12 @@ const Transactions = () => {
                             <tbody>
                                 {transactions.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" className="text-center text-muted">No transactions found.</td>
+                                        <td colSpan="8" className="text-center text-muted">No transactions found.</td>
                                     </tr>
                                 ) : (
-                                    transactions.map((tx) => (
+                                    transactions.map((tx, idx) => (
                                         <tr key={tx._id}>
+                                            <td>{idx + 1}</td>
                                             <td>{format(new Date(tx.date), 'dd MMM yyyy')}</td>
                                             <td>{tx.accountId?.accountNumber || '-'}</td>
                                             <td>{tx.accountId?.applicantName || '-'}</td>

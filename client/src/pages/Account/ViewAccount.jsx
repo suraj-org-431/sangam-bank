@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getAccountDetailsByUser, payRecurringInstallment } from '../../api/account';
 import { toast } from 'react-toastify';
 import { FaUser, FaMoneyBill, FaFileAlt, FaMapMarkerAlt, FaImage, FaGavel } from 'react-icons/fa';
 import CommonModal from '../../components/common/CommonModal';
+import { adminRoute } from '../../utils/router';
 
 const ViewAccount = () => {
+    const navigate = useNavigate();
     const location = useLocation();
     const { accountData } = location.state || {};
     const [account, setAccount] = useState(null);
@@ -78,109 +80,111 @@ const ViewAccount = () => {
     if (!account) return <div className="text-muted text-center">No account details available.</div>;
 
     return (
-        <div className="main-content py-4">
-            <div className="container">
-                <div className="card shadow border-0 p-4">
-                    <h4 className="theme-text mb-4">Account Overview</h4>
-
-                    {account?.accountType === 'Recurring' && (
-                        <div className="text-end mb-4">
-                            <button
-                                className="btn btn-success"
-                                onClick={() => setShowPayModal(true)}
-                                disabled={isPaying}
-                            >
-                                💰 Pay Installment ₹{account.recurringDetails?.installmentAmount || 0}
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Basic Info */}
-                    {renderSection("Basic Information", <FaUser className="text-primary" />, [
-                        renderField('Account Number', account.accountNumber),
-                        renderField('Account Type', account.accountType),
-                        renderField('Applicant Name', account.applicantName),
-                        renderField('Gender', account.gender),
-                        renderField('DOB', formatDate(account.dob)),
-                        renderField('Phone', account.phone),
-                        renderField('Occupation', account.occupation),
-                        renderField('Branch', account.branch),
-                        renderField('Status', account.status ? 'Active' : 'Inactive'),
-                    ])}
-
-                    {/* Address */}
-                    {renderSection("Address", <FaMapMarkerAlt className="text-primary" />, [
-                        renderField('Village', account.address?.village),
-                        renderField('Post', account.address?.post),
-                        renderField('Block', account.address?.block),
-                        renderField('District', account.address?.district),
-                        renderField('State', account.address?.state),
-                        renderField('Pincode', account.address?.pincode),
-                    ])}
-
-                    {/* Financial Info */}
-                    {renderSection("Financial Information", <FaMoneyBill className="text-primary" />, [
-                        renderField('Deposit Amount', `₹${account.depositAmount}`),
-                        renderField('Balance', `₹${account.balance}`),
-                        renderField('Tenure (Months)', account.tenure),
-                        renderField('Form Date', formatDate(account.formDate)),
-                        renderField('Account Open Date', formatDate(account.accountOpenDate)),
-                        renderField('Aadhar', account.aadhar),
-                        renderField('Membership Number', account.membershipNumber),
-                        renderField('Introducer Name', account.introducerName),
-                        renderField('Introducer Known Since', account.introducerKnownSince),
-                    ])}
-
-                    {/* Nominee Info */}
-                    {account.nomineeName && renderSection("Nominee Information", <FaUser className="text-primary" />, [
-                        renderField('Nominee Name', account.nomineeName),
-                        renderField('Nominee Relation', account.nomineeRelation),
-                        renderField('Nominee Age', account.nomineeAge),
-                    ])}
-
-                    {/* Recurring Details */}
-                    {account.accountType === 'Recurring' && account.recurringDetails &&
-                        renderSection("Recurring Deposit", <FaMoneyBill className="text-primary" />, [
-                            <div className="col-md-12 text-end mb-3" key="pay-button">
-                                <button className="btn btn-primary" onClick={() => setShowPayModal(true)} disabled={isPaying}>
-                                    Pay Installment
-                                </button>
-                            </div>,
-                            renderField('Monthly Installment', `₹${account.recurringDetails.installmentAmount}`),
-                            renderField('Completed Installments', account.recurringDetails.completedInstallments),
-                            renderField('Total Fine', `₹${account.recurringDetails.fineTotal}`),
-                            renderField('Maturity Date', formatDate(account.recurringDetails.maturityDate)),
-                        ])
-                    }
-
-                    {/* Loan Details */}
-                    {account.accountType === 'Loan' && account.loanDetails &&
-                        renderSection("Loan Details", <FaGavel className="text-primary" />, [
-                            renderField('Loan Amount', `₹${account.loanDetails.totalLoanAmount}`),
-                            renderField('Disbursed Amount', `₹${account.loanDetails.disbursedAmount}`),
-                            renderField('Interest Rate', `${account.loanDetails.interestRate}%`),
-                            renderField('Tenure Months', account.loanDetails.tenureMonths),
-                            renderField('EMI Amount', `₹${account.loanDetails.emiAmount}`),
-                            renderField('Status', account.loanDetails.status),
-                            renderField('Disbursed Date', formatDate(account.loanDetails.disbursedDate)),
-                            renderField('Next Due Date', formatDate(account.loanDetails.nextDueDate)),
-                        ])
-                    }
-
-                    {/* Signatures & Images */}
-                    {renderSection("Documents", <FaImage className="text-primary" />, [
-                        renderImage('Profile Image', account.profileImage),
-                        renderImage('Signature', account.signaturePath),
-                        renderImage('Verifier Signature', account.verifierSignaturePath),
-                    ])}
-
-                    {/* Meta Info */}
-                    {renderSection("Timestamps", <FaFileAlt className="text-primary" />, [
-                        renderField('Created At', formatDate(account.createdAt)),
-                        renderField('Last Updated', formatDate(account.updatedAt)),
-                    ])}
+        <div className="px-4 py-4">
+            <div className="card theme-card border-0 shadow p-3">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h4 className="mb-0">Account Overview</h4>
+                    <button className="btn btn-sm btn-secondary" onClick={() => navigate(adminRoute('/accounts'))}>
+                        ← Back to Summary
+                    </button>
                 </div>
-            </div>
+                {account?.accountType === 'Recurring' && (
+                    <div className="text-end mb-4">
+                        <button
+                            className="btn btn-success"
+                            onClick={() => setShowPayModal(true)}
+                            disabled={isPaying}
+                        >
+                            💰 Pay Installment ₹{account.recurringDetails?.installmentAmount || 0}
+                        </button>
+                    </div>
+                )}
+
+                {/* Basic Info */}
+                {renderSection("Basic Information", <FaUser className="text-primary" />, [
+                    renderField('Account Number', account.accountNumber),
+                    renderField('Account Type', account.accountType),
+                    renderField('Applicant Name', account.applicantName),
+                    renderField('Gender', account.gender),
+                    renderField('DOB', formatDate(account.dob)),
+                    renderField('Phone', account.phone),
+                    renderField('Occupation', account.occupation),
+                    renderField('Branch', account.branch),
+                    renderField('Status', account.status ? 'Active' : 'Inactive'),
+                ])}
+
+                {/* Address */}
+                {renderSection("Address", <FaMapMarkerAlt className="text-primary" />, [
+                    renderField('Village', account.address?.village),
+                    renderField('Post', account.address?.post),
+                    renderField('Block', account.address?.block),
+                    renderField('District', account.address?.district),
+                    renderField('State', account.address?.state),
+                    renderField('Pincode', account.address?.pincode),
+                ])}
+
+                {/* Financial Info */}
+                {renderSection("Financial Information", <FaMoneyBill className="text-primary" />, [
+                    renderField('Deposit Amount', `₹${account.depositAmount}`),
+                    renderField('Balance', `₹${account.balance}`),
+                    renderField('Tenure (Months)', account.tenure),
+                    renderField('Form Date', formatDate(account.formDate)),
+                    renderField('Account Open Date', formatDate(account.accountOpenDate)),
+                    renderField('Aadhar', account.aadhar),
+                    renderField('Membership Number', account.membershipNumber),
+                    renderField('Introducer Name', account.introducerName),
+                    renderField('Introducer Known Since', account.introducerKnownSince),
+                ])}
+
+                {/* Nominee Info */}
+                {account.nomineeName && renderSection("Nominee Information", <FaUser className="text-primary" />, [
+                    renderField('Nominee Name', account.nomineeName),
+                    renderField('Nominee Relation', account.nomineeRelation),
+                    renderField('Nominee Age', account.nomineeAge),
+                ])}
+
+                {/* Recurring Details */}
+                {account.accountType === 'Recurring' && account.recurringDetails &&
+                    renderSection("Recurring Deposit", <FaMoneyBill className="text-primary" />, [
+                        <div className="col-md-12 text-end mb-3" key="pay-button">
+                            <button className="btn btn-primary" onClick={() => setShowPayModal(true)} disabled={isPaying}>
+                                Pay Installment
+                            </button>
+                        </div>,
+                        renderField('Monthly Installment', `₹${account.recurringDetails.installmentAmount}`),
+                        renderField('Completed Installments', account.recurringDetails.completedInstallments),
+                        renderField('Total Fine', `₹${account.recurringDetails.fineTotal}`),
+                        renderField('Maturity Date', formatDate(account.recurringDetails.maturityDate)),
+                    ])
+                }
+
+                {/* Loan Details */}
+                {account.accountType === 'Loan' && account.loanDetails &&
+                    renderSection("Loan Details", <FaGavel className="text-primary" />, [
+                        renderField('Loan Amount', `₹${account.loanDetails.totalLoanAmount}`),
+                        renderField('Disbursed Amount', `₹${account.loanDetails.disbursedAmount}`),
+                        renderField('Interest Rate', `${account.loanDetails.interestRate}%`),
+                        renderField('Tenure Months', account.loanDetails.tenureMonths),
+                        renderField('EMI Amount', `₹${account.loanDetails.emiAmount}`),
+                        renderField('Status', account.loanDetails.status),
+                        renderField('Disbursed Date', formatDate(account.loanDetails.disbursedDate)),
+                        renderField('Next Due Date', formatDate(account.loanDetails.nextDueDate)),
+                    ])
+                }
+
+                {/* Signatures & Images */}
+                {renderSection("Documents", <FaImage className="text-primary" />, [
+                    renderImage('Profile Image', account.profileImage),
+                    renderImage('Signature', account.signaturePath),
+                    renderImage('Verifier Signature', account.verifierSignaturePath),
+                ])}
+
+                {/* Meta Info */}
+                {renderSection("Timestamps", <FaFileAlt className="text-primary" />, [
+                    renderField('Created At', formatDate(account.createdAt)),
+                    renderField('Last Updated', formatDate(account.updatedAt)),
+                ])}
+            </div >
             <CommonModal
                 show={showPayModal}
                 onHide={() => setShowPayModal(false)}
@@ -192,7 +196,6 @@ const ViewAccount = () => {
                 confirmVariant="success"
                 onConfirm={confirmInstallmentPayment}
             />
-
         </div>
     );
 };

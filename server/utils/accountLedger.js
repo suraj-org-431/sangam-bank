@@ -9,7 +9,8 @@ export const createTransactionAndLedger = async ({
     date,
     loanId,
     createdBy,
-    adjustmentType // optional: 'writeOff' | 'customAdjustment'
+    adjustmentType, // optional: 'writeOff' | 'customAdjustment'
+    noteBreakdown
 }) => {
     const parsedAmount = parseFloat(amount);
 
@@ -26,6 +27,7 @@ export const createTransactionAndLedger = async ({
         description,
         date,
         loanId,
+        noteBreakdown
     });
 
     // 🧮 Balance Update Logic

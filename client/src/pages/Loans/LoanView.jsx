@@ -116,11 +116,11 @@ const LoanView = () => {
 
     return (
         <div className="px-4 py-4">
-            <div className="card p-4">
+            <div className="card theme-card border-0 shadow p-3">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h4 className="mb-0">Loan Details</h4>
-                    <button className="btn btn-sm btn-secondary" onClick={() => navigate(adminRoute('/loan'))}>
-                        ← Back to List
+                    <h4 className="mb-0">Account Overview</h4>
+                    <button className="btn btn-sm btn-secondary" onClick={() => navigate(adminRoute('/accounts'))}>
+                        ← Back to Summary
                     </button>
                 </div>
 
@@ -146,6 +146,8 @@ const LoanView = () => {
                         <p><strong>Total Paid:</strong> ₹{getTotalPaid().toLocaleString('en-IN')}</p>
                     </div>
                 </div>
+
+                <hr />
 
                 {loan.status === 'draft' && (
                     <div className="d-flex gap-2 mt-3 mb-4">
@@ -177,7 +179,7 @@ const LoanView = () => {
 
                 {loan?.status === 'disbursed' && (
                     <div className="d-flex gap-2 mt-3 mb-4">
-                        <button className="btn btn-outline-dark mt-3" onClick={() => openModal('adjust')}>
+                        <button className="btn btn-outline-warning mt-3" onClick={() => openModal('adjust')}>
                             Adjustment
                         </button>
                     </div>

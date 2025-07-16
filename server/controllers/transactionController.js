@@ -8,14 +8,14 @@ import { createTransactionAndLedger } from "../utils/accountLedger.js";
 
 export const createTransaction = async (req, res) => {
     try {
-        const { accountId, type, amount, description, date } = req.body;
+        const { accountId, type, amount, description, date, noteBreakdown } = req.body;
         if (!accountId || !type || !amount)
             return badRequestResponse(res, 400, "Missing required fields");
 
         const account = await Account.findById(accountId);
         if (!account) return notFoundResponse(res, 404, "Account not found");
 
-        if (accountType.toLowercase() === "mis") {
+        if (account?.accountType?.toLowerCase() === "mis") {
             return badRequestResponse(res, 400, 'Transaction Blocked: No transactions are allowed on MIS (Monthly Income Scheme) accounts before maturity.');
         }
 
@@ -29,7 +29,8 @@ export const createTransaction = async (req, res) => {
             amount,
             description,
             date: date || new Date(),
-            createdBy: req.user?.name || "System"
+            noteBreakdown,
+            createdBy: req.user?.name || "System",
         });
 
         return successResponse(res, 200, "Transaction created", tx);
