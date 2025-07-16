@@ -17,6 +17,7 @@ const CreateTransaction = () => {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedAccount, setSelectedAccount] = useState(null);
+    const [noteBreakdownAmount, setNoteBreakdownAmount] = useState('');
 
     const [formData, setFormData] = useState({
         accountId: '',
@@ -108,6 +109,11 @@ const CreateTransaction = () => {
             return;
         }
 
+        if (formData?.accountType === 'Recurring' && formData?.amount !== noteBreakdownAmount) {
+            toast.error('Amount does not match note breakdown');
+            return;
+        }
+
         const cleanedNotes = Object.fromEntries(
             Object.entries(formData.noteBreakdown)
                 .filter(([_, val]) => parseInt(val) > 0)
@@ -136,6 +142,8 @@ const CreateTransaction = () => {
         const total = Object.entries(updatedNoteBreakdown).reduce(
             (sum, [denom, count]) => sum + (parseInt(denom) * parseInt(count || 0)), 0
         );
+
+        setNoteBreakdownAmount(total);
 
         setFormData(prev => ({
             ...prev,
