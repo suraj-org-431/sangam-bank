@@ -15,6 +15,10 @@ export const createTransaction = async (req, res) => {
         const account = await Account.findById(accountId);
         if (!account) return notFoundResponse(res, 404, "Account not found");
 
+        if (accountType.toLowercase() === "mis") {
+            return badRequestResponse(res, 400, 'Transaction Blocked: No transactions are allowed on MIS (Monthly Income Scheme) accounts before maturity.');
+        }
+
         if (type === 'withdrawal' && account.balance < parseFloat(amount)) {
             return badRequestResponse(res, 400, `Insufficient balance. Current balance is ₹${account.balance}`);
         }
