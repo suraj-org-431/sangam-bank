@@ -33,20 +33,35 @@ const CreateTransaction = () => {
         }
     }, [formData.date]);
 
+    const isBlockedAccountType = (accountType) => {
+        return ['MIS'].includes(accountType); // You can add more types if needed
+    };
+
     const handleSearch = async () => {
         try {
             const res = await searchAccounts(searchQuery);
             if (res.length > 0) {
                 const acc = res[0];
                 setSelectedAccount(acc);
-                setFormData({
-                    accountId: acc._id,
-                    accountType: acc.accountType,
-                    type: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
-                    amount: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? acc.balance : '',
-                    description: '',
-                    date: new Date().toISOString().split('T')[0]
-                });
+                if (!isBlockedAccountType(acc.accountType)) {
+                    setFormData({
+                        accountId: acc._id,
+                        accountType: acc.accountType,
+                        type: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
+                        amount: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? acc.balance : '',
+                        description: '',
+                        date: new Date().toISOString().split('T')[0]
+                    });
+                } else {
+                    setFormData({
+                        accountId: acc._id,
+                        accountType: acc.accountType,
+                        type: '',
+                        amount: '',
+                        description: '',
+                        date: new Date().toISOString().split('T')[0]
+                    });
+                }
             } else {
                 toast.error('No matching account found');
                 setSelectedAccount(null);
@@ -114,7 +129,7 @@ const CreateTransaction = () => {
                 )}
 
                 {/* 💵 Transaction Form */}
-                {selectedAccount && (
+                {selectedAccount && !isBlockedAccountType(selectedAccount.accountType) ? (
                     <form onSubmit={handleSubmit}>
                         <div className="row">
                             <div className="col-md-4 mb-3">
@@ -177,7 +192,11 @@ const CreateTransaction = () => {
                             <button className="btn btn-success" type="submit">Submit Transaction</button>
                         </div>
                     </form>
-                )}
+                ) : selectedAccount ? (
+                    <div className="alert alert-danger mt-3">
+                        ⚠️ Transactions are not allowed on <strong>{selectedAccount.accountType}</strong> accounts. These are locked until maturity.
+                    </div>
+                ) : null}
             </div>
         </div>
     );
