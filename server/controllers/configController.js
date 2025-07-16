@@ -1,4 +1,5 @@
 import Config from '../models/Config.js';
+import { applyRecurringFines } from '../utils/fineService.js';
 import { applyInterestToAllAccounts } from "../utils/interestService.js";
 import { successResponse, errorResponse } from '../utils/response.js';
 
@@ -34,9 +35,18 @@ export const updateConfig = async (req, res) => {
 // ✅ Apply Interest to All Accounts
 export const applyMonthlyInterest = async (req, res) => {
     try {
-        const result = await applyInterestToAllAccounts();
-        return successResponse(res, 200, "Monthly interest applied", result);
+        const interestResult = await applyInterestToAllAccounts();
+        const fineResult = await applyRecurringFines(); // RD fine
+        const loanFineResult = await applyLoanFines();  // 👈 Loan fine
+
+        return successResponse(res, 200, "Monthly interest and fines applied", {
+            interestApplied: interestResult.updatedCount,
+            rdFinesApplied: fineResult.finedAccounts,
+            rdTotalFine: fineResult.totalFineAmount,
+            loanFinesApplied: loanFineResult.finedLoans,
+            loanTotalFine: loanFineResult.totalFineAmount
+        });
     } catch (err) {
-        return errorResponse(res, 500, "Interest application failed", err.message);
+        return errorResponse(res, 500, "Interest and fine application failed", err.message);
     }
 };

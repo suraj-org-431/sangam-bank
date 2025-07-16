@@ -26,9 +26,8 @@ const CreateLoan = () => {
         const fetchLoanDefaults = async () => {
             try {
                 const config = await getConfig();
-
                 // 🔁 interest rate by loan type
-                const found = config?.interestRates?.find(item => item.type === formData.loanType);
+                const found = config?.loanInterestRates?.find(item => item.type === formData.loanType);
                 setFormData(prev => ({
                     ...prev,
                     interestRate: found?.rate ?? ''

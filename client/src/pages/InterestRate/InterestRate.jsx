@@ -12,7 +12,7 @@ const InterestTrigger = () => {
         const fetchInterestRates = async () => {
             try {
                 const config = await getConfig();
-                setInterestRates(config?.interestRates || []);
+                setInterestRates(config?.monthlyInterestRates || []);
             } catch (err) {
                 toast.error('Failed to fetch interest configuration');
             }
@@ -42,7 +42,7 @@ const InterestTrigger = () => {
                 onClick={() => setShowModal(true)}
                 disabled={loading}
             >
-                {loading ? 'Applying...' : 'Apply Monthly Interest'}
+                {loading ? 'Applying...' : 'Generate Monthly Interest'}
             </button>
 
             <CommonModal

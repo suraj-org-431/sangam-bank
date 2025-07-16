@@ -340,3 +340,7 @@ table.table-bordered tbody tr td:last-child {
 .bg-warning-subtle {
   background-color: #fff3cd !important;
 }
+
+.table-danger {
+  background-color: #f8d7da !important;
+}

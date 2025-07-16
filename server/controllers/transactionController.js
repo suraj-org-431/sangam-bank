@@ -8,15 +8,45 @@ import { createTransactionAndLedger } from "../utils/accountLedger.js";
 
 export const createTransaction = async (req, res) => {
     try {
-        const { accountId, type, amount, description, date } = req.body;
+        const { accountId, type, amount, description, date, noteBreakdown } = req.body;
+
         if (!accountId || !type || !amount)
             return badRequestResponse(res, 400, "Missing required fields");
 
         const account = await Account.findById(accountId);
         if (!account) return notFoundResponse(res, 404, "Account not found");
 
+        const accountType = account?.accountType?.toLowerCase();
+
+        // ⛔ Block MIS accounts
+        if (accountType === "mis") {
+            return badRequestResponse(
+                res,
+                400,
+                "Transaction Blocked: No transactions are allowed on MIS (Monthly Income Scheme) accounts before maturity."
+            );
+        }
+
+        // 💡 Validate withdrawal balance
         if (type === 'withdrawal' && account.balance < parseFloat(amount)) {
-            return badRequestResponse(res, 400, `Insufficient balance. Current balance is ₹${account.balance}`);
+            return badRequestResponse(
+                res,
+                400,
+                `Insufficient balance. Current balance is ₹${account.balance}`
+            );
+        }
+
+        // ✅ Ensure exact match for Fixed and Recurring accounts
+        if (
+            ['fixed', 'recurring'].includes(accountType) &&
+            type === 'deposit' &&
+            parseFloat(amount) !== parseFloat(account.balance)
+        ) {
+            return badRequestResponse(
+                res,
+                400,
+                `Transaction amount must be exactly ₹${account.balance} for ${account.accountType} account`
+            );
         }
 
         const tx = await createTransactionAndLedger({
@@ -25,7 +55,8 @@ export const createTransaction = async (req, res) => {
             amount,
             description,
             date: date || new Date(),
-            createdBy: req.user?.name || "System"
+            noteBreakdown,
+            createdBy: req.user?.name || "System",
         });
 
         return successResponse(res, 200, "Transaction created", tx);
@@ -34,6 +65,7 @@ export const createTransaction = async (req, res) => {
         return errorResponse(res, 500, "Transaction failed", err.message);
     }
 };
+
 
 export const getTransactions = async (req, res) => {
     try {
@@ -91,7 +123,7 @@ export const getTransactions = async (req, res) => {
             .sort({ updatedAt: -1 })
             .skip(skip)
             .limit(pageLimit)
-            .populate('accountId', 'applicantName accountNumber accountType status');
+            .populate('accountId', 'applicantName accountNumber accountType status, balance');
 
         const totalPages = Math.ceil(totalCount / pageLimit);
 
@@ -195,6 +227,7 @@ export const exportTransactions = async (req, res) => {
             const sheet = workbook.addWorksheet('Transactions');
 
             sheet.columns = [
+                { header: 'Sr No', key: 'srNo', width: 15 },
                 { header: 'Date', key: 'date', width: 15 },
                 { header: 'Type', key: 'type', width: 15 },
                 { header: 'Amount', key: 'amount', width: 15 },
@@ -203,8 +236,9 @@ export const exportTransactions = async (req, res) => {
                 { header: 'Description', key: 'description', width: 30 },
             ];
 
-            transactions.forEach(txn => {
+            transactions.forEach((txn, idx) => {
                 sheet.addRow({
+                    srNo: idx + 1,
                     date: txn.date.toISOString().split('T')[0],
                     type: txn.type,
                     amount: txn.amount,

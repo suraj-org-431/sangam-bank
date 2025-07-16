@@ -1,7 +1,6 @@
 import fs from "fs";
 import csv from "csv-parser";
 import Account from "../models/Account.js";
-import Transaction from "../models/Transaction.js";
 import { notify } from "../utils/notify.js";
 import {
     successResponse,
@@ -47,7 +46,8 @@ export const upsertAccount = async (req, res) => {
         } = req.body;
 
         const config = await Config.findOne();
-        const defaultDeposit = config?.initialDeposits?.[accountType?.toLowerCase()] || 0;
+        const lowerType = accountType?.toLowerCase();
+        const defaultDeposit = config?.initialDeposits?.[lowerType] || 0;
         const actualDeposit = depositAmount || defaultDeposit;
 
         const payload = {
@@ -63,7 +63,7 @@ export const upsertAccount = async (req, res) => {
             relation,
             address: typeof address === 'string' ? JSON.parse(address) : address,
             aadhar,
-            depositAmount: accountType?.toLowerCase() === 'loan' ? 0 : actualDeposit,
+            depositAmount: lowerType === 'loan' ? 0 : actualDeposit,
             introducerName,
             membershipNumber,
             introducerKnownSince,
@@ -90,20 +90,58 @@ export const upsertAccount = async (req, res) => {
         if (accId) {
             account = await Account.findByIdAndUpdate(accId, payload, { new: true });
         } else {
-            if (accountType?.toLowerCase() === 'loan') {
-                const config = await Config.findOne();
-                const interestRate = config?.interestRates?.find(r => r.type === loanType)?.rate || 12;
+            if (lowerType === 'recurring') {
+                const installmentAmount = actualDeposit;
+                const schedule = [];
+                const start = new Date(accountOpenDate || new Date());
+
+                for (let i = 0; i < tenure; i++) {
+                    const dueDate = new Date(start);
+                    dueDate.setMonth(dueDate.getMonth() + i);
+
+                    schedule.push({
+                        month: i + 1,
+                        dueDate,
+                        paid: i === 0,
+                        fine: 0,
+                        paidDate: i === 0 ? new Date() : null
+                    });
+                }
+
+                payload.recurringDetails = {
+                    installmentAmount,
+                    schedule,
+                    fineTotal: 0,
+                    completedInstallments: 1,
+                    isMatured: false,
+                    maturityDate: new Date(start.setMonth(start.getMonth() + tenure))
+                };
+
+                payload.balance = installmentAmount;
+                account = await Account.create(payload);
+
+                await createTransactionAndLedger({
+                    account,
+                    type: 'rdInstallment',
+                    amount: installmentAmount,
+                    description: 'First RD installment on account opening',
+                    date: payload.accountOpenDate || new Date(),
+                    createdBy: req.user?.name || 'System',
+                });
+            } else if (lowerType === 'loan') {
+                const interestRate = config?.loanInterestRates?.find(r => r.type?.toLowerCase() === loanType?.toLowerCase())?.rate || 12;
 
                 payload.hasLoan = true;
                 payload.loanDetails = {
-                    totalLoanAmount: depositAmount, // You can also call this loanAmount
+                    totalLoanAmount: depositAmount,
                     disbursedAmount: 0,
-                    interestRate: interestRate,
+                    interestRate,
                     tenureMonths: parseInt(tenure) || 12,
                     emiAmount: 0,
                     disbursedDate: null,
                     status: 'draft',
-                    nextDueDate: null
+                    nextDueDate: null,
+                    lastEMIPaidOn: null // ✅ Newly added field
                 };
 
                 payload.depositAmount = 0;
@@ -111,19 +149,17 @@ export const upsertAccount = async (req, res) => {
 
                 account = await Account.create(payload);
 
-                // Optional: Also create a separate Loan record if your system still needs it
                 await Loan.create({
                     borrower: account._id,
                     loanAmount: depositAmount,
-                    loanType: loanType,
-                    interestRate: interestRate,
+                    loanType,
+                    interestRate,
                     tenureMonths: parseInt(tenure) || 12,
                     status: 'draft',
                     remarks: 'Loan created during account creation',
-                    repaymentSchedule: []
+                    repaymentSchedule: [], // Schedule will be generated on disbursement
                 });
             } else {
-                payload.balance = actualDeposit;
                 account = await Account.create(payload);
 
                 if (actualDeposit > 0) {
@@ -131,14 +167,14 @@ export const upsertAccount = async (req, res) => {
                         account,
                         type: 'deposit',
                         amount: actualDeposit,
-                        description: 'Initial deposit',
+                        description: 'Initial deposit on account opening',
                         date: payload.accountOpenDate || new Date(),
                         createdBy: req.user?.name || 'System',
                     });
                 }
             }
 
-            await notify(account._id || {}, "Account Created", `Account #${payload.accountNumber} created`);
+            await notify(account?._id || {}, "Account Created", `Account #${payload.accountNumber} created`);
         }
 
         return successResponse(res, 200, "Account saved successfully", account);
@@ -248,6 +284,8 @@ export const importAccountsFromCSV = async (req, res) => {
 
         await parseCSV();
 
+        const config = await Config.findOne();
+
         for (let i = 0; i < results.length; i++) {
             const row = results[i];
             try {
@@ -258,6 +296,11 @@ export const importAccountsFromCSV = async (req, res) => {
                         continue;
                     }
                 }
+
+                const lowerType = row.accountType?.toLowerCase();
+                const defaultDeposit = config?.initialDeposits?.[lowerType] || 0;
+                const actualDeposit = parseFloat(row.depositAmount) || defaultDeposit;
+                const openDate = row.accountOpenDate ? new Date(row.accountOpenDate) : new Date();
 
                 const payload = {
                     accountType: row.accountType,
@@ -280,7 +323,7 @@ export const importAccountsFromCSV = async (req, res) => {
                         pincode: row.pincode,
                     },
                     aadhar: row.aadhar,
-                    depositAmount: parseFloat(row.depositAmount),
+                    depositAmount: lowerType === 'loan' ? 0 : actualDeposit,
                     introducerName: row.introducerName,
                     membershipNumber: row.membershipNumber,
                     introducerKnownSince: row.introducerKnownSince,
@@ -291,22 +334,99 @@ export const importAccountsFromCSV = async (req, res) => {
                     managerName: row.managerName,
                     lekhpalOrRokapal: row.lekhpalOrRokapal,
                     formDate: row.formDate ? new Date(row.formDate) : null,
-                    accountOpenDate: row.accountOpenDate ? new Date(row.accountOpenDate) : null,
+                    accountOpenDate: openDate,
                     signaturePath: row.signaturePath || null,
                     verifierSignaturePath: row.verifierSignaturePath || null,
                     profileImage: row.profileImage || null,
                 };
 
-                const account = await Account.create(payload);
-                // ✅ Create initial deposit transaction
-                await createTransactionAndLedger({
-                    account,
-                    type: 'deposit',
-                    amount: payload.depositAmount,
-                    description: 'Initial deposit on account opening (CSV Import)',
-                    date: payload.accountOpenDate || new Date(),
-                    createdBy: req.user?.name || 'System'
-                });
+                let account;
+
+                if (lowerType === 'recurring') {
+                    const installmentAmount = actualDeposit;
+                    const schedule = [];
+
+                    for (let j = 0; j < payload.tenure; j++) {
+                        const dueDate = new Date(openDate);
+                        dueDate.setMonth(dueDate.getMonth() + j);
+
+                        schedule.push({
+                            month: j + 1,
+                            dueDate,
+                            paid: j === 0, // ✅ First marked as paid
+                            fine: 0,
+                            paidDate: j === 0 ? new Date() : null
+                        });
+                    }
+
+                    payload.recurringDetails = {
+                        installmentAmount,
+                        schedule,
+                        fineTotal: 0,
+                        completedInstallments: 1,
+                        isMatured: false,
+                        maturityDate: new Date(openDate.setMonth(openDate.getMonth() + payload.tenure))
+                    };
+
+                    payload.balance = installmentAmount;
+
+                    account = await Account.create(payload);
+
+                    await createTransactionAndLedger({
+                        account,
+                        type: 'rdInstallment',
+                        amount: installmentAmount,
+                        description: 'First RD installment (CSV Import)',
+                        date: payload.accountOpenDate,
+                        createdBy: req.user?.name || 'System'
+                    });
+                } else if (lowerType === 'loan') {
+                    const loanType = row.loanType || 'General';
+                    const interestRate = config?.loanInterestRates?.find(r => r.type?.toLowerCase() === loanType?.toLowerCase())?.rate || 12;
+
+                    payload.hasLoan = true;
+                    payload.loanDetails = {
+                        totalLoanAmount: actualDeposit,
+                        disbursedAmount: 0,
+                        interestRate,
+                        tenureMonths: parseInt(payload.tenure) || 12,
+                        emiAmount: 0,
+                        disbursedDate: null,
+                        status: 'draft',
+                        nextDueDate: null
+                    };
+
+                    payload.depositAmount = 0;
+                    payload.balance = 0;
+
+                    account = await Account.create(payload);
+
+                    await Loan.create({
+                        borrower: account._id,
+                        loanAmount: actualDeposit,
+                        loanType,
+                        interestRate,
+                        tenureMonths: parseInt(payload.tenure) || 12,
+                        status: 'draft',
+                        remarks: 'Loan created during CSV import',
+                        repaymentSchedule: []
+                    });
+                } else {
+                    payload.balance = actualDeposit;
+                    account = await Account.create(payload);
+
+                    if (actualDeposit > 0) {
+                        await createTransactionAndLedger({
+                            account,
+                            type: 'deposit',
+                            amount: actualDeposit,
+                            description: 'Initial deposit on account opening (CSV Import)',
+                            date: payload.accountOpenDate,
+                            createdBy: req.user?.name || 'System'
+                        });
+                    }
+                }
+
                 imported.push(payload.accountNumber);
             } catch (err) {
                 console.error(`❌ Row ${i + 2} failed:`, err.message);
@@ -315,17 +435,6 @@ export const importAccountsFromCSV = async (req, res) => {
         }
 
         fs.unlinkSync(filePath); // Clean up temp file
-
-        if (imported.length === 0 && failedRows.length === 0) {
-            return successResponse(res, 200, "No accounts imported. All records were duplicates or invalid.", {
-                importedCount: 0,
-                skippedCount: skipped.length,
-                failedCount: 0,
-                imported: [],
-                skipped,
-                failedRows: [],
-            });
-        }
 
         return successResponse(res, 200, "CSV import completed", {
             importedCount: imported.length,
@@ -414,5 +523,57 @@ export const searchAccounts = async (req, res) => {
     } catch (err) {
         console.error('❌ Account search error:', err);
         return errorResponse(res, 500, "Failed to search accounts", err.message);
+    }
+};
+
+export const payRecurringInstallment = async (req, res) => {
+    try {
+        const { accountId } = req.params;
+        const { paymentRef } = req.body;
+
+        const account = await Account.findById(accountId);
+        if (!account || account.accountType !== 'Recurring') {
+            return notFoundResponse(res, 404, "Recurring account not found");
+        }
+
+        const nextInstallment = account.recurringDetails.schedule.find(inst => !inst.paid);
+        if (!nextInstallment) {
+            return badRequestResponse(res, 400, "All installments are already paid");
+        }
+
+        const today = new Date();
+
+        // ✅ Mark as paid
+        nextInstallment.paid = true;
+        nextInstallment.paidDate = today;
+        nextInstallment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+        // ✅ Fine if past due date
+        if (today > nextInstallment.dueDate) {
+            const fine = 10; // or calculate based on rules
+            nextInstallment.fine = fine;
+            account.recurringDetails.fineTotal += fine;
+        }
+
+        // ✅ Update completed count and balance
+        account.recurringDetails.completedInstallments += 1;
+        account.balance += account.recurringDetails.installmentAmount;
+
+        await account.save();
+
+        // ✅ Ledger + Transaction Entry
+        await createTransactionAndLedger({
+            account,
+            type: 'rdInstallment',
+            amount: account.recurringDetails.installmentAmount,
+            description: `RD Installment (Month ${nextInstallment.month})`,
+            date: today,
+            createdBy: req.user?.name || 'System',
+        });
+
+        return successResponse(res, 200, "Installment paid successfully", account);
+    } catch (err) {
+        console.error("❌ RD Payment Error:", err);
+        return errorResponse(res, 500, "Installment payment failed", err.message);
     }
 };

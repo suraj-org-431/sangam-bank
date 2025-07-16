@@ -9,6 +9,7 @@ import {
 } from "../utils/response.js";
 import Account from "../models/Account.js";
 import { generateNextAccountNumber } from "./accountController.js";
+import Transaction from "../models/Transaction.js";
 
 // ✅ Create or Update (Upsert) Ledger
 export const upsertLedger = async (req, res) => {
@@ -170,7 +171,7 @@ export const getAllLedgers = async (req, res) => {
                 totalCredit: {
                     $sum: {
                         $cond: [
-                            { $in: ["$transactionType", ["deposit", "interest", "loanDisbursed", "openingBalance"]] },
+                            { $in: ["$transactionType", ["deposit", "loanDisbursed", "openingBalance", "rdInstallment"]] },
                             "$amount",
                             0
                         ]
@@ -179,7 +180,9 @@ export const getAllLedgers = async (req, res) => {
                 totalDebit: {
                     $sum: {
                         $cond: [
-                            { $in: ["$transactionType", ["withdrawal", "penalty", "loanRepayment"]] },
+                            {
+                                $in: ["$transactionType", ["withdrawal", "penalty", "loanRepayment", "fine", "principal", "interestPayment"]]
+                            },
                             "$amount",
                             0
                         ]
@@ -202,7 +205,7 @@ export const getAllLedgers = async (req, res) => {
                         $switch: {
                             branches: [
                                 {
-                                    case: { $in: ["$transactionType", ["deposit", "interest", "loanDisbursed", "openingBalance"]] },
+                                    case: { $in: ["$transactionType", ["deposit", "loanDisbursed", "openingBalance", "rdInstallment"]] },
                                     then: "$amount"
                                 },
                                 {
@@ -302,7 +305,7 @@ export const getAllLedgers = async (req, res) => {
 export const getLedgerSummaryByParticular = async (req, res) => {
     try {
         const rawParticular = req.params.particular || '-';
-        const particular = rawParticular?.replace(/-/g, ' ').trim();
+        const particular = rawParticular.replace(/-/g, ' ').trim();
 
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 50;
@@ -310,8 +313,8 @@ export const getLedgerSummaryByParticular = async (req, res) => {
 
         const match = { particulars: { $regex: new RegExp(`^${particular}$`, 'i') } };
 
-        // Fetch all entries for this particular
-        const allEntries = await Ledger.find(match).sort({ createdAt: -1 });
+        // Fetch all matching ledger entries
+        const allEntries = await Ledger.find(match).sort({ date: -1, createdAt: -1 });
 
         let totalCredit = 0;
         let totalDebit = 0;
@@ -320,31 +323,38 @@ export const getLedgerSummaryByParticular = async (req, res) => {
 
         allEntries.forEach(entry => {
             const amt = entry.amount || 0;
+
             switch (entry.transactionType) {
+                // ✅ Credit transactions
                 case 'deposit':
                 case 'interest':
                 case 'loanDisbursed':
                 case 'openingBalance':
+                case 'rdInstallment':
                     totalCredit += amt;
-                    if (entry.transactionType === 'interest') totalInterest += amt;
                     balance += amt;
+                    if (entry.transactionType === 'interest') totalInterest += amt;
                     break;
 
+                // ✅ Debit transactions
                 case 'withdrawal':
                 case 'penalty':
                 case 'loanRepayment':
+                case 'fine':
+                case 'principal':
+                case 'interestPayment':
                     totalDebit += amt;
                     balance -= amt;
                     break;
 
+                // 🔄 Other types - optional handling
                 case 'adjustment':
                 case 'transfer':
                 case 'autoCreated':
                 case 'closingBalance':
-                    // No effect or custom logic
+                default:
                     break;
             }
-
         });
 
         const paginatedEntries = allEntries.slice(skip, skip + limit);
@@ -497,11 +507,47 @@ export const deleteLedger = async (req, res) => {
         const { ledgerId } = req.params;
         if (!ledgerId) return badRequestResponse(res, 400, "Ledger ID is required");
 
-        const deleted = await Ledger.findByIdAndDelete(ledgerId);
-        if (!deleted) return notFoundResponse(res, 404, "Ledger not found");
+        const entry = await Ledger.findById(ledgerId);
+        if (!entry) return notFoundResponse(res, 404, "Ledger entry not found");
 
-        return successResponse(res, 200, "Ledger entry deleted successfully");
+        const account = await Account.findOne({ applicantName: entry.particulars });
+        if (!account) return notFoundResponse(res, 404, "Associated account not found");
+
+        const amount = parseFloat(entry.amount || 0);
+        const type = entry.transactionType;
+
+        // 🔁 Revert balance
+        const creditTypes = ['deposit', 'loanDisbursed', 'interest', 'openingBalance', 'rdInstallment'];
+        const debitTypes = ['withdrawal', 'penalty', 'loanRepayment'];
+
+        if (creditTypes.includes(type)) {
+            account.balance -= amount;
+        } else if (debitTypes.includes(type)) {
+            account.balance += amount;
+        }
+
+        if (account.balance < 0) account.balance = 0;
+
+        await account.save();
+
+        // 🔎 Delete corresponding Transaction
+        await Transaction.findOneAndDelete({
+            accountId: account._id,
+            type: entry.transactionType,
+            amount: entry.amount,
+            date: entry.date
+        });
+
+        // 🗑️ Delete Ledger Entry
+        await entry.deleteOne();
+
+        return successResponse(res, 200, "Ledger and matching transaction deleted, balance reverted", {
+            updatedBalance: account.balance,
+            deletedEntry: entry
+        });
+
     } catch (err) {
+        console.error("❌ Ledger Deletion Error:", err);
         return errorResponse(res, 500, "Failed to delete ledger", err.message);
     }
 };
@@ -572,13 +618,13 @@ export const getOverallFinancialSummary = async (req, res) => {
             endDate = new Date(parseInt(year) + 1, 0, 1);
         }
 
-        // 🔹 All ledgers (needed for opening and closing calculations)
+        // Fetch all ledgers sorted by date
         const allLedgers = await Ledger.find().sort({ date: 1 }).lean();
 
-        // 🔹 Ledgers before the selected range (for opening balance)
+        // Ledgers before the selected range (for opening balance)
         const openingLedgers = allLedgers.filter(l => startDate && new Date(l.date) < startDate);
 
-        // 🔹 Ledgers within the selected range (for total ledger and closing balance)
+        // Ledgers within the selected range
         const periodLedgers = startDate && endDate
             ? allLedgers.filter(l => new Date(l.date) >= startDate && new Date(l.date) < endDate)
             : allLedgers;
@@ -587,14 +633,30 @@ export const getOverallFinancialSummary = async (req, res) => {
         let openingBalance = 0;
         for (const entry of openingLedgers) {
             const amt = entry.amount || 0;
-            if (entry.transactionType === 'deposit' || entry.transactionType === 'interest') {
-                openingBalance += amt;
-            } else if (entry.transactionType === 'withdrawal') {
-                openingBalance -= amt;
+            switch (entry.transactionType) {
+                case 'deposit':
+                case 'interest':
+                case 'loanDisbursed':
+                case 'rdInstallment':
+                case 'openingBalance':
+                    openingBalance += amt;
+                    break;
+
+                case 'withdrawal':
+                case 'penalty':
+                case 'loanRepayment':
+                case 'fine':
+                case 'principal':
+                case 'interestPayment':
+                    openingBalance -= amt;
+                    break;
+
+                default:
+                    break;
             }
         }
 
-        // 📊 Calculate Total Ledger and Closing Balance
+        // 📊 Summary for Selected Period
         let totalCredit = 0;
         let totalDebit = 0;
         let totalInterest = 0;
@@ -605,16 +667,32 @@ export const getOverallFinancialSummary = async (req, res) => {
             const amt = entry.amount || 0;
             totalLedgerAmount += amt;
 
-            if (entry.transactionType === 'deposit') {
-                totalDebit += amt;
-                closingBalance += amt;
-            } else if (entry.transactionType === 'interest') {
-                totalInterest += amt;
-                totalCredit += amt;
-                closingBalance += amt;
-            } else if (entry.transactionType === 'withdrawal') {
-                totalCredit += amt;
-                closingBalance -= amt;
+            switch (entry.transactionType) {
+                case 'deposit':
+                case 'loanDisbursed':
+                case 'rdInstallment':
+                case 'openingBalance':
+                    totalDebit += amt;
+                    closingBalance += amt;
+                    break;
+
+                case 'interest':
+                    totalInterest += amt;
+                    totalDebit += amt;
+                    closingBalance += amt;
+                    break;
+
+                case 'withdrawal':
+                case 'loanRepayment':
+                case 'fine':
+                case 'principal':
+                case 'interestPayment':
+                    totalCredit += amt;
+                    closingBalance -= amt;
+                    break;
+
+                default:
+                    break;
             }
         }
 
@@ -630,7 +708,7 @@ export const getOverallFinancialSummary = async (req, res) => {
                 totalCredit,
                 totalDebit,
                 totalInterest,
-                net: totalCredit - totalDebit
+                net: totalDebit - totalCredit
             }
         });
     } catch (err) {

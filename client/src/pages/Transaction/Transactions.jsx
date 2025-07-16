@@ -127,6 +127,7 @@ const Transactions = () => {
                         <table className="table theme-table table-bordered table-hover align-middle">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Date</th>
                                     <th>Account No.</th>
                                     <th>Customer Name</th>
@@ -134,16 +135,18 @@ const Transactions = () => {
                                     <th>Type</th>
                                     <th>Amount</th>
                                     <th>Description</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {transactions.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" className="text-center text-muted">No transactions found.</td>
+                                        <td colSpan="8" className="text-center text-muted">No transactions found.</td>
                                     </tr>
                                 ) : (
-                                    transactions.map((tx) => (
+                                    transactions.map((tx, idx) => (
                                         <tr key={tx._id}>
+                                            <td>{idx + 1}</td>
                                             <td>{format(new Date(tx.date), 'dd MMM yyyy')}</td>
                                             <td>{tx.accountId?.accountNumber || '-'}</td>
                                             <td>{tx.accountId?.applicantName || '-'}</td>
@@ -167,6 +170,9 @@ const Transactions = () => {
                                                                 return 'Loan Disbursed / ऋण वितरण';
                                                             case 'loanRepayment':
                                                                 return 'Loan Repayment / ऋण भुगतान';
+                                                            case 'fine': return 'Penalty / दंड';
+                                                            case 'interestPayment': return 'Interest Paid / ब्याज भुगतान';
+                                                            case 'principle': return 'Principal Paid / मूलधन भुगतान';
                                                             default:
                                                                 return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
                                                         }
@@ -176,6 +182,11 @@ const Transactions = () => {
 
                                             <td>{tx.amount?.toFixed(2)}</td>
                                             <td>{tx.description || '-'}</td>
+                                            <td>
+                                                <button className="btn btn-sm btn-outline-info me-2" onClick={() => {
+                                                    navigate(adminRoute(`/transaction/view/${tx?._id}`), { state: { transaction: tx } });
+                                                }}>Receipt</button>
+                                            </td>
                                         </tr>
                                     ))
                                 )}

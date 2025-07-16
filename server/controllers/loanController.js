@@ -3,6 +3,9 @@ import Loan from '../models/Loan.js';
 import Account from '../models/Account.js';
 import { createTransactionAndLedger } from '../utils/accountLedger.js'; // adjust path if needed
 import { successResponse, errorResponse, badRequestResponse } from '../utils/response.js';
+import Config from '../models/Config.js';
+import { generateRepaymentSchedule } from '../utils/loanUtils.js';
+import { applyApprovedLoanAdjustment } from '../utils/adjustmentUtils.js';
 
 // ✅ Create Loan Application
 export const createLoan = async (req, res) => {
@@ -22,7 +25,8 @@ export const createLoan = async (req, res) => {
             loanType,
             interestRate,
             tenureMonths,
-            remarks
+            remarks,
+            adjustments: []
         });
 
         borrower.hasLoan = true;
@@ -32,6 +36,85 @@ export const createLoan = async (req, res) => {
     } catch (err) {
         console.error('❌ Loan creation failed:', err);
         return errorResponse(res, 500, 'Failed to create loan', err.message);
+    }
+};
+
+// ✅ Add Adjustment (POST /loans/:loanId/adjust)
+export const addLoanAdjustment = async (req, res) => {
+    try {
+        const { loanId } = req.params;
+        const { type, amount, remarks } = req.body;
+
+        if (!type || !amount) {
+            return badRequestResponse(res, 400, 'Adjustment type and amount are required');
+        }
+
+        const loan = await Loan.findById(loanId).populate('borrower');
+        if (!loan) return badRequestResponse(res, 404, 'Loan not found');
+
+        const adjustment = {
+            type,
+            amount: parseFloat(amount),
+            remarks,
+            status: 'pending',
+            createdAt: new Date(),
+            createdBy: req.user?.name || 'Admin'
+        };
+
+        loan.adjustments.push(adjustment);
+        await loan.save();
+
+        return successResponse(res, 200, 'Loan adjustment created (pending)', adjustment);
+    } catch (err) {
+        console.error('❌ Loan adjustment creation failed:', err);
+        return errorResponse(res, 500, 'Adjustment creation failed', err.message);
+    }
+};
+
+// ✅ Approve Adjustment (PUT /loans/:loanId/adjust/:adjustId/approve)
+export const approveLoanAdjustment = async (req, res) => {
+    try {
+        const { loanId, adjustId } = req.params;
+        const userName = req.user?.name || 'Admin';
+
+        const loan = await Loan.findById(loanId).populate('borrower');
+        if (!loan) return badRequestResponse(res, 404, 'Loan not found');
+
+        const adjustment = loan.adjustments.id(adjustId);
+        if (!adjustment) return badRequestResponse(res, 404, 'Adjustment not found');
+        if (adjustment.status !== 'pending') return badRequestResponse(res, 400, 'Already processed');
+
+        await applyApprovedLoanAdjustment({ loan, adjustment, userName });
+
+        return successResponse(res, 200, 'Adjustment approved and applied', adjustment);
+    } catch (err) {
+        console.error('❌ Adjustment approval failed:', err);
+        return errorResponse(res, 500, 'Adjustment approval failed', err.message);
+    }
+};
+
+// ✅ Reject Adjustment
+export const rejectLoanAdjustment = async (req, res) => {
+    try {
+        const { loanId, adjustId } = req.params;
+        const { reason } = req.body;
+
+        const loan = await Loan.findById(loanId);
+        if (!loan) return badRequestResponse(res, 404, 'Loan not found');
+
+        const adjustment = loan.adjustments.id(adjustId);
+        if (!adjustment) return badRequestResponse(res, 404, 'Adjustment not found');
+        if (adjustment.status !== 'pending') return badRequestResponse(res, 400, 'Already processed');
+
+        adjustment.status = 'rejected';
+        adjustment.approvedBy = req.user?.name || 'Admin';
+        adjustment.approvedAt = new Date();
+        adjustment.remarks = reason || adjustment.remarks;
+
+        await loan.save();
+        return successResponse(res, 200, 'Adjustment rejected', adjustment);
+    } catch (err) {
+        return errorResponse(res, 500, 'Adjustment rejection failed', err.message);
     }
 };
 
@@ -83,6 +166,7 @@ export const getAllLoans = async (req, res) => {
                 loanType: loan.loanType,
                 status: loan.status,
                 emiAmount: emi ? Number(emi) : null,
+                remainingPrincipal: loan.borrower?.loanDetails?.disbursedAmount || 0
             };
         });
 
@@ -111,7 +195,8 @@ export const getLoanById = async (req, res) => {
             interestRate: loan.interestRate,
             tenureMonths: loan.tenureMonths,
             status: loan.status,
-            repaymentSchedule: loan.repaymentSchedule || []
+            repaymentSchedule: loan.repaymentSchedule || [],
+            adjustments: loan.adjustments || []
         };
 
         return successResponse(res, 200, 'Loan fetched successfully', response);
@@ -148,39 +233,51 @@ export const approveLoan = async (req, res) => {
 export const disburseLoan = async (req, res) => {
     try {
         const { loanId } = req.params;
-
         const loan = await Loan.findById(loanId).populate('borrower');
         if (!loan) return badRequestResponse(res, 404, 'Loan not found');
-
-        if (loan.status !== 'approved') {
-            return badRequestResponse(res, 400, 'Loan must be approved before disbursement');
-        }
+        if (loan.status !== 'approved') return badRequestResponse(res, 400, 'Loan must be approved before disbursement');
 
         const disbursedDate = new Date();
         const borrower = loan.borrower;
 
-        // 🧮 Update account balance
-        borrower.balance += loan.loanAmount;
+        const config = await Config.findOne();
+        const configRate = config?.loanInterestRates?.find(r =>
+            r.type?.toLowerCase() === loan.loanType?.toLowerCase()
+        )?.rate;
 
-        // 📝 Update loan details in account
+        const interestRate = configRate || loan.interestRate || 12;
+        const { schedule, emiAmount } = generateRepaymentSchedule({
+            loanAmount: loan.loanAmount,
+            interestRate,
+            tenureMonths: loan.tenureMonths,
+            disbursementDate: disbursedDate
+        });
+
+        // Update Account
+        borrower.balance += loan.loanAmount;
+        borrower.hasLoan = true;
         borrower.loanDetails = {
             totalLoanAmount: loan.loanAmount,
             disbursedAmount: loan.loanAmount,
-            interestRate: loan.interestRate,
+            interestRate,
             tenureMonths: loan.tenureMonths,
-            disbursedDate: disbursedDate,
-            status: 'disbursed'
+            emiAmount,
+            disbursedDate,
+            status: 'disbursed',
+            nextDueDate: schedule[0]?.dueDate
         };
-        borrower.hasLoan = true;
         await borrower.save();
 
-        // 🏦 Update loan model
+        // Update Loan
         loan.status = 'disbursed';
         loan.disbursedAmount = loan.loanAmount;
         loan.disbursedDate = disbursedDate;
+        loan.repaymentSchedule = schedule;
+        loan.emiAmount = emiAmount;
+        loan.nextDueDate = schedule[0]?.dueDate;
         await loan.save();
 
-        // 🧾 Create ledger + transaction entry
+        // Ledger entry
         await createTransactionAndLedger({
             account: borrower,
             type: 'loanDisbursed',
@@ -191,95 +288,155 @@ export const disburseLoan = async (req, res) => {
             createdBy: req.user?.name || 'Loan Admin'
         });
 
-        return successResponse(res, 200, 'Loan disbursed successfully', loan);
+        return successResponse(res, 200, 'Loan disbursed and schedule generated', loan);
     } catch (err) {
         console.error('❌ Loan disbursement error:', err);
         return errorResponse(res, 500, 'Loan disbursement failed', err.message);
     }
 };
-// export const disburseLoan = async (req, res) => {
-//     try {
-//         const { loanId } = req.params;
-//         const loan = await Loan.findById(loanId).populate('borrower');
-//         if (!loan) return badRequestResponse(res, 404, 'Loan not found');
-//         if (loan.status !== 'approved') return badRequestResponse(res, 400, 'Loan already disbursed or closed');
-
-//         const disbursedDate = new Date();
-//         const borrower = loan.borrower;
-
-//         // Add disbursement to balance
-//         borrower.balance += loan.loanAmount;
-//         borrower.loanDetails = {
-//             totalLoanAmount: loan.loanAmount,
-//             disbursedAmount: loan.loanAmount,
-//             interestRate: loan.interestRate,
-//             tenureMonths: loan.tenureMonths,
-//             disbursedDate,
-//             status: 'disbursed'
-//         };
-//         await borrower.save();
-
-//         loan.status = 'disbursed';
-//         loan.disbursedAmount = loan.loanAmount;
-//         loan.disbursedDate = disbursedDate;
-//         await loan.save();
-
-//         await createTransactionAndLedger({
-//             account: borrower,
-//             type: 'loanDisbursed',
-//             amount: loan.loanAmount,
-//             description: `Loan Disbursed for ₹${loan.loanAmount}`,
-//             date: disbursedDate,
-//             loanId: loan?._id,
-//             createdBy: req.user?.name || 'Loan Admin'
-//         });
-
-//         return successResponse(res, 200, 'Loan disbursed successfully', loan);
-//     } catch (err) {
-//         return errorResponse(res, 500, 'Loan disbursement failed', err.message);
-//     }
-// };
 
 // ✅ Repay Loan
 export const repayLoan = async (req, res) => {
     try {
         const { loanId } = req.params;
-        const { amount } = req.body;
-
-        if (!amount || amount <= 0) return badRequestResponse(res, 400, 'Invalid repayment amount');
+        const { amount, paymentRef } = req.body;
 
         const loan = await Loan.findById(loanId).populate('borrower');
-        if (!loan || loan.status !== 'disbursed') return badRequestResponse(res, 400, 'Invalid loan');
+        if (!loan || loan.status !== 'disbursed') {
+            return badRequestResponse(res, 400, 'Loan not disbursed or not found');
+        }
 
         const borrower = loan.borrower;
-        if (borrower.balance < amount) return badRequestResponse(res, 400, 'Insufficient balance');
+        const schedule = loan.repaymentSchedule || [];
+        const unpaidIndex = schedule.findIndex(i => !i.paid);
+        const nextInstallment = schedule[unpaidIndex]
+        const emiLabel = `${unpaidIndex + 1}${getOrdinal(unpaidIndex + 1)} EMI`;
+        if (!nextInstallment) {
+            return badRequestResponse(res, 400, 'All installments are already paid');
+        }
 
-        loan.repaymentSchedule = loan.repaymentSchedule || [];
-        loan.repaymentSchedule.push({
-            dueDate: new Date(),
-            amount,
-            paid: true,
-            paidOn: new Date()
-        });
+        const today = new Date();
+        let fine = 0;
+        if (today > nextInstallment.dueDate) {
+            const daysLate = Math.ceil((today - new Date(nextInstallment.dueDate)) / (1000 * 60 * 60 * 24));
+            fine = daysLate * 5; // ₹5/day fine
+        }
 
-        const totalPaid = loan.repaymentSchedule.reduce((sum, r) => sum + (r.paid ? r.amount : 0), 0);
-        if (totalPaid >= loan.loanAmount) loan.status = 'repaid';
+        const { principal, interest } = nextInstallment;
+        const emiTotal = principal + interest;
+        const totalAmount = emiTotal + fine;
 
-        // ✅ Use helper
+        if (borrower.balance < totalAmount) {
+            return badRequestResponse(res, 400, `Insufficient balance. Need ₹${totalAmount}`);
+        }
+
+        // ✅ Update installment record
+        nextInstallment.paid = true;
+        nextInstallment.paidOn = today;
+        nextInstallment.amountPaid = emiTotal;
+        nextInstallment.fine = fine;
+        nextInstallment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+        // ✅ Deduct from borrower account
+        borrower.balance -= totalAmount;
+        borrower.balance = Math.max(borrower.balance, 0);
+
+        borrower.loanDetails.totalPaidAmount += totalAmount;
+        borrower.loanDetails.disbursedAmount = Math.max(loan.loanAmount - borrower.loanDetails.totalPaidAmount, 0);
+
+        borrower.loanDetails.lastEMIPaidOn = today;
+        borrower.loanDetails.nextDueDate = schedule.find(i => !i.paid)?.dueDate || null;
+        if (borrower.loanDetails.disbursedAmount <= 0) {
+            borrower.loanDetails.status = 'repaid';
+        }
+
+        // ✅ Update loan status
+        loan.lastEMIPaidOn = today;
+        loan.nextDueDate = borrower.loanDetails.nextDueDate;
+        if (!schedule.find(i => !i.paid)) {
+            loan.status = 'repaid';
+        }
+
+        await borrower.save();
+        await loan.save();
+
+        // ✅ Create ledger + transaction for principal
         await createTransactionAndLedger({
             account: borrower,
             type: 'loanRepayment',
-            amount,
-            description: 'Loan Repayment',
-            date: new Date(),
-            createdBy: req.user?.name || 'Repayment Clerk'
+            amount: principal,
+            description: `${emiLabel} Principal Paid`,
+            date: today,
+            loanId: loan._id,
+            createdBy: req.user?.name || 'Clerk'
         });
 
-        await loan.save();
+        // ✅ Create ledger + transaction for interest
+        await createTransactionAndLedger({
+            account: borrower,
+            type: 'interestPayment',
+            amount: interest,
+            description: `${emiLabel} Interest Paid`,
+            date: today,
+            loanId: loan._id,
+            createdBy: req.user?.name || 'Clerk'
+        });
 
-        return successResponse(res, 200, 'Loan repayment recorded', loan);
+        // ✅ Create ledger + transaction for fine (if any)
+        if (fine > 0) {
+            await createTransactionAndLedger({
+                account: borrower,
+                type: 'fine',
+                amount: fine,
+                description: `Late Fine Paid for ${emiLabel}`,
+                date: today,
+                loanId: loan._id,
+                createdBy: req.user?.name || 'Clerk'
+            });
+        }
+
+        return successResponse(res, 200, 'Loan repayment successful', {
+            principal,
+            interest,
+            fine,
+            totalPaid: totalAmount,
+            status: loan.status
+        });
     } catch (err) {
+        console.error('❌ Repayment failed:', err);
         return errorResponse(res, 500, 'Loan repayment failed', err.message);
     }
 };
+
+// PUT /loans/:loanId/reject
+export const rejectLoan = async (req, res) => {
+    try {
+        const { loanId } = req.params;
+        const { reason } = req.body;
+
+        const loan = await Loan.findById(loanId).populate('borrower');
+        if (!loan) return badRequestResponse(res, 404, 'Loan not found');
+        if (loan.status !== 'draft') return badRequestResponse(res, 400, 'Only draft loans can be rejected');
+
+        loan.status = 'rejected';
+        loan.remarks = reason || 'Rejected without reason';
+        await loan.save();
+
+        if (loan.borrower) {
+            loan.borrower.loanDetails.status = 'rejected';
+            loan.borrower.loanDetails.remarks = reason;
+            await loan.borrower.save();
+        }
+
+        return successResponse(res, 200, 'Loan rejected', loan);
+    } catch (err) {
+        return errorResponse(res, 500, 'Loan rejection failed', err.message);
+    }
+};
+
+function getOrdinal(n) {
+    const s = ["th", "st", "nd", "rd"],
+        v = n % 100;
+    return (s[(v - 20) % 10] || s[v] || s[0]);
+}
 

@@ -5,7 +5,7 @@ import Config from '../models/Config.js';
 export const applyInterestToAllAccounts = async () => {
     try {
         const config = await Config.findOne().lean();
-        const interestRates = config?.interestRates || [];
+        const interestRates = config?.monthlyInterestRates || [];
         const now = new Date();
 
         const accounts = await Account.find();
@@ -25,13 +25,26 @@ export const applyInterestToAllAccounts = async () => {
                 console.warn(`⚠️ No rate found for type: ${account.accountType}`);
                 continue;
             }
-            const monthlyRate = rateEntry?.rate || 0;
 
-            if (!monthlyRate || monthlyRate <= 0) continue;
+            const now = new Date();
+            let interestAmount = 0;
 
-            const interestAmount = parseFloat(((account.balance * monthlyRate) / 100).toFixed(2));
+            // 💡 Special logic for MIS
+            if (account.accountType === 'MIS') {
+                // Expect MIS to have fixed tenure of 72 months
+                if (account.tenure !== 72 || !account.depositAmount) {
+                    console.warn(`❗ MIS account missing required data: ${account.accountNumber}`);
+                    continue;
+                }
+                interestAmount = parseFloat((account.depositAmount / 72).toFixed(2));
+            } else {
+                // 💰 Normal monthly interest calculation
+                const monthlyRate = rateEntry?.rate || 0;
+                if (!monthlyRate || monthlyRate <= 0) continue;
+                interestAmount = parseFloat(((account.balance * monthlyRate) / 100).toFixed(2));
+            }
+
             if (interestAmount <= 0) continue;
-
             account.balance += interestAmount;
 
             const updated = await account.save();

@@ -24,7 +24,7 @@ export const updateConfig = async (configData) => {
 export const getInterestRateByLoanType = async (loanType) => {
     try {
         const config = await getConfig();
-        const found = config?.interestRates?.find(item => item.type === loanType);
+        const found = config?.loanInterestRates?.find(item => item.type === loanType);
         return found?.rate || null;
     } catch (err) {
         console.error('Error fetching interest rate:', err.message);
