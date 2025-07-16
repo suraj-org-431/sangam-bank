@@ -86,6 +86,10 @@ export const upsertAccount = async (req, res) => {
                 payload.profileImage = `/uploads/profileImages/${req.files.profileImage[0].filename}`;
         }
 
+        if (!accountNumber) {
+            payload.accountNumber = await generateNextAccountNumber();
+        }
+
         let account;
         if (accId) {
             account = await Account.findByIdAndUpdate(accId, payload, { new: true });
