@@ -145,11 +145,19 @@ const CreateTransaction = () => {
 
         setNoteBreakdownAmount(total);
 
-        setFormData(prev => ({
-            ...prev,
-            noteBreakdown: updatedNoteBreakdown,
-            amount: total
-        }));
+        if (formData?.accountType === 'Recurring') {
+            setFormData(prev => ({
+                ...prev,
+                noteBreakdown: updatedNoteBreakdown,
+            }));
+        }
+        else {
+            setFormData(prev => ({
+                ...prev,
+                noteBreakdown: updatedNoteBreakdown,
+                amount: total
+            }));
+        }
     };
 
     return (

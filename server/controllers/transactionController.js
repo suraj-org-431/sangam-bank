@@ -38,14 +38,14 @@ export const createTransaction = async (req, res) => {
 
         // ✅ Ensure exact match for Fixed and Recurring accounts
         if (
-            ['fixed', 'recurring'].includes(accountType) &&
+            ['recurring'].includes(accountType) &&
             type === 'deposit' &&
             parseFloat(amount) !== parseFloat(account.balance)
         ) {
             return badRequestResponse(
                 res,
                 400,
-                `Transaction amount must be exactly ₹${account.balance} for ${account.accountType} account`
+                `Transaction amount must be exactly ₹${account?.recurringDetails?.installmentAmount} for ${account.accountType} account`
             );
         }
 
