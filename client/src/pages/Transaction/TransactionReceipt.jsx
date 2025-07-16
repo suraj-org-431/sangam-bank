@@ -21,7 +21,6 @@ const TransactionReceipt = () => {
 
     const location = useLocation();
     const { transaction } = location?.state;
-    console.log(transaction)
     const handleDownloadPDF = async () => {
         const receipt = document.getElementById("receipt");
         const canvas = await html2canvas(receipt, { scale: 2 });
@@ -78,7 +77,7 @@ const TransactionReceipt = () => {
                                 <tr><td><strong>Account Holder:</strong></td><td>{transaction?.accountId?.applicantName}</td></tr>
                                 <tr><td><strong>Account Number:</strong></td><td>{transaction?.accountId?.accountNumber}</td></tr>
                                 <tr><td><strong>Amount:</strong></td><td>₹{transaction?.amount}</td></tr>
-                                <tr><td><strong>Balance After Transaction:</strong></td><td>₹{transaction?.amount}</td></tr>
+                                <tr><td><strong>Balance After Transaction:</strong></td><td>₹{transaction?.accountId?.balance}</td></tr>
                                 <tr><td><strong>Remarks:</strong></td><td>{transaction?.description}</td></tr>
                             </tbody>
                         </table>
