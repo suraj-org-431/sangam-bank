@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 
 const transactionSchema = new Schema({
     accountId: { type: Schema.Types.ObjectId, ref: 'Accounts', required: true },
-    type: { type: String, enum: ['deposit', 'withdrawal', 'transfer', 'loanRepayment', 'loanDisbursed', 'rdInstallment'], required: true },
+    type: { type: String, enum: ['deposit', 'withdrawal', 'transfer', 'loanRepayment', 'loanDisbursed', 'rdInstallment', "adjustment", 'principal', 'fine', 'interestPayment'], required: true },
     amount: { type: Number, required: true },
     description: { type: String },
     date: { type: Date, default: Date.now },

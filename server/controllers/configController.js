@@ -35,16 +35,16 @@ export const updateConfig = async (req, res) => {
 // ✅ Apply Interest to All Accounts
 export const applyMonthlyInterest = async (req, res) => {
     try {
-        // Step 1: Apply Interest
         const interestResult = await applyInterestToAllAccounts();
-
-        // Step 2: Apply Fines (e.g., missed RD installments)
-        const fineResult = await applyRecurringFines(); // you'll implement this
+        const fineResult = await applyRecurringFines(); // RD fine
+        const loanFineResult = await applyLoanFines();  // 👈 Loan fine
 
         return successResponse(res, 200, "Monthly interest and fines applied", {
             interestApplied: interestResult.updatedCount,
-            finesApplied: fineResult.finedAccounts,
-            totalFineAmount: fineResult.totalFineAmount
+            rdFinesApplied: fineResult.finedAccounts,
+            rdTotalFine: fineResult.totalFineAmount,
+            loanFinesApplied: loanFineResult.finedLoans,
+            loanTotalFine: loanFineResult.totalFineAmount
         });
     } catch (err) {
         return errorResponse(res, 500, "Interest and fine application failed", err.message);

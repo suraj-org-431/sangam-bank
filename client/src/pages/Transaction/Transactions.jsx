@@ -167,6 +167,9 @@ const Transactions = () => {
                                                                 return 'Loan Disbursed / ऋण वितरण';
                                                             case 'loanRepayment':
                                                                 return 'Loan Repayment / ऋण भुगतान';
+                                                            case 'fine': return 'Penalty / दंड';
+                                                            case 'interestPayment': return 'Interest Paid / ब्याज भुगतान';
+                                                            case 'principle': return 'Principal Paid / मूलधन भुगतान';
                                                             default:
                                                                 return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
                                                         }

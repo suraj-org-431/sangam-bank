@@ -11,8 +11,31 @@ const addressSchema = new Schema({
     pincode: String
 }, { _id: false });
 
+const loanScheduleSchema = new Schema({
+    dueDate: Date,
+    principal: Number,
+    interest: Number,
+    amount: Number, // total = principal + interest
+    paid: { type: Boolean, default: false },
+    paidOn: Date,
+    fine: { type: Number, default: 0 },
+    paymentRef: String
+}, { _id: false });
+
+const recurringInstallmentSchema = new Schema({
+    month: Number,
+    dueDate: Date,
+    paid: { type: Boolean, default: false },
+    paidDate: Date,
+    fine: { type: Number, default: 0 },
+    paymentRef: String
+}, { _id: false });
+
 const accountsSchema = new Schema({
-    accountType: { type: String, enum: ['Savings', 'Recurring', 'Fixed', 'Current', 'Loan', 'MIS', 'Auto-Created'] },
+    accountType: {
+        type: String,
+        enum: ['Savings', 'Recurring', 'Fixed', 'Current', 'Loan', 'MIS', 'Auto-Created']
+    },
     tenure: { type: Number, default: 0 },
     branch: { type: String },
     applicantName: { type: String },
@@ -28,7 +51,7 @@ const accountsSchema = new Schema({
     introducerName: { type: String },
     membershipNumber: { type: String },
     introducerKnownSince: String,
-    accountNumber: { type: String, unique: true },
+    accountNumber: { type: String, unique: true, index: true },
     nomineeName: { type: String },
     nomineeRelation: { type: String },
     nomineeAge: { type: Number },
@@ -41,6 +64,7 @@ const accountsSchema = new Schema({
     profileImage: { type: String },
     balance: { type: Number, default: 0 },
     hasLoan: { type: Boolean, default: false },
+
     loanDetails: {
         totalLoanAmount: { type: Number, default: 0 },
         disbursedAmount: { type: Number, default: 0 },
@@ -48,24 +72,27 @@ const accountsSchema = new Schema({
         tenureMonths: { type: Number },
         emiAmount: { type: Number },
         disbursedDate: { type: Date },
-        status: { type: String, enum: ['draft', 'approved', 'disbursed', 'repaid', 'defaulted'], default: 'draft' },
+        status: {
+            type: String,
+            enum: ['draft', 'approved', 'disbursed', 'repaid', 'defaulted'],
+            default: 'draft'
+        },
         nextDueDate: { type: Date },
+        lastEMIPaidOn: { type: Date }, // ✅ New field
+        totalPaidAmount: { type: Number, default: 0 }, // ✅ Optional useful field
+        defaultedOn: { type: Date }, // ✅ Optional for tracking NPAs
+        repaymentSchedule: [loanScheduleSchema]
     },
+
     recurringDetails: {
-        installmentAmount: { type: Number },            // Monthly deposit
-        schedule: [{
-            month: Number,
-            dueDate: Date,
-            paid: { type: Boolean, default: false },
-            paidDate: Date,
-            fine: { type: Number, default: 0 },
-            paymentRef: String // transaction ID (optional)
-        }],
+        installmentAmount: { type: Number },
+        schedule: [recurringInstallmentSchema],
         fineTotal: { type: Number, default: 0 },
         completedInstallments: { type: Number, default: 0 },
         isMatured: { type: Boolean, default: false },
         maturityDate: Date
     },
+
     status: { type: Boolean, default: true },
 }, { timestamps: true });
 

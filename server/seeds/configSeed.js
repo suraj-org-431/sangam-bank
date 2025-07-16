@@ -11,13 +11,15 @@ const seedConfig = async () => {
         useUnifiedTopology: true
     });
 
-    await Config.deleteMany({}); // Optional: Clear old configs
+    await Config.deleteMany({}); // Clear old configs if needed
 
     const configData = {
-        interestRates: [
-            { type: 'savings', rate: 4 },
-            { type: 'recurring', rate: 6.5 },
-            { type: 'fixed', rate: 7.5 },
+        monthlyInterestRates: [
+            { type: 'Savings', rate: 4 },
+            { type: 'Recurring', rate: 6.5 },
+            { type: 'Fixed', rate: 7.5 }
+        ],
+        loanInterestRates: [
             { type: 'personal', rate: 12.5 },
             { type: 'education', rate: 8.5 },
             { type: 'gold', rate: 10 }
@@ -30,14 +32,42 @@ const seedConfig = async () => {
         initialDeposits: {
             savings: 500,
             recurring: 1000,
-            fixed: 2000
+            fixed: 2000,
+            Fixed: 500,
+            Recurring: 200,
+            Savings: 100
         },
-        loanDurations: [6, 12, 24, 36, 60],
+        loanDurations: [6, 12, 24, 36, 60, 72, 84],
         repaymentModes: ['full', 'emi', 'custom'],
-        autoCloseOnFullRepayment: true,
-        maxLoanAmount: 1000000,
-        minLoanAmount: 1000,
-        penaltyPerDay: 10,
+        penaltyCharges: {
+            rdMissedDeposit: 50,
+            loanMissedEmi: 100,
+            penaltyPerDay: 10
+        },
+        fineRules: [
+            {
+                accountType: 'Recurring',
+                ruleName: 'Missed RD Installment',
+                fineAmount: 50,
+                appliesAfterDays: 5,
+                affectsBalance: true,
+                ledgerDescription: 'RD Missed Fine'
+            },
+            {
+                accountType: 'Loan',
+                ruleName: 'Missed EMI',
+                fineAmount: 100,
+                appliesAfterDays: 3,
+                affectsBalance: true,
+                ledgerDescription: 'Loan EMI Fine'
+            }
+        ],
+        fineAffectsBalance: true,
+        fineConfig: {
+            enableAutoFine: true,
+            fineDescription: 'Late payment fine',
+            graceDays: 3
+        },
         updatedAt: new Date()
     };
 

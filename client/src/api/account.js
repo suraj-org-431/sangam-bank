@@ -34,7 +34,6 @@ export const getAccountDetailsByUser = async (userId) => {
         const res = await API.get(`/accounts/${userId}`);
         return res?.data?.data;
     } catch (err) {
-        console.log(err);
         throw new Error(err?.response?.data?.message || 'Failed to fetch account details');
     }
 };
@@ -42,7 +41,6 @@ export const getAccountDetailsByUser = async (userId) => {
 // 🔹 Create or update a single account (based on user)
 export const upsertAccountDetails = async (details) => {
     try {
-        console.log('upsertAccountDetails called with:', details);
         const res = await API.post(`/accounts`, details, {
             headers: {
                 'Content-Type': 'multipart/form-data'
@@ -74,7 +72,6 @@ export const importAccountsFromCSV = async (formData) => {
         });
         return res?.data?.data;
     } catch (err) {
-        console.log(err)
         throw new Error(err?.response?.data?.message || 'CSV import failed');
     }
 };

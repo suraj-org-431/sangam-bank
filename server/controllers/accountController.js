@@ -102,9 +102,9 @@ export const upsertAccount = async (req, res) => {
                     schedule.push({
                         month: i + 1,
                         dueDate,
-                        paid: i === 0, // ✅ First month marked as paid
+                        paid: i === 0,
                         fine: 0,
-                        paidDate: i === 0 ? new Date() : null // ✅ Optional: Track paid date
+                        paidDate: i === 0 ? new Date() : null
                     });
                 }
 
@@ -112,15 +112,14 @@ export const upsertAccount = async (req, res) => {
                     installmentAmount,
                     schedule,
                     fineTotal: 0,
-                    completedInstallments: 1, // ✅ 1 installment completed
+                    completedInstallments: 1,
                     isMatured: false,
                     maturityDate: new Date(start.setMonth(start.getMonth() + tenure))
                 };
 
-                payload.balance = installmentAmount; // ✅ Reflect payment in balance (optional)
+                payload.balance = installmentAmount;
                 account = await Account.create(payload);
 
-                // ✅ Create first installment transaction
                 await createTransactionAndLedger({
                     account,
                     type: 'rdInstallment',
@@ -141,7 +140,8 @@ export const upsertAccount = async (req, res) => {
                     emiAmount: 0,
                     disbursedDate: null,
                     status: 'draft',
-                    nextDueDate: null
+                    nextDueDate: null,
+                    lastEMIPaidOn: null // ✅ Newly added field
                 };
 
                 payload.depositAmount = 0;
@@ -157,7 +157,7 @@ export const upsertAccount = async (req, res) => {
                     tenureMonths: parseInt(tenure) || 12,
                     status: 'draft',
                     remarks: 'Loan created during account creation',
-                    repaymentSchedule: []
+                    repaymentSchedule: [], // Schedule will be generated on disbursement
                 });
             } else {
                 account = await Account.create(payload);

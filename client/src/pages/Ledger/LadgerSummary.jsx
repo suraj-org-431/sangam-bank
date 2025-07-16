@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getLedgerSummaryByParticular } from '../../api/ledger';
+import { deleteLedgerEntry, getLedgerSummaryByParticular } from '../../api/ledger';
 import { adminRoute } from '../../utils/router';
+import CommonModal from '../../components/common/CommonModal';
 
 const LedgerSummary = () => {
     const { particular } = useParams();
     const originalParticular = particular?.replace(/-/g, ' ');
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedEntry, setSelectedEntry] = useState(null);
 
     const navigate = useNavigate();
 
@@ -35,6 +38,24 @@ const LedgerSummary = () => {
         entries
             .filter(e => types.includes(e.transactionType))
             .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    const handleDelete = (entry) => {
+        setSelectedEntry(entry);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await deleteLedgerEntry(selectedEntry._id);
+            toast.success('Ledger entry deleted successfully');
+            setEntries((prev) => prev.filter(e => e._id !== selectedEntry._id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete ledger entry');
+        } finally {
+            setShowDeleteModal(false);
+            setSelectedEntry(null);
+        }
+    };
 
     const formatAmount = (amount) =>
         `₹ ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
@@ -63,6 +84,9 @@ const LedgerSummary = () => {
             case 'interest': return 'Interest / ब्याज';
             case 'rdInstallment': return 'RD Installment / आरडी जमा';
             case 'penalty': return 'Penalty / दंड';
+            case 'fine': return 'Penalty / दंड';
+            case 'interestPayment': return 'Interest Paid / ब्याज भुगतान';
+            case 'principle': return 'Principal Paid / मूलधन भुगतान';
             default: return type.charAt(0).toUpperCase() + type.slice(1);
         }
     };
@@ -86,6 +110,7 @@ const LedgerSummary = () => {
                                 <th>Transaction Type</th>
                                 <th>Amount (₹)</th>
                                 <th>Description</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -106,18 +131,26 @@ const LedgerSummary = () => {
                                             </td>
                                             <td>{formatAmount(entry.amount || 0)}</td>
                                             <td>{entry.description || '-'}</td>
+                                            <td>
+                                                <button
+                                                    className="btn btn-sm btn-outline-danger"
+                                                    onClick={() => handleDelete(entry)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                     <tr className="fw-bold bg-light">
                                         <td colSpan="4" className="text-end">Total Credit (Deposit + RD)</td>
                                         <td colSpan="1">
-                                            {formatAmount(getTotal(['deposit', 'rdInstallment']))}
+                                            {formatAmount(getTotal(['deposit', 'rdInstallment', 'loanDisbursed']))}
                                         </td>
                                     </tr>
                                     <tr className="fw-bold bg-light">
                                         <td colSpan="4" className="text-end">Total Debit</td>
                                         <td colSpan="1">
-                                            {formatAmount(getTotal(['withdrawal', 'penalty', 'loanRepayment']))}
+                                            {formatAmount(getTotal(['withdrawal', 'penalty', 'loanRepayment', 'interestPayment', 'fine', 'principle']))}
                                         </td>
                                     </tr>
                                     <tr className="fw-bold bg-light">
@@ -132,6 +165,16 @@ const LedgerSummary = () => {
                     </table>
                 </div>
             </div>
+            <CommonModal
+                show={showDeleteModal}
+                onHide={() => setShowDeleteModal(false)}
+                title="Delete Ledger Entry"
+                type="confirm-delete"
+                itemName={`${selectedEntry?.transactionType || 'this'} entry`}
+                onConfirm={confirmDelete}
+                confirmText="Delete"
+                confirmVariant="danger"
+            />
         </div>
     );
 };
