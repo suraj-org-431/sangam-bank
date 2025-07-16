@@ -25,7 +25,6 @@ const CreateTransaction = () => {
         description: '',
         date: '',
         noteBreakdown: {
-            2000: '',
             500: '',
             200: '',
             100: '',
@@ -57,11 +56,10 @@ const CreateTransaction = () => {
                         accountId: acc._id,
                         accountType: acc.accountType,
                         type: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
-                        amount: ['Fixed', 'Recurring'].includes(acc.accountType) ? acc.balance : acc?.accountType === 'Loan' ? acc?.loanDetails?.emiAmount : '',
+                        amount: ['Fixed'].includes(acc.accountType) ? acc.balance : acc?.accountType === 'Loan' ? acc?.loanDetails?.emiAmount : acc?.accountType === 'Recurring' ? acc?.recurringDetails?.installmentAmount : '',
                         description: '',
                         date: new Date().toISOString().split('T')[0],
                         noteBreakdown: {
-                            2000: '',
                             500: '',
                             200: '',
                             100: '',
@@ -79,7 +77,6 @@ const CreateTransaction = () => {
                         description: '',
                         date: new Date().toISOString().split('T')[0],
                         noteBreakdown: {
-                            2000: '',
                             500: '',
                             200: '',
                             100: '',
@@ -237,7 +234,7 @@ const CreateTransaction = () => {
                                                     value={formData?.noteBreakdown[denom] || {}}
                                                     onChange={(e) => handleNoteChange(denom, e.target.value)}
                                                     placeholder="0"
-                                                    disabled={['Fixed', 'Recurring'].includes(selectedAccount?.accountType)}
+                                                    disabled={['Fixed'].includes(selectedAccount?.accountType)}
                                                 />
                                             </div>
                                         </div>
