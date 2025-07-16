@@ -8,7 +8,7 @@ import { createTransactionAndLedger } from "../utils/accountLedger.js";
 
 export const createTransaction = async (req, res) => {
     try {
-        const { accountId, type, amount, description, date, noteBreakdown } = req.body;
+        const { accountId, type, amount, description, date, noteBreakdown, paymentType, transactionId } = req.body;
 
         if (!accountId || !type || !amount)
             return badRequestResponse(res, 400, "Missing required fields");
@@ -53,6 +53,8 @@ export const createTransaction = async (req, res) => {
             amount,
             description,
             date: date || new Date(),
+            paymentType,
+            transactionId,
             noteBreakdown,
             createdBy: req.user?.name || "System",
         });

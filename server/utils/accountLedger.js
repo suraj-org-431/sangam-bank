@@ -7,6 +7,8 @@ export const createTransactionAndLedger = async ({
     amount,
     description,
     date,
+    paymentType,
+    transactionId,
     loanId,
     createdBy,
     adjustmentType, // optional: 'writeOff' | 'customAdjustment'
@@ -26,6 +28,8 @@ export const createTransactionAndLedger = async ({
         amount: parsedAmount,
         description,
         date,
+        paymentType,
+        transactionId,
         loanId,
         noteBreakdown
     });

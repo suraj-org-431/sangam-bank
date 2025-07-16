@@ -25,6 +25,8 @@ const CreateTransaction = () => {
         amount: '',
         description: '',
         date: '',
+        paymentType: 'cash',
+        transactionId: '',
         noteBreakdown: {
             500: '',
             200: '',
@@ -60,6 +62,8 @@ const CreateTransaction = () => {
                         amount: ['Fixed'].includes(acc.accountType) ? acc.balance : acc?.accountType === 'Loan' ? acc?.loanDetails?.emiAmount : acc?.accountType === 'Recurring' ? acc?.recurringDetails?.installmentAmount : '',
                         description: '',
                         date: new Date().toISOString().split('T')[0],
+                        paymentType: 'cash',
+                        transactionId: '',
                         noteBreakdown: {
                             500: '',
                             200: '',
@@ -77,6 +81,8 @@ const CreateTransaction = () => {
                         amount: '',
                         description: '',
                         date: new Date().toISOString().split('T')[0],
+                        paymentType: 'cash',
+                        transactionId: '',
                         noteBreakdown: {
                             500: '',
                             200: '',
@@ -109,7 +115,7 @@ const CreateTransaction = () => {
             return;
         }
 
-        if (formData?.accountType === 'Recurring' && formData?.amount !== noteBreakdownAmount) {
+        if (formData.paymentType === 'cash' && formData?.accountType === 'Recurring' && formData?.amount !== noteBreakdownAmount) {
             toast.error('Amount does not match note breakdown');
             return;
         }
@@ -215,6 +221,33 @@ const CreateTransaction = () => {
                                 </select>
                             </div>
                             <div className="col-md-4 mb-3">
+                                <label className="text-black">Payment Type *</label>
+                                <select
+                                    name="paymentType"
+                                    className="form-select"
+                                    value={formData.paymentType}
+                                    onChange={handleChange}
+                                >
+                                    <option value="cash">Cash</option>
+                                    <option value="online">Online</option>
+                                </select>
+                            </div>
+
+                            {formData.paymentType === 'online' && (
+                                <div className="col-md-4 mb-3">
+                                    <label className="text-black">Transaction ID *</label>
+                                    <input
+                                        type="text"
+                                        name="transactionId"
+                                        className="form-control"
+                                        value={formData.transactionId}
+                                        onChange={handleChange}
+                                        placeholder="Enter UPI / Reference / NEFT ID"
+                                        required
+                                    />
+                                </div>
+                            )}
+                            <div className="col-md-4 mb-3">
                                 <label className='text-black'>Amount *</label>
                                 <input
                                     type="number"
@@ -236,38 +269,40 @@ const CreateTransaction = () => {
                                     className="form-control"
                                 />
                             </div>
-                            <div className="col-md-12">
-                                <label className="text-black">Denomination-wise Notes (optional)</label>
-                                <div className="row">
-                                    {[2000, 500, 200, 100, 50, 20, 10].map((denom) => (
-                                        <div className="col-md-2 mb-2" key={denom}>
-                                            <div className="input-group">
-                                                <span className="input-group-text">₹{denom}</span>
-                                                <input
-                                                    type="number"
-                                                    className="form-control"
-                                                    min={0}
-                                                    value={formData?.noteBreakdown[denom] || {}}
-                                                    onChange={(e) => handleNoteChange(denom, e.target.value)}
-                                                    placeholder="0"
-                                                    disabled={['Fixed'].includes(selectedAccount?.accountType)}
-                                                />
+                            {formData.paymentType === 'cash' && (
+                                <div className="col-md-12">
+                                    <label className="text-black">Denomination-wise Notes (optional)</label>
+                                    <div className="row">
+                                        {[500, 200, 100, 50, 20, 10].map((denom) => (
+                                            <div className="col-md-2 mb-2" key={denom}>
+                                                <div className="input-group">
+                                                    <span className="input-group-text">₹{denom}</span>
+                                                    <input
+                                                        type="number"
+                                                        className="form-control"
+                                                        min={0}
+                                                        value={formData?.noteBreakdown[denom] || {}}
+                                                        onChange={(e) => handleNoteChange(denom, e.target.value)}
+                                                        placeholder="0"
+                                                        disabled={['Fixed'].includes(selectedAccount?.accountType)}
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                    <div className="text-muted mt-2">
+                                        <strong>
+                                            Total Notes Value: ₹
+                                            {
+                                                Object.entries(formData.noteBreakdown).reduce(
+                                                    (total, [denom, count]) =>
+                                                        total + (parseInt(denom) * parseInt(count || 0)), 0
+                                                )
+                                            }
+                                        </strong>
+                                    </div>
                                 </div>
-                                <div className="text-muted mt-2">
-                                    <strong>
-                                        Total Notes Value: ₹
-                                        {
-                                            Object.entries(formData.noteBreakdown).reduce(
-                                                (total, [denom, count]) =>
-                                                    total + (parseInt(denom) * parseInt(count || 0)), 0
-                                            )
-                                        }
-                                    </strong>
-                                </div>
-                            </div>
+                            )}
                             <div className="col-md-12 mb-3">
                                 <label className='text-black'>Remarks</label>
                                 <textarea

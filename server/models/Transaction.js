@@ -10,6 +10,8 @@ const transactionSchema = new Schema({
     amount: { type: Number, required: true },
     description: { type: String },
     date: { type: Date, default: Date.now },
+    paymentType: { type: String, enum: ['cash', 'online'] },
+    transactionId: { type: String },
     noteBreakdown: {
         type: Map,
         of: Number,
