@@ -40,7 +40,7 @@ export const createTransaction = async (req, res) => {
         if (
             ['recurring'].includes(accountType) &&
             type === 'deposit' &&
-            parseFloat(amount) !== parseFloat(account.balance)
+            parseFloat(amount) !== parseFloat(account?.recurringDetails?.installmentAmount)
         ) {
             return badRequestResponse(
                 res,
