@@ -8,12 +8,14 @@ import {
     importLedgerFromCSV,
     getLedgerSummaryByParticular,
     getOverallFinancialSummary,
+    getTodayLedgerEntryCount,
 } from "../controllers/ledgerController.js";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 router.post("/", upsertLedger);
+router.get('/today-count', getTodayLedgerEntryCount);
 router.get('/financial-summary', getOverallFinancialSummary);
 router.get('/summary/:particular', getLedgerSummaryByParticular);
 router.get("/:ledgerId", getLedger);

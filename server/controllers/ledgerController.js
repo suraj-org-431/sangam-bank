@@ -716,3 +716,28 @@ export const getOverallFinancialSummary = async (req, res) => {
         return errorResponse(res, 500, "Failed to calculate summary", err.message);
     }
 };
+
+export const getTodayLedgerEntryCount = async (req, res) => {
+    try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const count = await Ledger.countDocuments({
+            createdAt: {
+                $gte: startOfDay,
+                $lte: endOfDay
+            }
+        });
+
+        return successResponse(res, 200, "Today's ledger entry count", {
+            date: startOfDay.toISOString().split('T')[0],
+            count
+        });
+    } catch (err) {
+        console.error("❌ Today's Count Error:", err);
+        return errorResponse(res, 500, "Failed to fetch today's ledger count", err.message);
+    }
+};

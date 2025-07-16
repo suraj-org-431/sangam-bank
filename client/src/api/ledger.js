@@ -76,3 +76,12 @@ export const importLedgerCSV = async (file) => {
         throw new Error(err?.response?.data?.message || 'Failed to import ledger CSV');
     }
 };
+
+export const getTodayLedgerEntryCount = async (file) => {
+    try {
+        const res = await API.get('/ledger/today-count');
+        return res?.data?.data;
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Failed to import ledger CSV');
+    }
+};

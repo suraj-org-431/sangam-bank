@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getAllTransactions } from '../../api/transaction';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { getAllAccountsCount } from '../../api/account';
 import { adminRoute } from '../../utils/router';
-import { getOveralllSummary } from '../../api/ledger';
+import { getOveralllSummary, getTodayLedgerEntryCount } from '../../api/ledger';
 
 const Dashboard = () => {
     const [transactions, setTransactions] = useState([]);
     const [totalAccounts, setTotalAccounts] = useState(0);
     const [openingBalance, setOpeningBalance] = useState(0);
     const [closingBalance, setClosingBalance] = useState(0);
-    const [ledgerBalance, setLedgerBalance] = useState(0);
+    const [ledgerCount, setLedgerCount] = useState(0);
     const [showOpening, setShowOpening] = useState(false);
     const [showClosing, setShowClosing] = useState(false);
 
@@ -22,8 +22,17 @@ const Dashboard = () => {
     useEffect(() => {
         loadRecentTransactions();
         loadTotalAccounts();
-        loadFinancialSummary();
+        loadTodayLedgerEntry()
     }, []);
+
+    const loadTodayLedgerEntry = async () => {
+        try {
+            const res = await getTodayLedgerEntryCount();
+            setLedgerCount(res.count || 0);
+        } catch (err) {
+            toast.error('Failed to load recent transactions');
+        }
+    };
 
     const loadRecentTransactions = async () => {
         try {
@@ -34,18 +43,6 @@ const Dashboard = () => {
         }
     };
 
-    const loadFinancialSummary = async () => {
-        try {
-            // Assuming you have a function to fetch financial summary
-            const summary = await getOveralllSummary();
-            // Handle summary data as needed
-            setOpeningBalance(summary.openingBalance || 0);
-            setClosingBalance(summary.closingBalance || 0);
-            setLedgerBalance(summary.totalLedgerAmount || 0);
-        } catch (err) {
-            toast.error('Failed to load financial summary');
-        }
-    };
 
     const loadTotalAccounts = async () => {
         try {
@@ -136,8 +133,8 @@ const Dashboard = () => {
                         </div>
                         <div className='card-body'>
                             <div className='lg-text'>
-                                <i className="fa-solid fa-indian-rupee-sign"></i>
-                                <span>{ledgerBalance?.toLocaleString('en-IN')}</span>
+                                {/* <i className="fa-solid fa-indian-rupee-sign"></i> */}
+                                <span>{ledgerCount}</span>
                             </div>
                         </div>
                         <div className='card-footer'>
