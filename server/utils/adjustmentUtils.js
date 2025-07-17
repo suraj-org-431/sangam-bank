@@ -15,8 +15,12 @@ export const applyApprovedLoanAdjustment = async ({ loan, adjustment, userName =
 
     // 🟡 WAIVE FINE
     if (adjustment.type === 'waiveFine') {
+        let fineWaived = 0
         loan.repaymentSchedule = loan.repaymentSchedule.map(r => {
-            if (!r.paid && r.fine > 0) r.fine = 0;
+            if (!r.paid && r.fine > 0) {
+                fineWaived += r.fine;
+                r.fine = 0;
+            }
             return r;
         });
 
@@ -33,9 +37,9 @@ export const applyApprovedLoanAdjustment = async ({ loan, adjustment, userName =
 
         // 🔴 WRITE OFF
     } else if (adjustment.type === 'writeOff') {
-
+        const oldAmount = loan.disbursedAmount || 0;
+        loan.disbursedAmount = Math.max(0, oldAmount - amount);
         borrower.loanDetails.disbursedAmount = Math.max(0, (borrower.loanDetails.disbursedAmount || 0) - amount);
-        loan.disbursedAmount = Math.max(0, (loan.disbursedAmount || 0) - amount);
 
         await createTransactionAndLedger({
             account: borrower,
@@ -50,10 +54,8 @@ export const applyApprovedLoanAdjustment = async ({ loan, adjustment, userName =
 
         // 🟢 CUSTOM ADJUSTMENT
     } else if (adjustment.type === 'customAdjustment') {
-
-        borrower.loanDetails.adjustedAmount = (borrower.loanDetails.adjustedAmount || 0) + amount;
+        orrower.loanDetails.adjustedAmount = (borrower.loanDetails.adjustedAmount || 0) + amount;
         borrower.loanDetails.disbursedAmount = Math.max(0, (borrower.loanDetails.disbursedAmount || 0) - amount);
-
         loan.disbursedAmount = Math.max(0, (loan.disbursedAmount || 0) - amount);
 
         await createTransactionAndLedger({

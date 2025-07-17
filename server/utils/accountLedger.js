@@ -87,9 +87,10 @@ export const createTransactionAndLedger = async ({
 
         const shouldAffectBalance = txn.affectsBalance ?? true;
 
-        if (txn.type === 'fine' && shouldAffectBalance) {
+        if (shouldAffectBalance) {
             if (account.balance < extraAmount) throw new Error(`Insufficient balance for fine ₹${extraAmount}`);
             account.balance -= extraAmount;
+            await account.save();
         }
 
         await Transaction.create({
