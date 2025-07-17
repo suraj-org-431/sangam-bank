@@ -18,7 +18,7 @@ export const createTransactionAndLedger = async ({
 }) => {
     const parsedAmount = parseFloat(amount);
     console.log(type)
-    if (type === 'adjustment' && (!parsedAmount || parsedAmount <= 0)) {
+    if (type === 'adjustment' && adjustmentType !== 'waiveFine' && (!parsedAmount || parsedAmount <= 0)) {
         throw new Error('Invalid adjustment amount');
     }
 
