@@ -111,7 +111,6 @@ export const upsertAccount = async (req, res) => {
                         paidDate: i === 0 ? new Date() : null
                     });
                 }
-
                 payload.recurringDetails = {
                     installmentAmount,
                     schedule,
@@ -121,7 +120,6 @@ export const upsertAccount = async (req, res) => {
                     maturityDate: new Date(start.setMonth(start.getMonth() + tenure))
                 };
 
-                payload.balance = installmentAmount;
                 account = await Account.create(payload);
 
                 await createTransactionAndLedger({
@@ -133,24 +131,25 @@ export const upsertAccount = async (req, res) => {
                     createdBy: req.user?.name || 'System',
                 });
             } else if (lowerType === 'loan') {
-                const interestRate = config?.loanInterestRates?.find(r => r.type?.toLowerCase() === loanType?.toLowerCase())?.rate || 12;
+                const interestRate = config?.loanInterestRates?.find(r => r.type?.toLowerCase() === loanType?.toLowerCase())?.rate;
 
+                payload.depositAmount = 0;
+                payload.balance = 0;
                 payload.hasLoan = true;
                 payload.loanDetails = {
                     totalLoanAmount: depositAmount,
                     disbursedAmount: 0,
                     interestRate,
-                    tenureMonths: parseInt(tenure) || 12,
+                    tenureMonths: parseInt(tenure),
                     emiAmount: 0,
                     disbursedDate: null,
-                    status: 'draft',
+                    status: 'pending',
                     nextDueDate: null,
-                    lastEMIPaidOn: null // ✅ Newly added field
+                    lastEMIPaidOn: null,
+                    totalPaidAmount: null,
+                    defaultedOn: null,
+                    repaymentSchedule: []
                 };
-
-                payload.depositAmount = 0;
-                payload.balance = 0;
-
                 account = await Account.create(payload);
 
                 await Loan.create({
@@ -159,9 +158,9 @@ export const upsertAccount = async (req, res) => {
                     loanType,
                     interestRate,
                     tenureMonths: parseInt(tenure) || 12,
-                    status: 'draft',
+                    status: 'pending',
                     remarks: 'Loan created during account creation',
-                    repaymentSchedule: [], // Schedule will be generated on disbursement
+                    repaymentSchedule: [],
                 });
             } else {
                 account = await Account.create(payload);
@@ -177,8 +176,7 @@ export const upsertAccount = async (req, res) => {
                     });
                 }
             }
-
-            await notify(account?._id || {}, "Account Created", `Account #${payload.accountNumber} created`);
+            await notify('account', account?._id || {}, {}, "Account Created", `Account #${payload.accountNumber} created`);
         }
 
         return successResponse(res, 200, "Account saved successfully", account);
@@ -396,7 +394,7 @@ export const importAccountsFromCSV = async (req, res) => {
                         tenureMonths: parseInt(payload.tenure) || 12,
                         emiAmount: 0,
                         disbursedDate: null,
-                        status: 'draft',
+                        status: 'pending',
                         nextDueDate: null
                     };
 
@@ -411,7 +409,7 @@ export const importAccountsFromCSV = async (req, res) => {
                         loanType,
                         interestRate,
                         tenureMonths: parseInt(payload.tenure) || 12,
-                        status: 'draft',
+                        status: 'pending',
                         remarks: 'Loan created during CSV import',
                         repaymentSchedule: []
                     });
@@ -561,7 +559,6 @@ export const payRecurringInstallment = async (req, res) => {
 
         // ✅ Update completed count and balance
         account.recurringDetails.completedInstallments += 1;
-        account.balance += account.recurringDetails.installmentAmount;
 
         await account.save();
 

@@ -74,8 +74,8 @@ const accountsSchema = new Schema({
         disbursedDate: { type: Date },
         status: {
             type: String,
-            enum: ['draft', 'approved', 'disbursed', 'repaid', 'defaulted'],
-            default: 'draft'
+            enum: ['pending', 'approved', 'disbursed', 'repaid', 'defaulted'],
+            default: 'pending'
         },
         nextDueDate: { type: Date },
         lastEMIPaidOn: { type: Date }, // ✅ New field

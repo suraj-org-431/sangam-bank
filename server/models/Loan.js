@@ -75,8 +75,8 @@ const loanSchema = new Schema({
     disbursedDate: Date,
     status: {
         type: String,
-        enum: ['draft', 'approved', 'disbursed', 'repaid', 'defaulted'],
-        default: 'draft'
+        enum: ['pending', 'approved', 'disbursed', 'repaid', 'defaulted'],
+        default: 'pending'
     },
     remarks: String,
     repaymentSchedule: {

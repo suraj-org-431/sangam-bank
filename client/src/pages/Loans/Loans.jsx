@@ -56,7 +56,7 @@ const Loans = () => {
 
     const getStatusChip = (status) => {
         const statusMap = {
-            draft: { color: 'secondary', label: 'Draft' },
+            pending: { color: 'secondary', label: 'Pending' },
             approved: { color: 'info', label: 'Approved' },
             disbursed: { color: 'primary', label: 'Disbursed' },
             repaid: { color: 'success', label: 'Repaid' },
@@ -86,7 +86,7 @@ const Loans = () => {
                                 onChange={handleFilterChange}
                             >
                                 <option value="">All</option>
-                                <option value="draft">Draft</option>
+                                <option value="pending">Pending</option>
                                 <option value="approved">Approved</option>
                                 <option value="disbursed">Disbursed</option>
                                 <option value="prepaid">Prepaid</option>

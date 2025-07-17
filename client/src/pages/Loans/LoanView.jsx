@@ -41,6 +41,7 @@ const LoanView = () => {
         (currentPage - 1) * adjustmentsPerPage,
         currentPage * adjustmentsPerPage
     );
+    const upcomingEMI = loan?.repaymentSchedule?.find(r => !r.paid);
     const openModal = (type) => setModal({ show: true, type });
     const closeModal = () => setModal({ show: false, type: '' });
 
@@ -81,12 +82,27 @@ const LoanView = () => {
         loan?.repaymentSchedule?.reduce((sum, r) => sum + (r.amountPaid || 0), 0) || 0;
 
     const getRemainingBalance = () => {
-        return Math.max(emiData.totalPayable - getTotalPaid(), 0).toFixed(2);
+        const totalPayable = emiData.totalPayable;
+        const totalPaid = getTotalPaid();
+        const remaining = Math.max(totalPayable - totalPaid, 0);
+        return remaining.toFixed(2);
+    };
+
+    const getEMIPaymentSummary = () => {
+        const totalEMIs = loan?.repaymentSchedule?.length || 0;
+        const paidEMIs = loan?.repaymentSchedule?.filter(r => r.paid)?.length || 0;
+        const remainingEMIs = totalEMIs - paidEMIs;
+
+        return {
+            totalEMIs,
+            paidEMIs,
+            remainingEMIs
+        };
     };
 
     const getStatusChip = (status) => {
         const statusMap = {
-            draft: { color: 'secondary', label: 'Draft' },
+            pending: { color: 'secondary', label: 'Pending' },
             approved: { color: 'info', label: 'Approved' },
             disbursed: { color: 'primary', label: 'Disbursed' },
             repaid: { color: 'success', label: 'Repaid' },
@@ -132,24 +148,27 @@ const LoanView = () => {
                         <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
                         <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
                         <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
-                    </div>
-                    <div className="col-md-6">
+                        <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
                         <p><strong>Next EMI Due:</strong> {
                             loan.repaymentSchedule.find(r => !r.paid)?.dueDate
-                                ? new Date(loan.repaymentSchedule.find(r => !r.paid).dueDate).toLocaleDateString()
+                                ? <span className='text-danger'>{new Date(loan.repaymentSchedule.find(r => !r.paid).dueDate).toLocaleDateString()}</span>
                                 : 'N/A'
                         }</p>
+                    </div>
+                    <div className="col-md-6">
                         <p><strong>Principal:</strong> ₹{loan.loanAmount.toLocaleString('en-IN')}</p>
                         <p><strong>Monthly EMI:</strong> ₹{emiData.emi.toLocaleString('en-IN')}</p>
                         <p><strong>Total Interest:</strong> ₹{emiData.totalInterest.toLocaleString('en-IN')}</p>
                         <p><strong>Total Payable:</strong> ₹{emiData.totalPayable.toLocaleString('en-IN')}</p>
+                        <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
                         <p><strong>Total Paid:</strong> ₹{getTotalPaid().toLocaleString('en-IN')}</p>
+                        <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
                     </div>
                 </div>
 
                 <hr />
 
-                {loan.status === 'draft' && (
+                {loan.status === 'pending' && (
                     <div className="d-flex gap-2 mt-3 mb-4">
                         <button
                             className="btn btn-outline-success d-flex align-items-center"
@@ -191,6 +210,15 @@ const LoanView = () => {
                     <div className="mt-4 mb-4 border rounded p-3 bg-light">
                         <h5 className="mb-3 text-dark">💳 Make a Repayment</h5>
                         <div className="row gy-2">
+                            {loan.repaymentSchedule?.find(r => !r.paid) && (
+                                <div className="alert alert-info py-2">
+                                    <p>
+                                        <strong>Upcoming EMI:</strong>{' '}
+                                        ₹{((upcomingEMI?.amount || 0) - (upcomingEMI?.amountPaid || 0)).toLocaleString('en-IN')} due on{' '}
+                                        {upcomingEMI?.dueDate ? new Date(upcomingEMI.dueDate).toLocaleDateString() : 'N/A'}
+                                    </p>
+                                </div>
+                            )}
                             <div className="col-md-4">
                                 <label className="form-label fw-bold text-black">Repayment Mode</label>
                                 <select
@@ -440,11 +468,6 @@ const LoanView = () => {
                     </div>
                 )}
 
-
-
-
-
-
                 {/* Amortization Schedule */}
                 {loan.status === 'disbursed' && (
                     <div className="mt-5">
@@ -608,7 +631,8 @@ const LoanView = () => {
                     try {
                         await repayLoan(loanId, {
                             amount: previewAmount,
-                            paymentRef: repaymentRef || `TXN-${Date.now()}`
+                            paymentRef: repaymentRef || `TXN-${Date.now()}`,
+                            mode: repayMode // 'emi', 'full', or 'custom'
                         });
                         toast.success('Repayment successful');
                         setRepayAmount('');

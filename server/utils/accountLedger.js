@@ -3,7 +3,7 @@ import Ledger from "../models/Ledger.js";
 
 export const createTransactionAndLedger = async ({
     account,
-    type, // 'deposit' | 'withdrawal' | 'loanRepayment' | 'interestPayment' | 'fine' | 'adjustment'
+    type,
     amount,
     description,
     date,
@@ -11,17 +11,54 @@ export const createTransactionAndLedger = async ({
     transactionId,
     loanId,
     createdBy,
-    adjustmentType, // optional: 'writeOff' | 'customAdjustment'
-    noteBreakdown
+    adjustmentType,
+    noteBreakdown,
+    totalRepaymentAmount = 0,
+    additionalTransactions = []
 }) => {
     const parsedAmount = parseFloat(amount);
-
-    // 🚫 Skip invalid or zero adjustments
+    console.log(type)
     if (type === 'adjustment' && (!parsedAmount || parsedAmount <= 0)) {
         throw new Error('Invalid adjustment amount');
     }
 
-    // ✅ Create Transaction
+    // 🧮 Balance Logic
+    switch (type) {
+        case 'deposit':
+        case "rdInstallment":
+            account.balance += parsedAmount;
+            break;
+        case 'withdrawal':
+            if (account.balance < parsedAmount) throw new Error('Insufficient balance for withdrawal');
+            account.balance -= parsedAmount;
+            break;
+        case 'adjustment':
+            if (adjustmentType === 'customAdjustment') account.balance += parsedAmount;
+            break;
+        case 'loanDisbursed':
+            break;
+        case 'loanRepayment':
+            if (totalRepaymentAmount > 0) {
+                if (account.balance < totalRepaymentAmount) throw new Error(`Insufficient balance. Need ₹${totalRepaymentAmount}`);
+                account.balance -= totalRepaymentAmount;
+                account.balance = Math.max(account.balance, 0);
+            }
+            break;
+        case 'interestPayment':
+        case 'fine':
+            if (affectsBalance) {
+                if (account.balance < parsedAmount) throw new Error(`Insufficient balance for fine ₹${parsedAmount}`);
+                account.balance -= parsedAmount;
+            }
+            break;
+        default:
+            throw new Error(`Unsupported transaction type: ${type}`);
+    }
+
+    await account.save();
+
+
+    // ✅ Main Transaction
     const tx = await Transaction.create({
         accountId: account._id,
         type,
@@ -34,35 +71,6 @@ export const createTransactionAndLedger = async ({
         noteBreakdown
     });
 
-    // 🧮 Balance Update Logic
-
-    if (type === 'deposit') {
-        account.balance += parsedAmount;
-
-    } else if (type === 'withdrawal') {
-        if (account.balance < parsedAmount) {
-            throw new Error('Insufficient balance for this transaction');
-        }
-        account.balance -= parsedAmount;
-
-    } else if (type === 'adjustment') {
-        if (adjustmentType === 'customAdjustment') {
-            account.balance += parsedAmount;
-        } else if (adjustmentType === 'writeOff') {
-            // No balance update
-        }
-
-    } else if (type === 'interestPayment' || type === 'fine') {
-        // These are already deducted during total EMI, no need to deduct again
-        // Simply log to ledger/transaction
-    }
-
-    if (account?.accountType === 'Loan') {
-        account.depositAmount += parsedAmount;
-    }
-    await account.save();
-
-    // 🧾 Ledger Entry
     await Ledger.create({
         particulars: account.applicantName,
         transactionType: type,
@@ -72,6 +80,39 @@ export const createTransactionAndLedger = async ({
         date,
         createdBy,
     });
+
+    for (const txn of additionalTransactions) {
+        const extraAmount = parseFloat(txn.amount);
+        if (!extraAmount || extraAmount <= 0) continue;
+
+        const shouldAffectBalance = txn.affectsBalance ?? true;
+
+        if (txn.type === 'fine' && shouldAffectBalance) {
+            if (account.balance < extraAmount) throw new Error(`Insufficient balance for fine ₹${extraAmount}`);
+            account.balance -= extraAmount;
+        }
+
+        await Transaction.create({
+            accountId: account._id,
+            type: txn.type,
+            amount: extraAmount,
+            description: txn.description,
+            date,
+            paymentType,
+            loanId,
+            createdBy,
+        });
+
+        await Ledger.create({
+            particulars: account.applicantName,
+            transactionType: txn.type,
+            amount: extraAmount,
+            balance: account.balance,
+            description: txn.description,
+            date,
+            createdBy,
+        });
+    }
 
     return tx;
 };
