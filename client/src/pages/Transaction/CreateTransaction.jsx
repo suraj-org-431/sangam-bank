@@ -168,7 +168,7 @@ const CreateTransaction = () => {
 
     return (
         <div className="px-4 py-4">
-            <div className="card p-3">
+            <div className="card theme-card border-0 shadow p-3">
                 <h4>New Transaction</h4>
 
                 {/* 🔍 Search Section */}
@@ -184,7 +184,8 @@ const CreateTransaction = () => {
                         />
                     </div>
                     <div className="col-md-2">
-                        <button className="btn btn-lg btn-primary" onClick={handleSearch}>Search</button>
+                        <button className="btn btn-lg btn-primary w-100" onClick={handleSearch}>
+                            <i class="fa-solid fa-magnifying-glass"></i> Search</button>
                     </div>
                 </div>
 
@@ -192,11 +193,41 @@ const CreateTransaction = () => {
                 {selectedAccount && (
                     <>
                         <hr />
-                        <div className="alert alert-info">
-                            <strong>Customer Name - {selectedAccount.applicantName}</strong> <br />
-                            <strong>Account Number - {selectedAccount.accountNumber}</strong><br />
-                            <small>Type: {selectedAccount.accountType} | Balance: ₹{selectedAccount.balance}</small>
-                        </div>
+<div className='row'>
+  <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Customer Name</label>
+       <div> <i class="fa-solid fa-user me-2"></i> 
+       <b>{selectedAccount.applicantName}</b></div> 
+    </div>
+</div>
+    <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Account Number</label>
+       <div> <i class="fa-solid fa-building-columns me-2"></i>
+       <b>{selectedAccount.accountNumber}</b></div> 
+    </div>
+</div>
+    <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Account Type</label>
+       <div><i class="fa-solid fa-layer-group me-2"></i>
+       <b>{selectedAccount.accountType}</b></div> 
+    </div>
+</div>
+
+    <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Balance</label>
+       <div><i class="fa-solid fa-indian-rupee-sign me-2"></i>
+       <b>{selectedAccount.balance}</b></div> 
+    </div>
+
+  </div>
+
+</div>
+                       
+
                     </>
                 )}
 
@@ -272,14 +303,13 @@ const CreateTransaction = () => {
                             {formData.paymentType === 'cash' && (
                                 <div className="col-md-12">
                                     <label className="text-black">Denomination-wise Notes (optional)</label>
-                                    <div className="row">
+                                    <div className="row note_input_row">
                                         {[500, 200, 100, 50, 20, 10].map((denom) => (
                                             <div className="col-md-2 mb-2" key={denom}>
-                                                <div className="input-group">
+                                                <div className="input-group_note">
                                                     <span className="input-group-text">₹{denom}</span>
                                                     <input
                                                         type="number"
-                                                        className="form-control"
                                                         min={0}
                                                         value={formData?.noteBreakdown[denom] || {}}
                                                         onChange={(e) => handleNoteChange(denom, e.target.value)}

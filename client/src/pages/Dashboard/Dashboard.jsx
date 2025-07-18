@@ -215,11 +215,15 @@ const Dashboard = () => {
 
                                     <td>₹{tx.amount.toLocaleString()}</td>
                                     <td>
-                                        <span className={`badge ${tx?.accountId?.status === true ? "bg-success" :
-                                            tx.accountId?.status === false ? "bg-warning text-dark" : "bg-danger"}`}>
-                                            {tx?.accountId?.status === true ? "Active" :
-                                                tx?.accountId?.status === false ? "Inactive" : "Failed"}
-                                        </span>
+                                        <span class="badge bg-success">Success</span>
+                                        {/* <span className={`badge 
+    ${tx?.accountId?.status === true ? "bg-success" : 
+      tx?.accountId?.status === false ? "bg-warning text-dark" : 
+      "bg-danger"}`}>
+  {tx?.accountId?.status === true ? "Active" :
+    tx?.accountId?.status === false ? "Inactive" : "Failed"}
+</span> */}
+
                                     </td>
                                 </tr>
                             ))}

@@ -27,6 +27,7 @@ const MonthlyLedgerReport = () => {
             setOpeningBalance(res.openingBalance || 0);
             setClosingBalance(res.closingBalance || 0);
             setTotalPages(res.totalPages || 1);
+            
         } catch (err) {
             toast.error('Failed to load monthly ledger report');
         }
@@ -49,9 +50,12 @@ const MonthlyLedgerReport = () => {
     return (
         <div className="px-4 py-4">
             <div className="card theme-card border-0 shadow p-3">
-                <div className="d-flex justify-content-between mb-3 flex-wrap">
-                    <h4 className="theme-text">Monthly Ledger Report</h4>
-                    <div className="d-flex gap-2 flex-wrap mt-3 mb-3 justify-content-end">
+                
+                    <div className="d-flex gap-2 flex-wrap justify-content-between w-100">
+                        <div>
+                             <h4 className="theme-text">Monthly Ledger Report</h4>
+                        </div>
+                        <div className='d-flex gap-2'>
                         <div>
                             <Form.Select size="sm" value={month} onChange={(e) => setMonth(parseInt(e.target.value))}>
                                 {Array.from({ length: 12 }, (_, i) => (
@@ -62,7 +66,7 @@ const MonthlyLedgerReport = () => {
                             </Form.Select>
                         </div>
                         <div>
-                            <Form.Select size="sm" value={year} onChange={(e) => setYear(parseInt(e.target.value))}>
+                            <Form.Select className='pe-5' size="sm" value={year} onChange={(e) => setYear(parseInt(e.target.value))}>
                                 {[2023, 2024, 2025, 2026].map((y) => (
                                     <option key={y} value={y}>{y}</option>
                                 ))}
@@ -86,23 +90,44 @@ const MonthlyLedgerReport = () => {
                                 + Create Ledger
                             </button>
                         </div>
+                        </div>
                     </div>
-                </div>
+                <div className='border my-4'></div>
 
-                <div className="d-flex justify-content-between mb-3">
-                    <div>
-                        <div className="text-muted small">Opening Balance</div>
-                        <div className="fw-bold text-primary">
-                            ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-muted small">Closing Balance</div>
-                        <div className="fw-bold text-success">
-                            ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </div>
-                    </div>
-                </div>
+
+<div className='row'>
+    <div className='col-sm-4'>
+        <div class="alert alert-success bank_info px-4">
+            <label class="text-black border-bottom mb-2 text-muted">Opening Balance</label>
+            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i> 
+              <h1 className='text-primary'>{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
+            </div>
+         </div>
+    </div>
+
+    <div className='col-sm-4'>
+        <div class="alert alert-success bank_info px-4">
+            <label class="text-black border-bottom mb-2 text-muted">Closing Balance</label>
+            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i> 
+              <h1 className='text-success'>
+                {closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
+            </div>
+         </div>
+    </div>
+
+    <div className='col-sm-4'>
+        <div class="alert alert-success bank_info px-4">
+            <label class="text-black border-bottom mb-2 text-muted">Total Ledger</label>
+            <div className='d-flex align-items-center'>
+                <i class="fa-solid fa-layer-group me-2 h3"></i>
+              <h1 className='text-primary'>10</h1>
+            </div>
+         </div>
+    </div>
+
+</div>
+
+                
 
                 <div className="table-responsive">
                     <table className="table table-bordered theme-table">

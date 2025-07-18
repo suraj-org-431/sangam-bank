@@ -230,6 +230,11 @@ select.form-select-md {
   padding: 15px 25px !important;
   border-radius: 15px !important;
   border: solid 1px #1f7e20 !important;
+  text-transform: capitalize;
+}
+button.btn-lg{
+  padding:12px 25px !important;
+  border-radius: 15px !important;
 }
 .form-control::placeholder {
   color: #fff;
@@ -343,4 +348,45 @@ table.table-bordered tbody tr td:last-child {
 
 .table-danger {
   background-color: #f8d7da !important;
+}
+
+.note_input_row .input-group_note {
+    border-radius: 15px !important;
+    border:solid 2px #CDDC39;
+    text-transform: capitalize;
+    display: flex;
+    position: relative;
+}
+
+.note_input_row .input-group_note span.input-group-text {
+    border-bottom-right-radius: 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.note_input_row .input-group_note .input-group-text {
+    background-color: transparent;
+    border: 0px;
+}
+
+.note_input_row .input-group_note input[type="number"] {
+    border: 0px;
+    background-color: transparent;
+    width: 100%;
+    padding: 10px 0px;
+    font-weight: 700;
+    font-size: 20px;
+}
+
+
+.note_input_row .input-group_note .input-group-text:after {
+    content: "X";
+    margin-left: 10px;
+    color: green;
+    font-size: 20px;
+}
+
+.note_input_row .input-group_note input[type="number"]:focus-visible {
+    border: 0px;
+    outline: none;
 }
