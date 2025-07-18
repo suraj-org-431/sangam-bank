@@ -741,3 +741,95 @@ export const getTodayLedgerEntryCount = async (req, res) => {
         return errorResponse(res, 500, "Failed to fetch today's ledger count", err.message);
     }
 };
+
+export const getMonthlyLedgerReport = async (req, res) => {
+    try {
+        let { month, year } = req.query;
+
+        if (!month || !year) {
+            const now = new Date();
+            month = now.getMonth() + 1;
+            year = now.getFullYear();
+            // return badRequestResponse(res, 400, "Month and year are required");
+        }
+
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 1); // first day of next month
+
+        // Get all entries sorted by date
+        const allLedgers = await Ledger.find().sort({ date: 1 }).lean();
+
+        // Calculate opening balance using all entries before this month
+        let openingBalance = 0;
+        for (const entry of allLedgers) {
+            if (new Date(entry.date) >= startDate) break;
+
+            const amt = entry.amount || 0;
+            if (["deposit", "interest", "loanDisbursed", "openingBalance", "rdInstallment"].includes(entry.transactionType)) {
+                openingBalance += amt;
+            } else if (["withdrawal", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType)) {
+                openingBalance -= amt;
+            }
+        }
+
+        let balance = openingBalance;
+        let monthlyEntries = [];
+        let entryId = 1;
+
+        // Add Opening Balance entry
+        monthlyEntries.push({
+            entryId: entryId++,
+            date: startDate.toISOString().split('T')[0],
+            ledgerHead: "Opening Balance",
+            description: "Cash in hand",
+            debit: `₹${openingBalance.toLocaleString('en-IN')}`,
+            credit: "-",
+            balance: `₹${openingBalance.toLocaleString('en-IN')}`
+        });
+
+        // Filter and process entries for the selected month
+        for (const entry of allLedgers) {
+            const entryDate = new Date(entry.date);
+            if (entryDate < startDate || entryDate >= endDate) continue;
+
+            const isCredit = ["deposit", "interest", "loanDisbursed", "openingBalance", "rdInstallment"].includes(entry.transactionType);
+            const isDebit = ["withdrawal", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType);
+            const amt = entry.amount || 0;
+
+            if (isCredit) balance += amt;
+            if (isDebit) balance -= amt;
+
+            monthlyEntries.push({
+                entryId: entryId++,
+                date: entryDate.toISOString().split('T')[0],
+                ledgerHead: entry.transactionType.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                description: entry.description || '-',
+                debit: isDebit ? `₹${amt.toLocaleString('en-IN')}` : '-',
+                credit: isCredit ? `₹${amt.toLocaleString('en-IN')}` : '-',
+                balance: `₹${balance.toLocaleString('en-IN')}`
+            });
+        }
+
+        // Add Closing Balance entry
+        monthlyEntries.push({
+            entryId: entryId,
+            date: new Date(endDate.getTime() - 1).toISOString().split('T')[0],
+            ledgerHead: "Closing Balance",
+            description: "End of period balance",
+            debit: "-",
+            credit: "-",
+            balance: `₹${balance.toLocaleString('en-IN')}`
+        });
+
+        return successResponse(res, 200, "Monthly ledger report generated", {
+            month,
+            year,
+            openingBalance,
+            closingBalance: balance,
+            entries: monthlyEntries
+        });
+    } catch (err) {
+        console.error("❌ Monthly Ledger Report Error:", err);
+        return errorResponse(res, 500, "Failed to generate report", err.message);
+    }
+};

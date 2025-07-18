@@ -85,3 +85,12 @@ export const getTodayLedgerEntryCount = async (file) => {
         throw new Error(err?.response?.data?.message || 'Failed to import ledger CSV');
     }
 };
+
+export const getMonthlyLedgerReport = async (formData) => {
+    try {
+        const res = await API.post('/ledger/monthly-report', formData);
+        return res?.data?.data;
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Failed to import ledger CSV');
+    }
+};
