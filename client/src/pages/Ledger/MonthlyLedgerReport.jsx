@@ -8,6 +8,7 @@ import { adminRoute } from '../../utils/router';
 const MonthlyLedgerReport = () => {
     const navigate = useNavigate();
     const [entries, setEntries] = useState([]);
+    const [totalEntries, setTotalEntries] = useState(0);
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
     const [openingBalance, setOpeningBalance] = useState(0);
@@ -23,11 +24,12 @@ const MonthlyLedgerReport = () => {
     const fetchReport = async () => {
         try {
             const res = await getMonthlyLedgerReport({ month, year, page: currentPage, limit });
+            setTotalEntries(res?.totalEntries)
             setEntries(res.entries || []);
             setOpeningBalance(res.openingBalance || 0);
             setClosingBalance(res.closingBalance || 0);
             setTotalPages(res.totalPages || 1);
-            
+
         } catch (err) {
             toast.error('Failed to load monthly ledger report');
         }
@@ -50,12 +52,12 @@ const MonthlyLedgerReport = () => {
     return (
         <div className="px-4 py-4">
             <div className="card theme-card border-0 shadow p-3">
-                
-                    <div className="d-flex gap-2 flex-wrap justify-content-between w-100">
-                        <div>
-                             <h4 className="theme-text">Monthly Ledger Report</h4>
-                        </div>
-                        <div className='d-flex gap-2'>
+
+                <div className="d-flex gap-2 flex-wrap justify-content-between w-100">
+                    <div>
+                        <h4 className="theme-text">Monthly Ledger Report</h4>
+                    </div>
+                    <div className='d-flex gap-2'>
                         <div>
                             <Form.Select size="sm" value={month} onChange={(e) => setMonth(parseInt(e.target.value))}>
                                 {Array.from({ length: 12 }, (_, i) => (
@@ -90,44 +92,44 @@ const MonthlyLedgerReport = () => {
                                 + Create Ledger
                             </button>
                         </div>
-                        </div>
                     </div>
+                </div>
                 <div className='border my-4'></div>
 
 
-<div className='row'>
-    <div className='col-sm-4'>
-        <div class="alert alert-success bank_info px-4">
-            <label class="text-black border-bottom mb-2 text-muted">Opening Balance</label>
-            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i> 
-              <h1 className='text-primary'>{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
-            </div>
-         </div>
-    </div>
+                <div className='row'>
+                    <div className='col-sm-4'>
+                        <div class="alert alert-success bank_info px-4">
+                            <label class="text-black border-bottom mb-2 text-muted">Opening Balance</label>
+                            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i>
+                                <h1 className='text-primary'>{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
+                            </div>
+                        </div>
+                    </div>
 
-    <div className='col-sm-4'>
-        <div class="alert alert-success bank_info px-4">
-            <label class="text-black border-bottom mb-2 text-muted">Closing Balance</label>
-            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i> 
-              <h1 className='text-success'>
-                {closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
-            </div>
-         </div>
-    </div>
+                    <div className='col-sm-4'>
+                        <div class="alert alert-success bank_info px-4">
+                            <label class="text-black border-bottom mb-2 text-muted">Closing Balance</label>
+                            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i>
+                                <h1 className='text-success'>
+                                    {closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
+                            </div>
+                        </div>
+                    </div>
 
-    <div className='col-sm-4'>
-        <div class="alert alert-success bank_info px-4">
-            <label class="text-black border-bottom mb-2 text-muted">Total Ledger</label>
-            <div className='d-flex align-items-center'>
-                <i class="fa-solid fa-layer-group me-2 h3"></i>
-              <h1 className='text-primary'>10</h1>
-            </div>
-         </div>
-    </div>
+                    <div className='col-sm-4'>
+                        <div class="alert alert-success bank_info px-4">
+                            <label class="text-black border-bottom mb-2 text-muted">Total Ledger</label>
+                            <div className='d-flex align-items-center'>
+                                <i class="fa-solid fa-layer-group me-2 h3"></i>
+                                <h1 className='text-primary'>{totalEntries}</h1>
+                            </div>
+                        </div>
+                    </div>
 
-</div>
+                </div>
 
-                
+
 
                 <div className="table-responsive">
                     <table className="table table-bordered theme-table">
