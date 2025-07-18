@@ -169,7 +169,7 @@ const LoanView = () => {
                 <hr />
 
                 {loan.status === 'pending' && (
-                    <div className="d-flex gap-2 mt-3 mb-4">
+                    <div className="d-flex gap-2 mb-4">
                         <button
                             className="btn btn-outline-success d-flex align-items-center"
                             onClick={() => openModal('approve')}
@@ -188,7 +188,7 @@ const LoanView = () => {
                 )}
 
                 {loan.status === 'approved' && (
-                    <div className="d-flex gap-2 mt-3 mb-4">
+                    <div className="d-flex gap-2 mb-4">
                         <button className="btn btn-primary me-2" onClick={() => openModal('disburse')}>
                             Disburse Loan
                         </button>
@@ -197,7 +197,7 @@ const LoanView = () => {
                 )}
 
                 {loan?.status === 'disbursed' && (
-                    <div className="d-flex gap-2 mt-3 mb-4">
+                    <div className="d-flex gap-2 mb-4">
                         <button className="btn btn-outline-warning mt-3" onClick={() => openModal('adjust')}>
                             Adjustment
                         </button>

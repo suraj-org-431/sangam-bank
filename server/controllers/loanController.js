@@ -298,119 +298,6 @@ export const disburseLoan = async (req, res) => {
     }
 };
 
-// ✅ Repay Loan
-// export const repayLoan = async (req, res) => {
-//     try {
-//         const { loanId } = req.params;
-//         const { amount, paymentRef } = req.body;
-
-//         const loan = await Loan.findById(loanId).populate('borrower');
-//         if (!loan || loan.status !== 'disbursed') {
-//             return badRequestResponse(res, 400, 'Loan not disbursed or not found');
-//         }
-
-//         const borrower = loan.borrower;
-//         const schedule = loan.repaymentSchedule || [];
-//         const unpaidIndex = schedule.findIndex(i => !i.paid);
-//         const nextInstallment = schedule[unpaidIndex]
-//         const emiLabel = `${unpaidIndex + 1}${getOrdinal(unpaidIndex + 1)} EMI`;
-//         if (!nextInstallment) {
-//             return badRequestResponse(res, 400, 'All installments are already paid');
-//         }
-
-//         const today = new Date();
-//         let fine = 0;
-//         if (today > nextInstallment.dueDate) {
-//             const daysLate = Math.ceil((today - new Date(nextInstallment.dueDate)) / (1000 * 60 * 60 * 24));
-//             fine = daysLate * 5; // ₹5/day fine
-//         }
-
-//         const { principal, interest } = nextInstallment;
-//         const emiTotal = principal + interest;
-//         const totalAmount = emiTotal + fine;
-
-//         if (borrower.balance < totalAmount) {
-//             return badRequestResponse(res, 400, `Insufficient balance. Need ₹${totalAmount}`);
-//         }
-
-//         // ✅ Update installment record
-//         nextInstallment.paid = true;
-//         nextInstallment.paidOn = today;
-//         nextInstallment.amountPaid = emiTotal;
-//         nextInstallment.fine = fine;
-//         nextInstallment.paymentRef = paymentRef || `TXN-${Date.now()}`;
-
-//         // ✅ Deduct from borrower account
-//         borrower.balance -= totalAmount;
-//         borrower.balance = Math.max(borrower.balance, 0);
-
-//         borrower.loanDetails.totalPaidAmount += totalAmount;
-//         borrower.loanDetails.disbursedAmount = Math.max(loan.loanAmount - borrower.loanDetails.totalPaidAmount, 0);
-
-//         borrower.loanDetails.lastEMIPaidOn = today;
-//         borrower.loanDetails.nextDueDate = schedule.find(i => !i.paid)?.dueDate || null;
-//         if (borrower.loanDetails.disbursedAmount <= 0) {
-//             borrower.loanDetails.status = 'repaid';
-//         }
-
-//         // ✅ Update loan status
-//         loan.lastEMIPaidOn = today;
-//         loan.nextDueDate = borrower.loanDetails.nextDueDate;
-//         if (!schedule.find(i => !i.paid)) {
-//             loan.status = 'repaid';
-//         }
-
-//         await borrower.save();
-//         await loan.save();
-
-//         // ✅ Create ledger + transaction for principal
-//         await createTransactionAndLedger({
-//             account: borrower,
-//             type: 'loanRepayment',
-//             amount: principal,
-//             description: `${emiLabel} Principal Paid`,
-//             date: today,
-//             loanId: loan._id,
-//             createdBy: req.user?.name || 'Clerk'
-//         });
-
-//         // ✅ Create ledger + transaction for interest
-//         await createTransactionAndLedger({
-//             account: borrower,
-//             type: 'interestPayment',
-//             amount: interest,
-//             description: `${emiLabel} Interest Paid`,
-//             date: today,
-//             loanId: loan._id,
-//             createdBy: req.user?.name || 'Clerk'
-//         });
-
-//         // ✅ Create ledger + transaction for fine (if any)
-//         if (fine > 0) {
-//             await createTransactionAndLedger({
-//                 account: borrower,
-//                 type: 'fine',
-//                 amount: fine,
-//                 description: `Late Fine Paid for ${emiLabel}`,
-//                 date: today,
-//                 loanId: loan._id,
-//                 createdBy: req.user?.name || 'Clerk'
-//             });
-//         }
-
-//         return successResponse(res, 200, 'Loan repayment successful', {
-//             principal,
-//             interest,
-//             fine,
-//             totalPaid: totalAmount,
-//             status: loan.status
-//         });
-//     } catch (err) {
-//         console.error('❌ Repayment failed:', err);
-//         return errorResponse(res, 500, 'Loan repayment failed', err.message);
-//     }
-// };
-
 export const repayLoan = async (req, res) => {
     try {
         const { loanId } = req.params;
@@ -446,40 +333,111 @@ export const repayLoan = async (req, res) => {
                 fine = fixedFineAmount;
             }
 
-            const principal = installment.principal || 0;
-            const interest = installment.interest || 0;
-            const totalDue = principal + interest;
-            const totalWithFine = totalDue + (affectsBalance ? fine : 0);
+            if (mode === 'full') {
+                while (i < schedule.length) {
+                    const installment = schedule[i];
+                    if (installment.paid) {
+                        i++;
+                        continue;
+                    }
 
-            if (remainingAmount >= totalWithFine) {
-                // Full payment
-                installment.amountPaid = totalDue;
-                installment.paid = true;
-                installment.paidOn = today;
-                installment.fine = fine;
-                installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+                    let fine = 0;
+                    const dueWithGrace = new Date(installment.dueDate);
+                    dueWithGrace.setDate(dueWithGrace.getDate() + graceDays);
+                    if (today > dueWithGrace) {
+                        fine = fixedFineAmount;
+                    }
 
-                repayments.push({ installment, amount: totalDue, fine });
-                remainingAmount -= totalDue;
-            } else if (mode === 'custom' && remainingAmount > 0) {
-                // Partial payment
-                installment.amountPaid = (installment.amountPaid || 0) + remainingAmount;
-                installment.fine = fine;
-                installment.paidOn = today;
-                installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+                    const principal = installment.principal || 0;
+                    const interest = installment.interest || 0;
+                    const totalDue = principal + interest;
+                    const totalWithFine = totalDue + (affectsBalance ? fine : 0);
 
-                if (installment.amountPaid >= totalDue) {
-                    installment.paid = true;
+                    if (remainingAmount >= totalWithFine) {
+                        installment.amountPaid = totalDue;
+                        installment.paid = true;
+                        installment.paidOn = today;
+                        installment.fine = fine;
+                        installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+                        repayments.push({ installment, amount: totalWithFine, fine });
+                        remainingAmount -= totalWithFine;
+                        i++;
+                    } else {
+                        break;
+                    }
                 }
-
-                repayments.push({ installment, amount: remainingAmount, fine });
-                remainingAmount = 0;
-                break;
             } else {
-                break;
-            }
+                // Find next unpaid installment
+                const installment = schedule.find(i => !i.paid);
+                if (installment) {
+                    let fine = 0;
+                    const dueWithGrace = new Date(installment.dueDate);
+                    dueWithGrace.setDate(dueWithGrace.getDate() + graceDays);
+                    if (today > dueWithGrace) {
+                        fine = fixedFineAmount;
+                    }
 
-            if (mode === 'emi') break;
+                    const principal = installment.principal || 0;
+                    const interest = installment.interest || 0;
+                    const totalDue = principal + interest;
+                    const totalWithFine = totalDue + (affectsBalance ? fine : 0);
+
+                    if (mode === 'emi' && remainingAmount >= totalWithFine) {
+                        installment.amountPaid = totalDue;
+                        installment.paid = true;
+                        installment.paidOn = today;
+                        installment.fine = fine;
+                        installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+                        repayments.push({ installment, amount: totalWithFine, fine });
+                        remainingAmount -= totalWithFine;
+                    } else if (mode === 'custom' && remainingAmount > 0) {
+                        for (let j = i; j < schedule.length; j++) {
+                            const installment = schedule[j];
+                            if (installment.paid) continue;
+
+                            let fine = 0;
+                            const dueWithGrace = new Date(installment.dueDate);
+                            dueWithGrace.setDate(dueWithGrace.getDate() + graceDays);
+                            if (today > dueWithGrace) {
+                                fine = fixedFineAmount;
+                            }
+
+                            const principal = installment.principal || 0;
+                            const interest = installment.interest || 0;
+                            const totalDue = principal + interest;
+                            const totalWithFine = totalDue + (affectsBalance ? fine : 0);
+                            const alreadyPaid = installment.amountPaid || 0;
+                            const dueRemaining = totalDue - alreadyPaid;
+
+                            const paymentNow = Math.min(dueRemaining, remainingAmount);
+
+                            if (paymentNow > 0) {
+                                installment.amountPaid = alreadyPaid + paymentNow;
+                                installment.fine = fine;
+                                installment.paidOn = today;
+                                installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+                                if (installment.amountPaid >= totalDue) {
+                                    installment.paid = true;
+                                }
+
+                                repayments.push({
+                                    installment,
+                                    amount: paymentNow + (affectsBalance ? fine : 0),
+                                    fine
+                                });
+
+                                remainingAmount -= paymentNow;
+
+                                if (remainingAmount <= 0) break;
+                            }
+                        }
+
+                    }
+                }
+            }
         }
 
         const totalPaid = amount - remainingAmount;
@@ -534,9 +492,6 @@ export const repayLoan = async (req, res) => {
                         affectsBalance
                     }] : [])
                 ],
-                totalRepaymentAmount: rep.amount,
-                loan,
-                installment: rep.installment
             });
         }
 
@@ -552,6 +507,167 @@ export const repayLoan = async (req, res) => {
         return errorResponse(res, 500, 'Loan repayment failed', err.message);
     }
 };
+
+
+// export const repayLoan = async (req, res) => {
+//     try {
+//         const { loanId } = req.params;
+//         const { amount, paymentRef, mode = 'emi' } = req.body;
+
+//         const loan = await Loan.findById(loanId).populate('borrower');
+//         if (!loan || loan.status !== 'disbursed') {
+//             return badRequestResponse(res, 400, 'Loan not disbursed or not found');
+//         }
+
+//         const borrower = loan.borrower;
+//         const schedule = loan.repaymentSchedule || [];
+//         const today = new Date();
+
+//         const config = await Config.findOne();
+//         const affectsBalance = config?.fineAffectsBalance ?? true;
+//         const loanFineRule = config?.fineRules?.find(r => r.accountType === 'Loan');
+//         const graceDays = loanFineRule?.appliesAfterDays ?? config?.fineConfig?.graceDays ?? 0;
+//         const fixedFineAmount = loanFineRule?.fineAmount ?? 0;
+//         const ledgerDescription = loanFineRule?.ledgerDescription || 'Loan Fine';
+
+//         let remainingAmount = amount;
+//         const repayments = [];
+
+//         for (let i = 0; i < schedule.length; i++) {
+//             const installment = schedule[i];
+//             if (installment.paid) continue;
+
+//             let fine = 0;
+//             const dueWithGrace = new Date(installment.dueDate);
+//             dueWithGrace.setDate(dueWithGrace.getDate() + graceDays);
+//             if (today > dueWithGrace) {
+//                 fine = fixedFineAmount;
+//             }
+
+//             const principal = installment.principal || 0;
+//             const interest = installment.interest || 0;
+//             const totalDue = principal + interest;
+//             const totalWithFine = totalDue + (affectsBalance ? fine : 0);
+
+
+//             if (mode === 'full' && remainingAmount >= totalDueAmount) {
+//                 // FULL REPAYMENT MODE: pay off all remaining installments
+//                 for (const rep of estimatedRepayments) {
+//                     const { installment, principal, interest, fine, total } = rep;
+
+//                     installment.amountPaid = principal + interest;
+//                     installment.paid = true;
+//                     installment.paidOn = today;
+//                     installment.fine = fine;
+//                     installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+//                     repayments.push({ installment, amount: total, fine });
+//                     remainingAmount -= total;
+//                 }
+
+//                 loan.status = 'repaid';
+//                 borrower.loanDetails.status = 'repaid';
+//                 borrower.loanDetails.defaultedOn = null;
+//             } else if (remainingAmount >= totalWithFine) {
+//                 installment.amountPaid = totalDue;
+//                 installment.paid = true;
+//                 installment.paidOn = today;
+//                 installment.fine = fine;
+//                 installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+//                 repayments.push({ installment, amount: totalDue, fine });
+//                 remainingAmount -= totalDue;
+//             } else if (mode === 'custom' && remainingAmount > 0) {
+//                 // Partial payment
+//                 installment.amountPaid = (installment.amountPaid || 0) + remainingAmount;
+//                 installment.fine = fine;
+//                 installment.paidOn = today;
+//                 installment.paymentRef = paymentRef || `TXN-${Date.now()}`;
+
+//                 if (installment.amountPaid >= totalDue) {
+//                     installment.paid = true;
+//                 }
+
+//                 repayments.push({ installment, amount: remainingAmount, fine });
+//                 remainingAmount = 0;
+//                 break;
+//             } else {
+//                 break;
+//             }
+
+//             if (mode === 'emi') break;
+//         }
+
+//         const totalPaid = amount - remainingAmount;
+
+//         // Update Account.loanDetails
+//         borrower.loanDetails.totalPaidAmount = (borrower.loanDetails.totalPaidAmount || 0) + totalPaid;
+//         borrower.loanDetails.disbursedAmount = Math.max(loan.loanAmount - borrower.loanDetails.totalPaidAmount, 0);
+//         borrower.loanDetails.lastEMIPaidOn = today;
+//         borrower.loanDetails.nextDueDate = schedule.find(i => !i.paid)?.dueDate || null;
+//         borrower.loanDetails.repaymentSchedule = schedule;
+
+//         if (!schedule.find(i => !i.paid)) {
+//             borrower.loanDetails.status = 'repaid';
+//             borrower.loanDetails.defaultedOn = null;
+//         }
+
+//         // Update Loan
+//         loan.repaymentSchedule = schedule;
+//         loan.lastEMIPaidOn = today;
+//         loan.nextDueDate = borrower.loanDetails.nextDueDate;
+
+//         if (!schedule.find(i => !i.paid)) {
+//             loan.status = 'repaid';
+//         }
+
+//         await borrower.save();
+//         await loan.save();
+
+//         // Ledger entries
+//         for (const rep of repayments) {
+//             const index = schedule.indexOf(rep.installment);
+//             const emiLabel = `${index + 1}${getOrdinal(index + 1)} EMI`;
+
+//             await createTransactionAndLedger({
+//                 account: borrower,
+//                 type: 'loanRepayment',
+//                 amount: rep.installment.principal,
+//                 description: `${emiLabel} Principal Paid`,
+//                 date: today,
+//                 loanId: loan._id,
+//                 createdBy: req.user?.name || 'Clerk',
+//                 additionalTransactions: [
+//                     {
+//                         type: 'interestPayment',
+//                         amount: rep.installment.interest,
+//                         description: `${emiLabel} Interest Paid`
+//                     },
+//                     ...(rep.fine > 0 ? [{
+//                         type: 'fine',
+//                         amount: rep.fine,
+//                         description: `${ledgerDescription} - ${emiLabel}`,
+//                         affectsBalance
+//                     }] : [])
+//                 ],
+//                 totalRepaymentAmount: rep.amount,
+//                 loan,
+//                 installment: rep.installment
+//             });
+//         }
+
+//         return successResponse(res, 200, 'Loan repayment successful', {
+//             paidInstallments: repayments.length,
+//             totalPaid,
+//             remainingAmount,
+//             status: loan.status
+//         });
+
+//     } catch (err) {
+//         console.error('❌ Repayment failed:', err);
+//         return errorResponse(res, 500, 'Loan repayment failed', err.message);
+//     }
+// };
 
 // PUT /loans/:loanId/reject
 export const rejectLoan = async (req, res) => {
