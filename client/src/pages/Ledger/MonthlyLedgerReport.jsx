@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { exportMonthlyLedgerReport, getMonthlyLedgerReport } from '../../api/ledger';
 import { toast } from 'react-toastify';
 import { Form } from 'react-bootstrap';
-import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { useNavigate } from 'react-router-dom';
+import { adminRoute } from '../../utils/router';
 
 const MonthlyLedgerReport = () => {
+    const navigate = useNavigate();
     const [entries, setEntries] = useState([]);
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
@@ -76,6 +76,14 @@ const MonthlyLedgerReport = () => {
                         <div>
                             <button className="btn btn-sm btn-outline-danger" onClick={() => handleExport('pdf')}>
                                 📄 Export PDF
+                            </button>
+                        </div>
+                        <div>
+                            <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => navigate(adminRoute('/ledger/create'))}
+                            >
+                                + Create Ledger
                             </button>
                         </div>
                     </div>
