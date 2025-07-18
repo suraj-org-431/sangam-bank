@@ -42,7 +42,7 @@ const Sidebar = () => {
                             </li>
 
                             <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/ledger')}>
+                                <Link className="nav-link" to={adminRoute('/ledger-report')}>
                                     <i className="fa-solid fa-book"></i>
                                     <span className="nav-link-text">Ledger</span>
                                 </Link >

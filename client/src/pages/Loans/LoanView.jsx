@@ -20,6 +20,8 @@ const LoanView = () => {
     const [previewAmount, setPreviewAmount] = useState(0);
     const [adjustmentFilter, setAdjustmentFilter] = useState('');
     const [activeTab, setActiveTab] = useState('repayments');
+    const [selectedInstallmentId, setSelectedInstallmentId] = useState('');
+
     const [modal, setModal] = useState({
         show: false,
         type: '', // 'approve', 'reject', 'disburse', 'repay'
@@ -44,6 +46,10 @@ const LoanView = () => {
     const upcomingEMI = loan?.repaymentSchedule?.find(r => !r.paid);
     const openModal = (type) => setModal({ show: true, type });
     const closeModal = () => setModal({ show: false, type: '' });
+
+    useEffect(() => {
+        if (repayMode !== 'custom') setRepayAmount('');
+    }, [repayMode]);
 
     useEffect(() => {
         fetchLoan();
@@ -169,7 +175,7 @@ const LoanView = () => {
                 <hr />
 
                 {loan.status === 'pending' && (
-                    <div className="d-flex gap-2 mt-3 mb-4">
+                    <div className="d-flex gap-2 mb-4">
                         <button
                             className="btn btn-outline-success d-flex align-items-center"
                             onClick={() => openModal('approve')}
@@ -188,7 +194,7 @@ const LoanView = () => {
                 )}
 
                 {loan.status === 'approved' && (
-                    <div className="d-flex gap-2 mt-3 mb-4">
+                    <div className="d-flex gap-2 mb-4">
                         <button className="btn btn-primary me-2" onClick={() => openModal('disburse')}>
                             Disburse Loan
                         </button>
@@ -197,7 +203,7 @@ const LoanView = () => {
                 )}
 
                 {loan?.status === 'disbursed' && (
-                    <div className="d-flex gap-2 mt-3 mb-4">
+                    <div className="d-flex gap-2 mb-4">
                         <button className="btn btn-outline-warning mt-3" onClick={() => openModal('adjust')}>
                             Adjustment
                         </button>
@@ -226,26 +232,77 @@ const LoanView = () => {
                                     value={repayMode}
                                     onChange={(e) => setRepayMode(e.target.value)}
                                 >
-                                    {repaymentModes.map((mode) => (
-                                        <option key={mode} value={mode}>
-                                            {mode?.toUpperCase()} {mode === 'emi' ? `(₹${emiData.emi.toLocaleString('en-IN')})` :
-                                                mode === 'full' ? `(₹${getRemainingBalance()})` : ''}
-                                        </option>
-                                    ))}
+                                    {repaymentModes.map((mode) => {
+                                        let label = mode.toUpperCase();
+                                        if (mode === 'emi') {
+                                            if (upcomingEMI?.amount > 0) {
+                                                label += ` ${((upcomingEMI?.amount || 0) - (upcomingEMI?.amountPaid || 0)).toLocaleString('en-IN')} of (₹${emiData?.emi.toLocaleString('en-IN', { minimumFractionDigits: 2 })} of (₹${emiData?.emi?.toLocaleString('en-IN')})`;
+                                            }
+                                            else {
+                                                label += ` (₹${emiData?.emi?.toLocaleString('en-IN')})`;
+                                            }
+                                        } else if (mode === 'full') {
+                                            label += ` (₹${getRemainingBalance()})`;
+                                        } else if (mode === 'custom') {
+                                            label += ` (Partial Payment)`;
+                                        }
+
+                                        return (
+                                            <option key={mode} value={mode}>
+                                                {label}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
 
                             {repayMode === 'custom' && (
-                                <div className="col-md-4">
-                                    <label className="form-label fw-bold text-black">Enter Amount</label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        value={repayAmount}
-                                        onChange={(e) => setRepayAmount(e.target.value)}
-                                        placeholder="Custom amount"
-                                    />
-                                </div>
+                                <>
+                                    {/* Installment Selector */}
+                                    <div className="col-md-4">
+                                        <label className="form-label fw-bold text-black">Select Installment</label>
+                                        <select
+                                            className="form-select"
+                                            value={selectedInstallmentId || ''}
+                                            onChange={(e) => {
+                                                const selectedMonth = parseInt(e.target.value);
+                                                setSelectedInstallmentId(selectedMonth);
+
+                                                const selectedInstallment = loan.repaymentSchedule.find(i => i.month === selectedMonth);
+                                                const remainingDue = selectedInstallment
+                                                    ? (selectedInstallment.amount || 0) - (selectedInstallment.amountPaid || 0)
+                                                    : 0;
+
+                                                setRepayAmount(remainingDue.toFixed(2)); // Auto-fill with remaining due
+                                            }}
+                                        >
+                                            <option value="">-- Select EMI --</option>
+                                            {loan.repaymentSchedule
+                                                .filter(i => !i.paid)
+                                                .sort((a, b) => a.month - b.month)
+                                                .map((i, idx) => {
+                                                    const remaining = (i.amount || 0) - (i.amountPaid || 0);
+                                                    return (
+                                                        <option key={idx} value={i.month}>
+                                                            {`EMI #${i.month} - ₹${remaining.toLocaleString('en-IN')} due on ${new Date(i.dueDate).toLocaleDateString()}`}
+                                                        </option>
+                                                    );
+                                                })}
+                                        </select>
+                                    </div>
+
+                                    {/* Amount Input */}
+                                    <div className="col-md-4">
+                                        <label className="form-label fw-bold text-black">Enter Amount</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={repayAmount}
+                                            onChange={(e) => setRepayAmount(e.target.value)}
+                                            placeholder="Enter custom amount"
+                                        />
+                                    </div>
+                                </>
                             )}
 
                             <div className="col-md-4">
@@ -262,13 +319,35 @@ const LoanView = () => {
                             <div className="col-md-4 mt-2 d-flex aligh-item-center">
                                 <button className="btn btn-success w-100 btn-md" onClick={() => {
                                     let amt = 0;
-                                    if (repayMode === 'emi') amt = emiData.emi;
-                                    else if (repayMode === 'full') amt = parseFloat(getRemainingBalance());
-                                    else amt = parseFloat(repayAmount);
+                                    if (repayMode === 'emi') {
+                                        amt = emiData.emi;
+                                    } else if (repayMode === 'full') {
+                                        amt = parseFloat(getRemainingBalance());
+                                    } else {
+                                        amt = parseFloat(repayAmount);
+                                    }
+
+                                    if (!amt || amt <= 0) {
+                                        return toast.error('Enter a valid repayment amount');
+                                    }
 
                                     if (!amt || amt <= 0) return toast.error('Enter valid amount');
+
+                                    if (repayMode === 'custom') {
+                                        if (selectedInstallmentId) {
+                                            const selected = loan.repaymentSchedule.find(i => i.month === selectedInstallmentId);
+                                            if (!selected) return toast.error('Please select a valid installment');
+
+                                            const max = (selected.amount || 0) - (selected.amountPaid || 0);
+                                            if (amt > max) {
+                                                return toast.error(`Amount exceeds selected EMI's remaining due of ₹${max.toLocaleString('en-IN')}`);
+                                            }
+                                        }
+                                    }
+
                                     setPreviewAmount(amt);
                                     setShowRepayPreview(true);
+
                                 }}>
                                     💰 Preview & Submit
                                 </button>
@@ -276,7 +355,6 @@ const LoanView = () => {
                         </div>
                     </div>
                 )}
-
 
                 <ul className="nav nav-tabs mb-3">
 
@@ -629,11 +707,17 @@ const LoanView = () => {
                 }
                 onConfirm={async () => {
                     try {
-                        await repayLoan(loanId, {
+                        const payload = {
                             amount: previewAmount,
                             paymentRef: repaymentRef || `TXN-${Date.now()}`,
-                            mode: repayMode // 'emi', 'full', or 'custom'
-                        });
+                            mode: repayMode
+                        };
+
+                        if (repayMode === 'custom' && selectedInstallmentId) {
+                            payload.selectedInstallmentMonth = selectedInstallmentId;
+                        }
+
+                        await repayLoan(loanId, payload);
                         toast.success('Repayment successful');
                         setRepayAmount('');
                         setRepaymentRef('');

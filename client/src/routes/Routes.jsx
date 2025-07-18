@@ -30,6 +30,7 @@ import CreateLoan from "../pages/Loans/CreateLoan";
 import LoanView from "../pages/Loans/LoanView";
 import ConfigSettings from "../pages/Settings/ConfigSettings";
 import TransactionReceipt from "../pages/Transaction/TransactionReceipt";
+import MonthlyLedgerReport from "../pages/Ledger/MonthlyLedgerReport";
 
 const AdminRoutes = () => {
     return (
@@ -65,6 +66,7 @@ const AdminRoutes = () => {
                 <Route path="account/edit/:id" element={<CreateAccounts />} />
                 <Route path="account/view/:id" element={<ViewAccount />} />
 
+                <Route path="ledger-report" element={<MonthlyLedgerReport />} />
                 <Route path="ledger" element={<Ledger />} />
                 <Route path="ledger/create" element={<CreateOrEditLedger />} />
                 <Route path="ledger/edit/:id" element={<CreateOrEditLedger />} />

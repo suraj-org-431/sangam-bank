@@ -13,11 +13,9 @@ export const createTransactionAndLedger = async ({
     createdBy,
     adjustmentType,
     noteBreakdown,
-    totalRepaymentAmount = 0,
     additionalTransactions = []
 }) => {
     const parsedAmount = parseFloat(amount);
-    console.log(type)
     if (type === 'adjustment' && adjustmentType !== 'waiveFine' && (!parsedAmount || parsedAmount <= 0)) {
         throw new Error('Invalid adjustment amount');
     }
@@ -38,13 +36,14 @@ export const createTransactionAndLedger = async ({
         case 'loanDisbursed':
             break;
         case 'loanRepayment':
-            if (totalRepaymentAmount > 0) {
-                if (account.balance < totalRepaymentAmount) throw new Error(`Insufficient balance. Need ₹${totalRepaymentAmount}`);
-                account.balance -= totalRepaymentAmount;
+            if (parsedAmount > 0) {
+                if (account.balance < parsedAmount) throw new Error(`Insufficient balance. Need ₹${parsedAmount}`);
+                account.balance -= parsedAmount;
                 account.balance = Math.max(account.balance, 0);
             }
             break;
         case 'interestPayment':
+            break;
         case 'fine':
             if (affectsBalance) {
                 if (account.balance < parsedAmount) throw new Error(`Insufficient balance for fine ₹${parsedAmount}`);
