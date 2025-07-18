@@ -390,3 +390,9 @@ table.table-bordered tbody tr td:last-child {
     border: 0px;
     outline: none;
 }
+.form-check-input[type=checkbox] {
+    border-radius: .25em;
+    border: solid 2px #4CAF50;
+    width: 20px;
+    height: 20px;
+}

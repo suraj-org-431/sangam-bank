@@ -92,7 +92,7 @@ const CreateLoan = () => {
 
     return (
         <div className="px-4 py-4">
-            <div className="card p-3">
+            <div className="card theme-card border-0 shadow p-3">
                 <h4>Create New Loan</h4>
 
                 {/* 🔍 Borrower Search */}
@@ -118,13 +118,40 @@ const CreateLoan = () => {
                 {selectedAccount && (
                     <>
                         <hr />
-                        <div className="alert alert-info">
-                            <strong>Customer Name:</strong> {selectedAccount.applicantName}<br />
-                            <strong>Account Number:</strong> {selectedAccount.accountNumber}<br />
-                            <small>
-                                Type: {selectedAccount.accountType} | Balance: ₹{selectedAccount.balance}
-                            </small>
-                        </div>
+
+<div className='row'>
+  <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Customer Name</label>
+       <div> <i class="fa-solid fa-user me-2"></i> 
+       <b>{selectedAccount.applicantName}</b></div> 
+    </div>
+</div>
+    <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Account Number</label>
+       <div> <i class="fa-solid fa-building-columns me-2"></i>
+       <b>{selectedAccount.accountNumber}</b></div> 
+    </div>
+</div>
+    <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Account Type</label>
+       <div><i class="fa-solid fa-layer-group me-2"></i>
+       <b>{selectedAccount.accountType}</b></div> 
+    </div>
+</div>
+
+    <div className='col-md-3'>
+     <div className='alert alert-warning bank_info'>
+       <label className='text-black border-bottom mb-2 text-muted'>Balance</label>
+       <div><i class="fa-solid fa-indian-rupee-sign me-2"></i>
+       <b>{selectedAccount.balance}</b></div> 
+    </div>
+
+  </div>
+
+</div>
                     </>
                 )}
 
