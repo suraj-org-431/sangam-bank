@@ -54,7 +54,7 @@ export const applyApprovedLoanAdjustment = async ({ loan, adjustment, userName =
 
         // 🟢 CUSTOM ADJUSTMENT
     } else if (adjustment.type === 'customAdjustment') {
-        orrower.loanDetails.adjustedAmount = (borrower.loanDetails.adjustedAmount || 0) + amount;
+        borrower.loanDetails.adjustedAmount = (borrower.loanDetails.adjustedAmount || 0) + amount;
         borrower.loanDetails.disbursedAmount = Math.max(0, (borrower.loanDetails.disbursedAmount || 0) - amount);
         loan.disbursedAmount = Math.max(0, (loan.disbursedAmount || 0) - amount);
 

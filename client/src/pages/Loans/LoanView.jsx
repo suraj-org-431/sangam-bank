@@ -236,7 +236,7 @@ const LoanView = () => {
                                         let label = mode.toUpperCase();
                                         if (mode === 'emi') {
                                             if (upcomingEMI?.amount > 0) {
-                                                label += ` ${((upcomingEMI?.amount || 0) - (upcomingEMI?.amountPaid || 0)).toLocaleString('en-IN')} of (₹${emiData?.emi.toLocaleString('en-IN', { minimumFractionDigits: 2 })} of (₹${emiData?.emi?.toLocaleString('en-IN')})`;
+                                                label += ` ${((upcomingEMI?.amount || 0) - (upcomingEMI?.amountPaid || 0)).toLocaleString('en-IN')} of (₹${emiData?.emi?.toLocaleString('en-IN')})`;
                                             }
                                             else {
                                                 label += ` (₹${emiData?.emi?.toLocaleString('en-IN')})`;
