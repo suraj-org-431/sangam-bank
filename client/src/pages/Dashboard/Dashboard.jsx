@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { getAllAccountsCount } from '../../api/account';
 import { adminRoute } from '../../utils/router';
-import { getOveralllSummary, getTodayLedgerEntryCount } from '../../api/ledger';
+import { getMonthlyLedgerReport, getOveralllSummary, getTodayLedgerEntryCount } from '../../api/ledger';
 
 const Dashboard = () => {
     const [transactions, setTransactions] = useState([]);
@@ -15,15 +15,29 @@ const Dashboard = () => {
     const [ledgerCount, setLedgerCount] = useState(0);
     const [showOpening, setShowOpening] = useState(false);
     const [showClosing, setShowClosing] = useState(false);
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
+    const [year, setYear] = useState(new Date().getFullYear());
 
-    const toggleOpening = () => setShowOpening(true);
-    const toggleClosing = () => setShowClosing(true);
+    const toggleOpening = () => setShowOpening(!showOpening);
+    const toggleClosing = () => setShowClosing(!showClosing);
 
     useEffect(() => {
         loadRecentTransactions();
         loadTotalAccounts();
         loadTodayLedgerEntry()
+        loadOpeningAndCloseBalance();
     }, []);
+
+    const loadOpeningAndCloseBalance = async () => {
+        try {
+            const res = await getMonthlyLedgerReport({ month, year });
+            setOpeningBalance(res.openingBalance || 0);
+            setClosingBalance(res.closingBalance || 0);
+        }
+        catch (error) {
+            toast.error('Failed to load opening and cloing balance ');
+        }
+    }
 
     const loadTodayLedgerEntry = async () => {
         try {
