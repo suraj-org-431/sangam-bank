@@ -84,6 +84,7 @@ const AdminRoutes = () => {
                 <Route path="interest-management" element={<InterestTrigger />} />
 
                 <Route path="user-settings" element={<Setting />} />
+                <Route path="notifications" element={<NotificationList />} />
             </Route>
         </Routes>
     );
