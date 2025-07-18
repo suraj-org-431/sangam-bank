@@ -10,13 +10,15 @@ import {
     getOverallFinancialSummary,
     getTodayLedgerEntryCount,
     getMonthlyLedgerReport,
+    exportMonthlyLedgerReport,
 } from "../controllers/ledgerController.js";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 router.post("/", upsertLedger);
-router.post('/monthly-report', getMonthlyLedgerReport)
+router.get('/monthly-report/export', exportMonthlyLedgerReport);
+router.get('/monthly-report', getMonthlyLedgerReport)
 router.get('/today-count', getTodayLedgerEntryCount);
 router.get('/financial-summary', getOverallFinancialSummary);
 router.get('/summary/:particular', getLedgerSummaryByParticular);

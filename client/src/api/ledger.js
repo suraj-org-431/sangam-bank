@@ -86,11 +86,53 @@ export const getTodayLedgerEntryCount = async (file) => {
     }
 };
 
-export const getMonthlyLedgerReport = async (formData) => {
+export const getMonthlyLedgerReport = async ({ month, year, page = 1, limit = 10 }) => {
     try {
-        const res = await API.post('/ledger/monthly-report', formData);
+        const res = await API.get('/ledger/monthly-report', {
+            params: {
+                month,
+                year,
+                page,
+                limit
+            }
+        });
         return res?.data?.data;
     } catch (err) {
-        throw new Error(err?.response?.data?.message || 'Failed to import ledger CSV');
+        console.log(err)
+        throw new Error(err?.response?.data?.message || 'Failed to fetch ledger report');
     }
 };
+
+// 🔹 Export Monthly Ledger Report (Excel / PDF)
+export const exportMonthlyLedgerReport = async ({ month, year, format = 'excel' }) => {
+
+    console.log(format)
+    try {
+        const response = await API.get('/ledger/monthly-report/export', {
+            params: { month, year, format },
+            responseType: format === 'excel' ? 'blob' : 'arraybuffer', // important for binary download
+        });
+
+        const blob = new Blob([response.data], {
+            type:
+                format === 'excel'
+                    ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    : 'application/pdf',
+        });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ledger_${month}_${year}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        return true;
+    } catch (err) {
+        console.error('❌ Export Error:', err);
+        throw new Error(err?.response?.data?.message || 'Failed to export monthly ledger report');
+    }
+};
+

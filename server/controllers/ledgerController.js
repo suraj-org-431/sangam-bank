@@ -10,6 +10,9 @@ import {
 import Account from "../models/Account.js";
 import { generateNextAccountNumber } from "./accountController.js";
 import Transaction from "../models/Transaction.js";
+import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
+import { generateMonthlyLedgerData } from '../utils/ledgerUtils.js';
 
 // ✅ Create or Update (Upsert) Ledger
 export const upsertLedger = async (req, res) => {
@@ -744,22 +747,21 @@ export const getTodayLedgerEntryCount = async (req, res) => {
 
 export const getMonthlyLedgerReport = async (req, res) => {
     try {
-        let { month, year } = req.query;
+        let { month, year, page = 1, limit = 10 } = req.query;
+        page = parseInt(page);
+        limit = parseInt(limit);
 
         if (!month || !year) {
             const now = new Date();
             month = now.getMonth() + 1;
             year = now.getFullYear();
-            // return badRequestResponse(res, 400, "Month and year are required");
         }
 
         const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 1); // first day of next month
+        const endDate = new Date(year, month, 1);
 
-        // Get all entries sorted by date
         const allLedgers = await Ledger.find().sort({ date: 1 }).lean();
 
-        // Calculate opening balance using all entries before this month
         let openingBalance = 0;
         for (const entry of allLedgers) {
             if (new Date(entry.date) >= startDate) break;
@@ -773,11 +775,10 @@ export const getMonthlyLedgerReport = async (req, res) => {
         }
 
         let balance = openingBalance;
-        let monthlyEntries = [];
+        let fullEntries = [];
         let entryId = 1;
 
-        // Add Opening Balance entry
-        monthlyEntries.push({
+        fullEntries.push({
             entryId: entryId++,
             date: startDate.toISOString().split('T')[0],
             ledgerHead: "Opening Balance",
@@ -787,7 +788,6 @@ export const getMonthlyLedgerReport = async (req, res) => {
             balance: `₹${openingBalance.toLocaleString('en-IN')}`
         });
 
-        // Filter and process entries for the selected month
         for (const entry of allLedgers) {
             const entryDate = new Date(entry.date);
             if (entryDate < startDate || entryDate >= endDate) continue;
@@ -799,7 +799,7 @@ export const getMonthlyLedgerReport = async (req, res) => {
             if (isCredit) balance += amt;
             if (isDebit) balance -= amt;
 
-            monthlyEntries.push({
+            fullEntries.push({
                 entryId: entryId++,
                 date: entryDate.toISOString().split('T')[0],
                 ledgerHead: entry.transactionType.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
@@ -810,8 +810,7 @@ export const getMonthlyLedgerReport = async (req, res) => {
             });
         }
 
-        // Add Closing Balance entry
-        monthlyEntries.push({
+        fullEntries.push({
             entryId: entryId,
             date: new Date(endDate.getTime() - 1).toISOString().split('T')[0],
             ledgerHead: "Closing Balance",
@@ -821,15 +820,88 @@ export const getMonthlyLedgerReport = async (req, res) => {
             balance: `₹${balance.toLocaleString('en-IN')}`
         });
 
+        const totalEntries = fullEntries.length;
+        const totalPages = Math.ceil(totalEntries / limit);
+        const paginatedEntries = fullEntries.slice((page - 1) * limit, page * limit);
+
         return successResponse(res, 200, "Monthly ledger report generated", {
             month,
             year,
             openingBalance,
             closingBalance: balance,
-            entries: monthlyEntries
+            currentPage: page,
+            totalPages,
+            totalEntries,
+            entries: paginatedEntries,
         });
     } catch (err) {
         console.error("❌ Monthly Ledger Report Error:", err);
         return errorResponse(res, 500, "Failed to generate report", err.message);
     }
 };
+
+export const exportMonthlyLedgerReport = async (req, res) => {
+    try {
+        let { month, year, format = 'excel' } = req.query;
+
+        if (!month || !year) {
+            const now = new Date();
+            month = now.getMonth() + 1;
+            year = now.getFullYear();
+        }
+
+        const { entries = [], openingBalance, closingBalance } = await generateMonthlyLedgerData(month, year);
+
+        if (format === 'excel') {
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Monthly Ledger');
+
+            sheet.columns = [
+                { header: 'Entry ID', key: 'entryId', width: 10 },
+                { header: 'Date', key: 'date', width: 15 },
+                { header: 'Ledger Head', key: 'ledgerHead', width: 20 },
+                { header: 'Description', key: 'description', width: 30 },
+                { header: 'Debit (₹)', key: 'debit', width: 15 },
+                { header: 'Credit (₹)', key: 'credit', width: 15 },
+                { header: 'Balance (₹)', key: 'balance', width: 20 },
+            ];
+
+            entries.forEach(entry => sheet.addRow(entry));
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=ledger_${month}_${year}.xlsx`);
+            await workbook.xlsx.write(res);
+            res.end();
+
+        } else if (format === 'pdf') {
+            const doc = new PDFDocument({ size: 'A4', margin: 30 });
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=ledger_${month}_${year}.pdf`);
+            doc.pipe(res);
+
+            doc.fontSize(16).text(`Monthly Ledger Report (${month}/${year})`, { align: 'center' });
+            doc.moveDown().fontSize(12);
+            doc.text(`Opening Balance: ₹${openingBalance.toLocaleString('en-IN')}`);
+            doc.text(`Closing Balance: ₹${closingBalance.toLocaleString('en-IN')}`);
+            doc.moveDown();
+
+            entries.forEach(entry => {
+                doc.text(`Date: ${entry.date}`);
+                doc.text(`Ledger Head: ${entry.ledgerHead}`);
+                doc.text(`Description: ${entry.description}`);
+                doc.text(`Debit: ${entry.debit}   |   Credit: ${entry.credit}   |   Balance: ${entry.balance}`);
+                doc.moveDown();
+            });
+
+            doc.end();
+
+        } else {
+            return badRequestResponse(res, 400, "Invalid format. Use ?format=excel or ?format=pdf");
+        }
+
+    } catch (err) {
+        console.error("❌ Monthly Ledger Export Error:", err);
+        return errorResponse(res, 500, "Failed to export monthly ledger report", err.message);
+    }
+};
+
