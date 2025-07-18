@@ -1155,3 +1155,23 @@ ul.dropdown-menu,
 select.form-select {
   color: #041004;
 }
+.dropdown_notification ul.dropdown-menu li {
+    color: #fff;
+}
+
+.dropdown_notification ul.dropdown-menu li .dropdown-item {
+    color: #ccc;
+    cursor: pointer;
+}
+
+.dropdown_notification ul.dropdown-menu li .dropdown-item small.text-muted {
+    color: #058707 !important;
+}
+.dropdown_notification ul.dropdown-menu li .dropdown-item small {
+    display: block;
+    color: #b5b7b5;
+}
+.dropdown_notification ul.dropdown-menu li .dropdown-item:hover{
+    background-color: #175f18;
+    border-radius: 5px;
+}

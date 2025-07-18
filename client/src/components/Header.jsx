@@ -73,7 +73,7 @@ const AdminHeader = () => {
                         {/* <input type="text" className='form-control' placeholder="Search Account..." /> */}
 
                         {/* Notifications */}
-                        <div className="dropdown">
+                        <div className="dropdown dropdown_notification">
                             <button className="btn btn_circle position-relative" data-bs-toggle="dropdown">
                                 <i className="fa-regular fa-bell"></i>
                                 {notifications.length > 0 && (
@@ -84,18 +84,17 @@ const AdminHeader = () => {
                             </button>
                             <ul className="dropdown-menu dropdown-menu-end p-2" style={{ minWidth: '250px', maxHeight: '300px', overflowY: 'auto' }}>
                                 <li className="dropdown-header fw-bold">Notifications</li>
-                                <li><hr className="dropdown-divider" /></li>
                                 {notifications.length > 0 ? (
                                     notifications.map((note, idx) => (
                                         <li key={idx} onClick={() => toggleRead(note?._id)}>
                                             <div className="dropdown-item">
-                                                <strong>{note.title}</strong><br />
-                                                <small className="text-muted">{note.body}</small>
+                                                      {note.title} 
+                                                <small>{note.body}</small>
                                             </div>
                                         </li>
                                     ))
                                 ) : (
-                                    <li className="dropdown-item text-muted">No new notifications</li>
+                                    <li className="dropdown-item text-light">No new notifications</li>
                                 )}
                                 <li><hr className="dropdown-divider" /></li>
                                 <li><Link className="dropdown-item text-center" to={adminRoute("/notifications")}>See all</Link></li>
