@@ -767,9 +767,9 @@ export const getMonthlyLedgerReport = async (req, res) => {
             if (new Date(entry.date) >= startDate) break;
 
             const amt = entry.amount || 0;
-            if (["deposit", "interest", "loanDisbursed", "openingBalance", "rdInstallment"].includes(entry.transactionType)) {
+            if (["deposit", "interest", "openingBalance", "rdInstallment"].includes(entry.transactionType)) {
                 openingBalance += amt;
-            } else if (["withdrawal", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType)) {
+            } else if (["withdrawal", "loanDisbursed", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType)) {
                 openingBalance -= amt;
             }
         }
@@ -792,8 +792,8 @@ export const getMonthlyLedgerReport = async (req, res) => {
             const entryDate = new Date(entry.date);
             if (entryDate < startDate || entryDate >= endDate) continue;
 
-            const isCredit = ["deposit", "interest", "loanDisbursed", "openingBalance", "rdInstallment"].includes(entry.transactionType);
-            const isDebit = ["withdrawal", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType);
+            const isCredit = ["deposit", "interest", "openingBalance", "rdInstallment"].includes(entry.transactionType);
+            const isDebit = ["withdrawal", "loanDisbursed", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType);
             const amt = entry.amount || 0;
 
             if (isCredit) balance += amt;
