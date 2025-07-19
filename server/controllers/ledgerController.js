@@ -760,7 +760,7 @@ export const getMonthlyLedgerReport = async (req, res) => {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 1);
 
-        const allLedgers = await Ledger.find().sort({ date: 1 }).lean();
+        const allLedgers = await Ledger.find().sort({ createdAt: 1 }).lean();
 
         let openingBalance = 0;
         for (const entry of allLedgers) {
