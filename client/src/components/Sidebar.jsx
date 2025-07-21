@@ -1,7 +1,57 @@
 import { Link } from "react-router-dom";
 import { adminRoute } from "../utils/router";
 import logo from '../assets/images/logo.webp';
+import { useAuth } from "../context/AuthContext";
+
+const menuItems = [
+    {
+        label: "Dashboard",
+        icon: "fa-solid fa-house",
+        to: adminRoute("/dashboard"),
+        roles: ["super-admin", "branch-manager", "account-officer"]
+    },
+    {
+        label: "Roles",
+        icon: "fa-solid fa-users",
+        to: adminRoute("/roles"),
+        roles: ["super-admin"]
+    },
+    {
+        label: "Users",
+        icon: "fa-solid fa-users",
+        to: adminRoute("/users"),
+        roles: ["super-admin"]
+    },
+    {
+        label: "Accounts",
+        icon: "fa-solid fa-landmark",
+        to: adminRoute("/accounts"),
+        roles: ["super-admin", "branch-manager", "account-officer"]
+    },
+    {
+        label: "Transactions",
+        icon: "fa-solid fa-clipboard",
+        to: adminRoute("/transactions"),
+        roles: ["super-admin", "account-officer"]
+    },
+    {
+        label: "Ledger",
+        icon: "fa-solid fa-book",
+        to: adminRoute("/ledger-report"),
+        roles: ["super-admin", "branch-manager", "account-officer"]
+    },
+    {
+        label: "Loans",
+        icon: "fa-solid fa-money-check-dollar",
+        to: adminRoute("/loans"),
+        roles: ["super-admin", "branch-manager", "account-officer"]
+    }
+];
+
 const Sidebar = () => {
+    const { user } = useAuth(); // 👈 Get user from context
+    const role = user?.roleType?.toLowerCase();
+    if (!role) return null;
     return (
         <div className="container-fluid main-area">
             <div className="row g-0">
@@ -13,81 +63,24 @@ const Sidebar = () => {
                             </Link>
                         </div>
                         <ul className="nav flex-column" id="sidebar">
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Dashboard">
-                                <Link className="nav-link" to={adminRoute('/dashboard')}>
-                                    <i className="fa-solid fa-house"></i>
-                                    <span className="nav-link-text">Dashboard</span>
-                                </Link >
-                            </li>
-
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/roles')}>
-                                    <i className="fa-solid fa-users"></i>
-                                    <span className="nav-link-text">Roles</span>
-                                </Link >
-                            </li>
-
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/users')}>
-                                    <i className="fa-solid fa-users"></i>
-                                    <span className="nav-link-text">Users</span>
-                                </Link >
-                            </li>
-
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/accounts')}>
-                                    <i className="fa-solid fa-landmark"></i>
-                                    <span className="nav-link-text">Accounts</span>
-                                </Link >
-                            </li>
-
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/transactions')}>
-                                    <i className="fa-solid fa-clipboard"></i>
-                                    <span className="nav-link-text">Transactions</span>
-                                </Link >
-                            </li>
-
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/ledger-report')}>
-                                    <i className="fa-solid fa-book"></i>
-                                    <span className="nav-link-text">Ledger</span>
-                                </Link >
-                            </li>
-
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/loans')}>
-                                    <i className="fa-solid fa-money-check-dollar"></i>
-                                    <span className="nav-link-text">Loans</span>
-                                </Link >
-                            </li>
-
-                            {/* <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/daily-expenses')}>
-                                    <i className="fa-solid fa-chart-pie"></i>
-                                    <span className="nav-link-text">Daily Expenses</span>
-                                </Link >
-                            </li>
-
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/assets')}>
-                                    <i className="fa-solid fa-square-poll-vertical"></i>
-                                    <span className="nav-link-text">Assets</span>
-                                </Link >
-                            </li>
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
-                                <Link className="nav-link" to={adminRoute('/reports')}>
-                                    <i className="fa-solid fa-folder"></i>
-                                    <span className="nav-link-text">Reports</span>
-                                </Link >
-                            </li> */}
+                            {menuItems
+                                .filter(item => item.roles.includes(role)) // ✅ Role-based filtering
+                                .map((item, index) => (
+                                    <li key={index} className="nav-item">
+                                        <Link className="nav-link" to={item.to}>
+                                            <i className={item.icon}></i>
+                                            <span className="nav-link-text">{item.label}</span>
+                                        </Link>
+                                    </li>
+                                ))}
                         </ul>
                     </div>
                 </div>
                 <div className="col-sm-10"></div>
             </div>
         </div>
-    )
-}
+    );
+};
+
 
 export default Sidebar;

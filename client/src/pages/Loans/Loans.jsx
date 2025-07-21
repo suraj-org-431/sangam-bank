@@ -3,8 +3,12 @@ import { Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { getAllLoans } from '../../api/loan';
 import { adminRoute } from '../../utils/router';
+import { fetchUserPermissions, hasPermission } from '../../utils/permissionUtils';
+import CommonModal from '../../components/common/CommonModal';
 
 const Loans = () => {
+    const [userPermissions, setUserPermissions] = useState([]);
+    const [show403Modal, setShow403Modal] = useState(false);
     const [loans, setLoans] = useState([]);
     const [query, setQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -15,6 +19,17 @@ const Loans = () => {
 
     const limit = 10;
     const navigate = useNavigate();
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const permissions = await fetchUserPermissions();
+                setUserPermissions(permissions || []);
+            } catch (err) {
+                console.error('Failed to load permissions', err);
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         fetchLoans();
@@ -122,7 +137,13 @@ const Loans = () => {
                     <div>
                         <button
                             className="btn btn-sm btn-primary"
-                            onClick={() => navigate(adminRoute('/loan/create'))}
+                            onClick={() => {
+                                if (!hasPermission(userPermissions, 'POST:/loans')) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                navigate(adminRoute('/loan/create'))
+                            }}
                         >
                             + Create Loan
                         </button>
@@ -193,6 +214,13 @@ const Loans = () => {
                     </button>
                 </div>
             </div>
+            <CommonModal
+                show={show403Modal}
+                onHide={() => setShow403Modal(false)}
+                title="Access Denied"
+                type="access-denied"
+                emoji="🚫"
+            />
         </div>
     );
 };

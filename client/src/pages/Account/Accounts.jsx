@@ -250,7 +250,7 @@ const Accounts = () => {
                     <button
                         className="btn btn-sm btn-outline-primary"
                         onClick={() => {
-                            if (!hasPermission(userPermissions, 'POST:/accounts')) {
+                            if (!hasPermission(userPermissions, 'POST:/accounts/import')) {
                                 setShow403Modal(true);
                                 return;
                             }

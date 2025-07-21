@@ -1,18 +1,16 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { adminRoute } from "../utils/router";
-import { getToken, getUser } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-    const token = getToken();
-    const user = getUser();
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+    const { user, loading, isAuthorized } = useAuth();
 
-    if (!token || !user) {
-        return <Navigate to={adminRoute("/login")} replace />;
-    }
+    if (loading) return <div>Loading...</div>;
 
-    // Optional: Check role
-    if (allowedRoles && !allowedRoles.includes(user?.role?.toLowerCase())) {
+    console.log(user)
+    console.log(isAuthorized(allowedRoles))
+
+    if (!user || !isAuthorized(allowedRoles)) {
         return <Navigate to="/unauthorized" replace />;
     }
 

@@ -29,18 +29,20 @@ const Profile = () => {
     });
 
     useEffect(() => {
+        if (profile) return; // Prevent unnecessary refetch
+
         const fetchProfile = async () => {
             try {
-                const { email } = getUser(); // ✅ Get user from local/session
-                const data = await getProfileByEmail(email); // ✅ Fetch profile from backend
-                setProfile(data); // ✅ Save in context
+                const { email } = getUser();
+                const data = await getProfileByEmail(email);
+                setProfile(data);
             } catch (err) {
                 toast.error("Failed to load profile");
             }
         };
 
-        if (!profile) fetchProfile();
-    }, [profile, setProfile]);
+        fetchProfile();
+    }, []);
 
     const formatMobile = (num) => {
         const cleaned = num.replace(/\D/g, '').slice(0, 10);

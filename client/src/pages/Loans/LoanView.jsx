@@ -7,10 +7,13 @@ import EMICalculator from './EMICalculator';
 import { getConfig } from '../../api/config';
 import { calculateEMI } from '../../utils/loanUtils';
 import CommonModal from '../../components/common/CommonModal';
+import { fetchUserPermissions, hasPermission } from '../../utils/permissionUtils';
 
 const LoanView = () => {
     const { loanId } = useParams();
     const navigate = useNavigate();
+    const [userPermissions, setUserPermissions] = useState([]);
+    const [show403Modal, setShow403Modal] = useState(false);
     const [loan, setLoan] = useState(null);
     const [repayAmount, setRepayAmount] = useState('');
     const [repayMode, setRepayMode] = useState('emi');
@@ -46,6 +49,17 @@ const LoanView = () => {
     const upcomingEMI = loan?.repaymentSchedule?.find(r => !r.paid);
     const openModal = (type) => setModal({ show: true, type });
     const closeModal = () => setModal({ show: false, type: '' });
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const permissions = await fetchUserPermissions();
+                setUserPermissions(permissions || []);
+            } catch (err) {
+                console.error('Failed to load permissions', err);
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         if (repayMode !== 'custom') setRepayAmount('');
@@ -178,14 +192,26 @@ const LoanView = () => {
                     <div className="d-flex gap-2 mb-4">
                         <button
                             className="btn btn-outline-success d-flex align-items-center"
-                            onClick={() => openModal('approve')}
+                            onClick={() => {
+                                if (!hasPermission(userPermissions, `PUT:/loans/${loan?._id}/approve`)) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                openModal('approve')
+                            }}
                             title="Approve this loan application"
                         >
                             <i className="bi bi-check-circle me-1"></i> Approve Loan
                         </button>
                         <button
                             className="btn btn-outline-danger d-flex align-items-center"
-                            onClick={() => openModal('reject')}
+                            onClick={() => {
+                                if (!hasPermission(userPermissions, `PUT:/loans/${loan?._id}/reject`)) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                openModal('reject')
+                            }}
                             title="Reject this loan application"
                         >
                             <i className="bi bi-x-circle me-1"></i> Reject Loan
@@ -195,7 +221,13 @@ const LoanView = () => {
 
                 {loan.status === 'approved' && (
                     <div className="d-flex gap-2 mb-4">
-                        <button className="btn btn-primary me-2" onClick={() => openModal('disburse')}>
+                        <button className="btn btn-primary me-2" onClick={() => {
+                            if (!hasPermission(userPermissions, `POST:/loans/${loan?._id}/disburse`)) {
+                                setShow403Modal(true);
+                                return;
+                            }
+                            openModal('disburse')
+                        }}>
                             Disburse Loan
                         </button>
                     </div>
@@ -204,7 +236,13 @@ const LoanView = () => {
 
                 {loan?.status === 'disbursed' && (
                     <div className="d-flex gap-2 mb-4">
-                        <button className="btn btn-outline-warning mt-3" onClick={() => openModal('adjust')}>
+                        <button className="btn btn-outline-warning mt-3" onClick={() => {
+                            if (!hasPermission(userPermissions, `POST:/loans/${loan?._id}/adjust`)) {
+                                setShow403Modal(true);
+                                return;
+                            }
+                            openModal('adjust')
+                        }}>
                             Adjustment
                         </button>
                     </div>
@@ -318,6 +356,10 @@ const LoanView = () => {
 
                             <div className="col-md-4 mt-2 d-flex aligh-item-center">
                                 <button className="btn btn-success w-100 btn-md" onClick={() => {
+                                    if (!hasPermission(userPermissions, `POST:/loans/${loan?._id}/repay`)) {
+                                        setShow403Modal(true);
+                                        return;
+                                    }
                                     let amt = 0;
                                     if (repayMode === 'emi') {
                                         amt = emiData.emi;
@@ -361,7 +403,13 @@ const LoanView = () => {
                     <li className="nav-item">
                         <button
                             className={`nav-link ${activeTab === 'repayments' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('repayments')}
+                            onClick={() => {
+                                if (!hasPermission(userPermissions, `POST:/loans/adjust`)) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                setActiveTab('repayments')
+                            }}
                         >
                             Repayments
                         </button>
@@ -369,7 +417,13 @@ const LoanView = () => {
                     <li className="nav-item">
                         <button
                             className={`nav-link ${activeTab === 'adjustments' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('adjustments')}
+                            onClick={() => {
+                                if (!hasPermission(userPermissions, `POST:/loans/adjust`)) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                setActiveTab('adjustments')
+                            }}
                         >
                             Adjustments
                             <span className="badge bg-warning ms-2">
@@ -503,6 +557,10 @@ const LoanView = () => {
                                                         <>
                                                             <button className="btn btn-sm btn-success me-2" onClick={async () => {
                                                                 try {
+                                                                    if (!hasPermission(userPermissions, `POST:/loans/${loan._id}/adjust/${adj._id}/approve`)) {
+                                                                        setShow403Modal(true);
+                                                                        return;
+                                                                    }
                                                                     await approveLoanAdjustment(loan._id, adj._id);
                                                                     toast.success('Adjustment approved');
                                                                     fetchLoan();
@@ -511,6 +569,10 @@ const LoanView = () => {
                                                                 }
                                                             }}>Approve</button>
                                                             <button className="btn btn-sm btn-danger" onClick={async () => {
+                                                                if (!hasPermission(userPermissions, `POST:/loans/${loan._id}/adjust/${adj._id}/reject`)) {
+                                                                    setShow403Modal(true);
+                                                                    return;
+                                                                }
                                                                 const reason = prompt('Enter reason for rejection');
                                                                 if (!reason) return;
                                                                 try {
@@ -730,6 +792,13 @@ const LoanView = () => {
                 }}
                 confirmText="Confirm & Pay"
                 confirmVariant="success"
+            />
+            <CommonModal
+                show={show403Modal}
+                onHide={() => setShow403Modal(false)}
+                title="Access Denied"
+                type="access-denied"
+                emoji="🚫"
             />
         </div>
     );

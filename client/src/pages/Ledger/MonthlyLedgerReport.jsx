@@ -4,9 +4,13 @@ import { toast } from 'react-toastify';
 import { Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { adminRoute } from '../../utils/router';
+import CommonModal from '../../components/common/CommonModal';
+import { fetchUserPermissions, hasPermission } from '../../utils/permissionUtils';
 
 const MonthlyLedgerReport = () => {
     const navigate = useNavigate();
+    const [userPermissions, setUserPermissions] = useState([]);
+    const [show403Modal, setShow403Modal] = useState(false);
     const [entries, setEntries] = useState([]);
     const [totalEntries, setTotalEntries] = useState(0);
     const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -16,6 +20,17 @@ const MonthlyLedgerReport = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [limit] = useState(10); // Fixed rows per page
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const permissions = await fetchUserPermissions();
+                setUserPermissions(permissions || []);
+            } catch (err) {
+                console.error('Failed to load permissions', err);
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         fetchReport();
@@ -75,19 +90,37 @@ const MonthlyLedgerReport = () => {
                             </Form.Select>
                         </div>
                         <div>
-                            <button className="btn btn-sm btn-outline-primary" onClick={() => handleExport('excel')}>
+                            <button className="btn btn-sm btn-outline-primary" onClick={() => {
+                                if (!hasPermission(userPermissions, 'GET:/monthly-report/export')) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                handleExport('excel')
+                            }}>
                                 📥 Export Excel
                             </button>
                         </div>
                         <div>
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleExport('pdf')}>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => {
+                                if (!hasPermission(userPermissions, 'GET:/monthly-report/export')) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                handleExport('pdf')
+                            }}>
                                 📄 Export PDF
                             </button>
                         </div>
                         <div>
                             <button
                                 className="btn btn-sm btn-primary"
-                                onClick={() => navigate(adminRoute('/ledger/create'))}
+                                onClick={() => {
+                                    if (!hasPermission(userPermissions, 'POST:/ledger')) {
+                                        setShow403Modal(true);
+                                        return;
+                                    }
+                                    navigate(adminRoute('/ledger/create'))
+                                }}
                             >
                                 + Create Ledger
                             </button>
@@ -196,6 +229,13 @@ const MonthlyLedgerReport = () => {
                     </button>
                 </div>
             </div>
+            <CommonModal
+                show={show403Modal}
+                onHide={() => setShow403Modal(false)}
+                title="Access Denied"
+                type="access-denied"
+                emoji="🚫"
+            />
         </div >
     );
 };
