@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { generateAccountNumber, upsertAccountDetails } from '../../api/account';
 import { adminRoute } from '../../utils/router';
 import { getConfig } from '../../api/config';
+import { calculateRecurringMaturityAmount } from '../../utils/recurringCalculator';
 
 const CreateAccounts = () => {
     const location = useLocation();
@@ -12,6 +13,7 @@ const CreateAccounts = () => {
     const [loading, setLoading] = useState(false);
     const [interestRates, setInterestRates] = useState({});
     const [tenureOptions, setTenureOptions] = useState([]);
+    const [maturityAmount, setMaturityAmount] = useState(0);
 
     const [formData, setFormData] = useState({
         accountType: '',
@@ -57,20 +59,30 @@ const CreateAccounts = () => {
     useEffect(() => {
         const fetchConfig = async () => {
             const config = await getConfig();
-            if (config?.loanInterestRates) {
-                const ratesMap = {};
-                config.loanInterestRates.forEach(rate => {
-                    ratesMap[rate.type] = rate.rate;
-                });
-                setInterestRates(ratesMap);
+            if (formData?.accountType === "Recurring" && formData?.depositAmount && formData?.tenure) {
+                const { maturityAmount, interestRate } = calculateRecurringMaturityAmount(
+                    formData?.depositAmount,
+                    formData?.tenure,
+                    config
+                );
+                setMaturityAmount(maturityAmount);
             }
-            if (Array.isArray(config.loanDurations)) {
-                setTenureOptions(config.loanDurations);
+            else {
+                if (config?.loanInterestRates) {
+                    const ratesMap = {};
+                    config.loanInterestRates.forEach(rate => {
+                        ratesMap[rate.type] = rate.rate;
+                    });
+                    setInterestRates(ratesMap);
+                }
+                if (Array.isArray(config.loanDurations)) {
+                    setTenureOptions(config.loanDurations);
+                }
             }
         };
 
         fetchConfig();
-    }, []);
+    }, [formData?.tenure, formData?.depositAmount]);
 
     useEffect(() => {
         const formatDate = (dateStr) => {
@@ -482,6 +494,11 @@ const CreateAccounts = () => {
                                             : "Enter deposit amount"
                                 }
                             />
+                            {
+                                (formData?.accountType === "Recurring" || formData?.accountType === "Loan") && (
+                                    <small><strong>Maturity amount: {maturityAmount}</strong></small>
+                                )
+                            }
                         </div>
 
                         <div className="col-md-6 mb-3">

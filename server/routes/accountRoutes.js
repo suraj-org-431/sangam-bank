@@ -15,30 +15,32 @@ import {
 
 import { upload } from "../middleware/upload.js";
 import { uploadCSV } from "../middleware/uploadCSV.js";
-// Optionally add auth middleware if needed
-// import { authMiddleware } from "../middleware/auth.js";
+import { authorize, autoRegisterPermission } from "../middleware/rbac.js";
+import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
+
+router.use(authenticateToken);
 
 // ✅ Create or update account
 router.post("/", upload.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "signature", maxCount: 1 },
     { name: "verifierSignature", maxCount: 1 }
-]), upsertAccount);
+]), autoRegisterPermission, authorize(), upsertAccount);
 
 // ✅ Recurring Installment Payment Route
-router.post("/:accountId/pay-installment", payRecurringInstallment);
+router.post("/:accountId/pay-installment", autoRegisterPermission, authorize(), payRecurringInstallment);
 
 // ✅ Other account routes
-router.get('/search', searchAccounts);
-router.get('/count', getAccountsCount);
-router.get('/total-balance', getTotalBalance);
-router.get('/total-amount', getTotalDepositAmount);
-router.get("/generate-account-number", generateAccountNumberAPI);
-router.post("/import", uploadCSV.single("file"), importAccountsFromCSV);
-router.get("/", getAllAccounts);
-router.get("/:accId", getAccount);
-router.delete("/:accId", deleteAccount);
+router.get('/search', autoRegisterPermission, authorize(), searchAccounts);
+router.get('/count', autoRegisterPermission, authorize(), getAccountsCount);
+router.get('/total-balance', autoRegisterPermission, authorize(), getTotalBalance);
+router.get('/total-amount', autoRegisterPermission, authorize(), getTotalDepositAmount);
+router.get("/generate-account-number", autoRegisterPermission, authorize(), generateAccountNumberAPI);
+router.post("/import", uploadCSV.single("file"), autoRegisterPermission, authorize(), importAccountsFromCSV);
+router.get("/", autoRegisterPermission, authorize(), getAllAccounts);
+router.get("/:accId", autoRegisterPermission, authorize(), getAccount);
+router.delete("/:accId", autoRegisterPermission, authorize(), deleteAccount);
 
 export default router;

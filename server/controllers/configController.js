@@ -31,7 +31,6 @@ export const updateConfig = async (req, res) => {
     }
 };
 
-
 // ✅ Apply Interest to All Accounts
 export const applyMonthlyInterest = async (req, res) => {
     try {

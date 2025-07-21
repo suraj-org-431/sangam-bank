@@ -7,9 +7,6 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
     if (loading) return <div>Loading...</div>;
 
-    console.log(user)
-    console.log(isAuthorized(allowedRoles))
-
     if (!user || !isAuthorized(allowedRoles)) {
         return <Navigate to="/unauthorized" replace />;
     }
