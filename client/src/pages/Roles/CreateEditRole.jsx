@@ -23,6 +23,9 @@ const CreateEditRole = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         loadInitialData();
@@ -50,6 +53,23 @@ const CreateEditRole = () => {
             setError('Failed to load data');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const filteredPermissions = permissions.filter((perm) =>
+        formatPermissionLabel(perm).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        perm.route.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredPermissions.length / itemsPerPage);
+    const paginatedPermissions = filteredPermissions.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handlePageChange = (pageNum) => {
+        if (pageNum >= 1 && pageNum <= totalPages) {
+            setCurrentPage(pageNum);
         }
     };
 
@@ -152,6 +172,16 @@ const CreateEditRole = () => {
 
                         <div className="mb-3">
                             <label className="theme-label">Permissions</label>
+                            <input
+                                type="text"
+                                className="form-control theme-input mb-3"
+                                placeholder="Search by label or route..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                            />
                             <div className="table-responsive">
                                 <Table bordered hover variant="dark" className="text-white">
                                     <thead>
@@ -164,23 +194,66 @@ const CreateEditRole = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {permissions.map((perm, idx) => (
-                                            <tr key={perm._id}>
-                                                <td>{idx + 1}</td>
-                                                <td>{formatPermissionLabel(perm)}</td>
-                                                <td><Badge bg={getMethodColor(perm.method)}>{perm.method}</Badge></td>
-                                                <td className="text-warning">{perm.route}</td>
-                                                <td className="text-center">
-                                                    <Form.Check
-                                                        type="checkbox"
-                                                        checked={form.permissions.includes(perm._id)}
-                                                        onChange={() => handlePermissionToggle(perm._id)}
-                                                    />
-                                                </td>
+                                        {paginatedPermissions.length > 0 ? (
+                                            paginatedPermissions.map((perm, idx) => (
+                                                <tr key={perm._id}>
+                                                    <td>{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                                                    <td>{formatPermissionLabel(perm)}</td>
+                                                    <td><Badge bg={getMethodColor(perm.method)}>{perm.method}</Badge></td>
+                                                    <td className="text-warning">{perm.route}</td>
+                                                    <td className="text-center">
+                                                        <Form.Check
+                                                            type="checkbox"
+                                                            checked={form.permissions.includes(perm._id)}
+                                                            onChange={() => handlePermissionToggle(perm._id)}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="5" className="text-center text-muted">No permissions found.</td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </Table>
+                                <div className="d-flex justify-content-between align-items-center mt-3">
+                                    <small className="text-muted">
+                                        Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                                        {Math.min(currentPage * itemsPerPage, filteredPermissions.length)} of {filteredPermissions.length} permissions
+                                    </small>
+                                    <div className="d-flex align-items-center">
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            className="me-2"
+                                            onClick={() => handlePageChange(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                        >
+                                            Prev
+                                        </Button>
+                                        {[...Array(totalPages)].map((_, idx) => (
+                                            <Button
+                                                key={idx}
+                                                variant={currentPage === idx + 1 ? 'primary' : 'outline-secondary'}
+                                                size="sm"
+                                                className="me-1"
+                                                onClick={() => handlePageChange(idx + 1)}
+                                            >
+                                                {idx + 1}
+                                            </Button>
+                                        ))}
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            className="ms-2"
+                                            onClick={() => handlePageChange(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

@@ -31,6 +31,9 @@ import LoanView from "../pages/Loans/LoanView";
 import ConfigSettings from "../pages/Settings/ConfigSettings";
 import TransactionReceipt from "../pages/Transaction/TransactionReceipt";
 import MonthlyLedgerReport from "../pages/Ledger/MonthlyLedgerReport";
+import RoleManagement from "../pages/Roles/Roles";
+import CreateEditRole from "../pages/Roles/CreateEditRole";
+import ViewPermissions from "../pages/Roles/ViewPermissions";
 
 const AdminRoutes = () => {
     return (
@@ -60,6 +63,11 @@ const AdminRoutes = () => {
                 <Route path="users/create" element={<EditUser />} />
                 <Route path="users/edit/:id" element={<EditUser />} />
                 <Route path="users/view/:id" element={<ViewUser />} />
+
+                <Route path="roles" element={<RoleManagement />} />
+                <Route path="roles/create" element={<CreateEditRole />} />
+                <Route path="roles/edit/:id" element={<CreateEditRole />} />
+                <Route path="roles/view/:id" element={<ViewPermissions />} />
 
                 <Route path="accounts" element={<Accounts />} />
                 <Route path="account/create" element={<CreateAccounts />} />

@@ -20,12 +20,19 @@ const Sidebar = () => {
                                 </Link >
                             </li>
 
-                            {/* <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
+                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
+                                <Link className="nav-link" to={adminRoute('/roles')}>
+                                    <i className="fa-solid fa-users"></i>
+                                    <span className="nav-link-text">Roles</span>
+                                </Link >
+                            </li>
+
+                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
                                 <Link className="nav-link" to={adminRoute('/users')}>
                                     <i className="fa-solid fa-users"></i>
                                     <span className="nav-link-text">Users</span>
                                 </Link >
-                            </li> */}
+                            </li>
 
                             <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
                                 <Link className="nav-link" to={adminRoute('/accounts')}>
@@ -55,7 +62,7 @@ const Sidebar = () => {
                                 </Link >
                             </li>
 
-                            <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
+                            {/* <li className="nav-item" data-toggle="tooltip" data-placement="right" title="Business">
                                 <Link className="nav-link" to={adminRoute('/daily-expenses')}>
                                     <i className="fa-solid fa-chart-pie"></i>
                                     <span className="nav-link-text">Daily Expenses</span>
@@ -73,7 +80,7 @@ const Sidebar = () => {
                                     <i className="fa-solid fa-folder"></i>
                                     <span className="nav-link-text">Reports</span>
                                 </Link >
-                            </li>
+                            </li> */}
                         </ul>
                     </div>
                 </div>
