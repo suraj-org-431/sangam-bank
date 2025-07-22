@@ -445,11 +445,11 @@ const ConfigSettings = () => {
                 <h5>Initial Deposits (₹)</h5>
                 <div className="row mb-2">
                     <div className="col">
-                        <label className="text-black">Savings</label>
+                        <label className="text-black">Saving Fund</label>
                         <input
                             type="number"
                             className="form-control"
-                            value={config.initialDeposits?.savings || 0}
+                            value={config.initialDeposits?.['s/f'] || 0}
                             onChange={(e) =>
                                 setConfig((prev) => ({
                                     ...prev,

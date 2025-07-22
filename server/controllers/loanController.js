@@ -22,6 +22,7 @@ export const createLoan = async (req, res) => {
         const newLoan = await Loan.create({
             borrower: borrowerId,
             loanAmount,
+            loanCategory,
             loanType,
             interestRate,
             tenureMonths,
@@ -243,11 +244,20 @@ export const disburseLoan = async (req, res) => {
         const borrower = loan.borrower;
 
         const config = await Config.findOne();
-        const configRate = config?.loanInterestRates?.find(r =>
-            r.type?.toLowerCase() === loan.loanType?.toLowerCase()
+
+        // ✅ UPDATED: Get nested rate based on both category and type
+        let interestRate = loan.interestRate || 12; // fallback
+        const category = config?.loanInterestRates?.find(c =>
+            c.type?.toLowerCase() === loan.loanCategory?.toLowerCase()
+        );
+
+        const subRate = category?.subTypes?.find(s =>
+            s.loanType?.toLowerCase() === loan.loanType?.toLowerCase()
         )?.rate;
 
-        const interestRate = configRate || loan.interestRate || 12;
+        if (subRate) interestRate = subRate;
+
+        // Generate schedule
         const { schedule, emiAmount } = generateRepaymentSchedule({
             loanAmount: loan.loanAmount,
             interestRate,
@@ -255,7 +265,7 @@ export const disburseLoan = async (req, res) => {
             disbursementDate: disbursedDate
         });
 
-        // Update Account
+        // Update Borrower
         borrower.balance += loan.loanAmount;
         borrower.hasLoan = true;
         borrower.loanDetails = {
@@ -277,6 +287,7 @@ export const disburseLoan = async (req, res) => {
         loan.disbursedDate = disbursedDate;
         loan.repaymentSchedule = schedule;
         loan.emiAmount = emiAmount;
+        loan.interestRate = interestRate;
         loan.nextDueDate = schedule[0]?.dueDate;
         await loan.save();
 

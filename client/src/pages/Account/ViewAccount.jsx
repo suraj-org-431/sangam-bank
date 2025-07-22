@@ -47,7 +47,7 @@ const ViewAccount = () => {
 
         return renderSection(title, <FaMoneyBill className="text-primary" />, [
             renderField('Deposit Amount', `₹${data.depositAmount}`),
-            renderField('Interest Rate', `${data.interestRate}%`),
+            renderField('Interest Rate', `${data.interestRate.toFixed(2)}%`),
             renderField('Maturity Amount', `₹${data.maturityAmount}`),
             renderField('Total Interest', `₹${data.totalInterest}`),
             renderField('Maturity Date', formatDate(data.maturityDate)),
@@ -100,7 +100,7 @@ const ViewAccount = () => {
                         ← Back to Summary
                     </button>
                 </div>
-                {account?.accountType === 'Recurring' && (
+                {account?.accountType === 'recurring' && (
                     <div className="text-end mb-4">
                         <button
                             className="btn btn-success"
@@ -115,7 +115,7 @@ const ViewAccount = () => {
                 {/* Basic Info */}
                 {renderSection("Basic Information", <FaUser className="text-primary" />, [
                     renderField('Account Number', account.accountNumber),
-                    renderField('Account Type', account.accountType),
+                    renderField('Account Type', account.accountType?.toUpperCase()),
                     renderField('Applicant Name', account.applicantName),
                     renderField('Gender', account.gender),
                     renderField('DOB', formatDate(account.dob)),
@@ -156,7 +156,7 @@ const ViewAccount = () => {
                 ])}
 
                 {/* Recurring Details */}
-                {account.accountType === 'Recurring' && account.recurringDetails &&
+                {account.accountType === 'recurring' && account.recurringDetails &&
                     renderSection("Recurring Deposit", <FaMoneyBill className="text-primary" />, [
                         <div className="col-md-12 text-end mb-3" key="pay-button">
                             <button className="btn btn-primary" onClick={() => setShowPayModal(true)} disabled={isPaying}>
@@ -171,11 +171,11 @@ const ViewAccount = () => {
                 }
 
                 {/* Loan Details */}
-                {account.accountType === 'Loan' && account.loanDetails &&
+                {account.accountType === 'loan' && account.loanDetails &&
                     renderSection("Loan Details", <FaGavel className="text-primary" />, [
                         renderField('Loan Amount', `₹${account.loanDetails.totalLoanAmount}`),
                         renderField('Disbursed Amount', `₹${account.loanDetails.disbursedAmount}`),
-                        renderField('Interest Rate', `${account.loanDetails.interestRate}%`),
+                        renderField('Interest Rate', `${account.loanDetails.interestRate.toFixed(2)}%`),
                         renderField('Tenure Months', account.loanDetails.tenureMonths),
                         renderField('EMI Amount', `₹${account.loanDetails.emiAmount}`),
                         renderField('Status', account.loanDetails.status),
@@ -185,16 +185,13 @@ const ViewAccount = () => {
                 }
 
                 {/* MIS Account */}
-                {account.accountType === 'MIS' && renderMaturitySection("MIS Account Details", account.misDetails)}
+                {account.accountType === 'mis' && renderMaturitySection("MIS Account Details", account.misDetails)}
 
                 {/* Fixed Account */}
-                {account.accountType === 'Fixed' && renderMaturitySection("Fixed Deposit Details", account.fixedDetails)}
+                {account.accountType === 'fixed' && renderMaturitySection("Fixed Deposit Details", account.fixedDetails)}
 
                 {/* Savings Account */}
-                {account.accountType === 'Savings' && renderMaturitySection("Savings Account Details", account.savingsDetails)}
-
-                {/* Current Account */}
-                {account.accountType === 'Current' && renderMaturitySection("Current Account Details", account.currentDetails)}
+                {account.accountType === 's/f' && renderMaturitySection("Savings Account Details", account.savingsDetails)}
 
 
                 {/* Signatures & Images */}

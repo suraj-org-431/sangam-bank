@@ -12,20 +12,44 @@ import { createTransactionAndLedger } from "../utils/accountLedger.js";
 import Config from '../models/Config.js';
 import Loan from "../models/Loan.js";
 import { calculateMaturity } from "../utils/calculateMaturity.js";
+import { accountNumberStartFrom } from "../utils/constants.js";
 
 const withFullUrl = (path, baseUrl) => {
     if (!path) return null;
     return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 
-export const generateNextAccountNumber = async () => {
-    const last = await Account.findOne().sort({ accountNumber: -1 }).lean();
-    return last?.accountNumber ? String(Number(last.accountNumber) + 1) : '10500801';
+export const generateNextAccountNumber = async (accountType) => {
+    const last = await Account.findOne({ accountType }).sort({ accountNumber: -1 }).lean();
+    let startFrom;
+    if (accountType === 's/f') {
+        startFrom = accountNumberStartFrom["s/f"];
+    }
+    else if (accountType === 'recurring') {
+        startFrom = accountNumberStartFrom.recurring;
+    }
+    else if (accountType === 'fixed') {
+        startFrom = accountNumberStartFrom.fixed;
+    }
+    else if (accountType === 'mis') {
+        startFrom = accountNumberStartFrom.mis;
+    }
+    else if (accountType === 'loan') {
+        startFrom = accountNumberStartFrom.loan;
+    }
+    else {
+        startFrom = 1;
+    }
+    return last?.accountNumber ? String(Number(last.accountNumber) + 1) : startFrom;
 };
 
 export const generateAccountNumberAPI = async (req, res) => {
     try {
-        const next = await generateNextAccountNumber();
+        const { accountType } = req.query;
+        if (!accountType) {
+            return badRequestResponse(res, 400, `Account type is required`);
+        }
+        const next = await generateNextAccountNumber(accountType);
         return successResponse(res, 200, "Generated account number", { accountNumber: next });
     } catch (err) {
         console.error('❌ Error generating account number:', err);
@@ -43,13 +67,17 @@ export const upsertAccount = async (req, res) => {
             address, aadhar, depositAmount, introducerName,
             membershipNumber, introducerKnownSince, accountNumber,
             nomineeName, nomineeRelation, nomineeAge, managerName,
-            lekhpalOrRokapal, formDate, accountOpenDate, loanCategory, loanType
+            lekhpalOrRokapal, formDate, accountOpenDate, loanCategory, loanType, interestAccType
         } = req.body;
+
 
         const config = await Config.findOne();
         const lowerType = accountType?.toLowerCase();
-        const defaultDeposit = config?.initialDeposits?.[lowerType] || 0;
-        const actualDeposit = depositAmount || defaultDeposit;
+        const normalizedInitialDeposits = Object.fromEntries(
+            Object.entries(config?.initialDeposits || {}).map(([key, val]) => [key.toLowerCase(), val])
+        );
+        const defaultDeposit = normalizedInitialDeposits[lowerType];
+        const actualDeposit = depositAmount;
         const openDate = new Date(accountOpenDate || new Date());
 
         const payload = {
@@ -79,6 +107,10 @@ export const upsertAccount = async (req, res) => {
             accountOpenDate: openDate,
         };
 
+        if (depositAmount < defaultDeposit) {
+            return badRequestResponse(res, 400, `Minimum amount is ${defaultDeposit}`);
+        }
+
         if (req.files) {
             if (req.files.signature?.[0])
                 payload.signaturePath = `/uploads/signatures/${req.files.signature[0].filename}`;
@@ -89,7 +121,7 @@ export const upsertAccount = async (req, res) => {
         }
 
         if (!accountNumber) {
-            payload.accountNumber = await generateNextAccountNumber();
+            payload.accountNumber = await generateNextAccountNumber(accountType);
         }
 
         let account;
@@ -186,10 +218,10 @@ export const upsertAccount = async (req, res) => {
                     remarks: 'Loan created during account creation',
                     repaymentSchedule: [],
                 });
-            } else if (['mis', 'fixed'].includes(lowerType)) {
+            } else if (lowerType === 'fixed') {
                 payload[`${lowerType}Details`] = {
                     depositAmount: actualDeposit,
-                    interestRate: lowerType === 'mis' ? 100 / 6 : interestRate,
+                    interestRate: 100 / 7,
                     maturityAmount,
                     maturityDate,
                     totalInterest
@@ -207,7 +239,68 @@ export const upsertAccount = async (req, res) => {
                         createdBy: req.user?.name || 'System',
                     });
                 }
-            } else if (['savings', 'current', 'auto-created'].includes(lowerType)) {
+            } else if (lowerType === 'mis') {
+                payload[`${lowerType}Details`] = {
+                    depositAmount: actualDeposit,
+                    interestRate: 100 / 7,
+                    maturityAmount,
+                    maturityDate,
+                    totalInterest
+                };
+
+                account = await Account.create(payload);
+
+                if (actualDeposit > 0) {
+                    await createTransactionAndLedger({
+                        account,
+                        type: 'deposit',
+                        amount: actualDeposit,
+                        description: 'Initial deposit on account opening',
+                        date: openDate,
+                        createdBy: req.user?.name || 'System',
+                    });
+                }
+                if (['recurring', 's/f'].includes(interestAccType?.toLowerCase())) {
+                    const secondType = interestAccType.toLowerCase();
+
+                    const secondaryPayload = {
+                        ...payload,
+                        accountType: secondType,
+                        depositAmount: 0,
+                        balance: 0,
+                        accountOpenDate: openDate,
+                        accountNumber: await generateNextAccountNumber(secondType),
+                    };
+
+                    delete secondaryPayload._id; // prevent accidental reuse
+                    delete secondaryPayload.misDetails; // remove unrelated field
+
+                    const interestRateSecondary = config?.monthlyInterestRates?.find(
+                        r => r.type?.toLowerCase() === secondType
+                    )?.rate || 0;
+
+                    const secondaryMaturityDate = new Date(openDate);
+                    secondaryMaturityDate.setMonth(secondaryMaturityDate.getMonth() + parseInt(tenure || 12));
+
+                    secondaryPayload[`${secondType === 's/f' ? 's/f' : secondType}Details`] = {
+                        depositAmount: 0,
+                        interestRate: interestRateSecondary,
+                        maturityAmount: 0,
+                        maturityDate: secondaryMaturityDate,
+                        totalInterest: 0
+                    };
+
+                    const secondaryAccount = await Account.create(secondaryPayload);
+
+                    await notify(
+                        'account',
+                        secondaryAccount?._id,
+                        null,
+                        `Auto-Created ${interestAccType.toUpperCase()} Account`,
+                        `Account #${secondaryPayload.accountNumber} created for interest payout from MIS`
+                    );
+                }
+            } else if (['s/f', 'current', 'auto-created'].includes(lowerType)) {
                 const key = lowerType === 'auto-created' ? 'savingsDetails' : `${lowerType}Details`;
                 payload[key] = {
                     depositAmount: actualDeposit,
@@ -384,7 +477,7 @@ export const importAccountsFromCSV = async (req, res) => {
                     introducerName: row.introducerName,
                     membershipNumber: row.membershipNumber,
                     introducerKnownSince: row.introducerKnownSince,
-                    accountNumber: row.accountNumber || await generateNextAccountNumber(),
+                    accountNumber: row.accountNumber || await generateNextAccountNumber(row.accountType),
                     nomineeName: row.nomineeName,
                     nomineeRelation: row.nomineeRelation,
                     nomineeAge: parseInt(row.nomineeAge),

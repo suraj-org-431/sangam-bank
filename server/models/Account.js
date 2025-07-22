@@ -43,7 +43,7 @@ const maturitySchema = new Schema({
 const accountsSchema = new Schema({
     accountType: {
         type: String,
-        enum: ['Savings', 'Recurring', 'Fixed', 'Current', 'Loan', 'MIS', 'Auto-Created']
+        enum: ['s/f', 'recurring', 'fixed', 'loan', 'mis', 'Auto-Created']
     },
     tenure: { type: Number, default: 0 },
     branch: String,

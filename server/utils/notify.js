@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 
 export const notify = async (type, accId, loanId, title, body) => {

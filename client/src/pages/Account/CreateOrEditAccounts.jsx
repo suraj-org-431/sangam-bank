@@ -54,14 +54,15 @@ const CreateAccounts = () => {
         loanCategory: '',
         loanType: '',
         interestRate: '',
+        interestAccType: ''
 
     });
 
     useEffect(() => {
         const fetchConfig = async () => {
             const config = await getConfig();
-            if ((formData?.accountType === "Recurring" || formData?.accountType === "Fixed" || formData?.accountType === "MIS") && formData?.depositAmount && formData?.tenure) {
-                const { maturityAmount, interestRate } = calculateMaturityAmount(
+            if ((formData?.accountType === "recurring" || formData?.accountType === "fixed" || formData?.accountType === "mis") && formData?.depositAmount && formData?.tenure) {
+                const { maturityAmount } = calculateMaturityAmount(
                     formData?.depositAmount,
                     formData?.tenure,
                     config,
@@ -70,14 +71,25 @@ const CreateAccounts = () => {
                 setMaturityAmount(maturityAmount);
             }
             else {
-                if (config?.loanInterestRates) {
+                if (Array.isArray(config?.loanInterestRates)) {
                     const ratesMap = {};
-                    config.loanInterestRates.forEach(rate => {
-                        ratesMap[rate.type] = rate.rate;
+
+                    config.loanInterestRates.forEach(category => {
+                        if (Array.isArray(category.subTypes) && category.subTypes.length > 0) {
+                            ratesMap[category.type] = {};
+                            category.subTypes.forEach(sub => {
+                                ratesMap[category.type][sub.loanType] = sub.rate;
+                            });
+                        } else {
+                            // Fallback for flat structure (if no subTypes)
+                            ratesMap[category.type] = category.rate;
+                        }
                     });
+
                     setInterestRates(ratesMap);
                 }
-                if (Array.isArray(config.loanDurations)) {
+
+                if (Array.isArray(config?.loanDurations)) {
                     setTenureOptions(config.loanDurations);
                 }
             }
@@ -114,7 +126,6 @@ const CreateAccounts = () => {
 
     }, [accountData]);
 
-
     const handleChange = (e) => {
         const { name, value, type, checked, files } = e.target;
         const val = type === 'checkbox' ? checked
@@ -131,17 +142,22 @@ const CreateAccounts = () => {
             }));
         }
         else if (name === 'loanType') {
-            const rate = interestRates[value] || '';
+            const { loanCategory } = formData;
+            const selectedType = value;
+
+            const rate = interestRates?.[loanCategory]?.[selectedType] ?? '';
+
             setFormData(prev => ({
                 ...prev,
-                loanType: value,
+                loanType: selectedType,
                 interestRate: rate
             }));
             return;
+
         } else if (name === 'accountType') {
             let updatedFields = { accountType: value };
-            if (value === 'MIS') {
-                updatedFields.tenure = 72;
+            if (value === 'fixed') {
+                updatedFields.tenure = 84;
             }
             setFormData(prev => ({
                 ...prev,
@@ -242,7 +258,7 @@ const CreateAccounts = () => {
 
     const handleGenerateAccountNumber = async () => {
         try {
-            const res = await generateAccountNumber();
+            const res = await generateAccountNumber(formData?.accountType);
             if (res?.accountNumber) {
                 setFormData(prev => ({ ...prev, accountNumber: res.accountNumber }));
                 toast.success('Account number generated');
@@ -250,6 +266,7 @@ const CreateAccounts = () => {
                 toast.error('Failed to generate account number');
             }
         } catch (err) {
+            console.log(err)
             toast.error('Error generating account number');
         }
     };
@@ -269,7 +286,7 @@ const CreateAccounts = () => {
                 'introducerKnownSince', 'accountNumber', 'nomineeName', 'nomineeRelation',
                 'nomineeAge', 'managerName', 'lekhpalOrRokapal', 'formDate',
                 'accountOpenDate', 'address', 'signature', 'verifierSignature',
-                'profileImage', 'loanCategory', 'loanType', 'interestRate'
+                'profileImage', 'loanCategory', 'loanType', 'interestRate', 'interestAccType'
             ];
 
             const cleanPayload = {
@@ -329,17 +346,17 @@ const CreateAccounts = () => {
                             <label className="form-label text-black">Account Type / खाता प्रकार</label>
                             <select name="accountType" value={formData.accountType} onChange={handleChange} className="form-select">
                                 <option value="">Select / चुनें</option>
-                                <option value="Recurring">RD / आवर्ती जमा</option>
-                                <option value="Savings">Saving / बचत</option>
-                                <option value="Fixed">Fixed / सावधि जमा</option>
-                                <option value="MIS">MIS / मासिक आय योजना</option>
-                                <option value="Loan">Loan / ऋण</option>
+                                <option value="s/f">Saving Fund / बचत कोष</option>
+                                <option value="recurring">RD / आवर्ती जमा</option>
+                                <option value="fixed">fixed / सावधि जमा</option>
+                                <option value="mis">mis / मासिक आय योजना</option>
+                                <option value="loan">loan / ऋण</option>
                             </select>
                         </div>
-                        {formData.accountType === 'Loan' && (
+                        {formData.accountType === 'loan' && (
                             <>
                                 <div className="col-md-6 mb-3">
-                                    <label className="form-label text-black">Loan Category / ऋण श्रेणी</label>
+                                    <label className="form-label text-black">loan Category / ऋण श्रेणी</label>
                                     <select
                                         name="loanCategory"
                                         value={formData.loanCategory}
@@ -357,7 +374,7 @@ const CreateAccounts = () => {
                                 </div>
 
                                 <div className="col-md-6 mb-3">
-                                    <label className="form-label text-black">Loan Type / ऋण प्रकार</label>
+                                    <label className="form-label text-black">loan Type / ऋण प्रकार</label>
                                     <select
                                         name="loanType"
                                         value={formData.loanType}
@@ -365,7 +382,7 @@ const CreateAccounts = () => {
                                         className="form-select"
                                     >
                                         <option value="">Select / चुनें</option>
-                                        <option value="fixed">Fixed / निश्चित</option>
+                                        <option value="fixed">fixed / निश्चित</option>
                                         <option value="flexible">Flexible / लचीला</option>
                                     </select>
                                 </div>
@@ -378,38 +395,43 @@ const CreateAccounts = () => {
                                         className="form-control"
                                         value={formData.interestRate}
                                         readOnly
+                                        disabled
                                     />
                                 </div>
                             </>
                         )}
-                        {['Recurring', 'Fixed', 'Loan', 'MIS'].includes(formData.accountType) && (
+                        {formData.accountType === 'mis' && (
+                            <>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-black">Interest Account Type / खाता प्रकार</label>
+                                    <select name="interestAccType" value={formData.interestAccType} onChange={handleChange} className="form-select">
+                                        <option value="">Select / चुनें</option>
+                                        <option value="s/f">Saving Fund / बचत कोष</option>
+                                        <option value="recurring">RD / आवर्ती जमा</option>
+                                    </select>
+                                </div>
+                            </>
+                        )}
+                        {['recurring', 'fixed', 'loan', 'mis'].includes(formData.accountType) && (
                             <div className="col-md-6 mb-3">
                                 <label className="form-label text-black">Tenure (months) / अवधि</label>
-                                {formData.accountType === 'MIS' ? (
-                                    <input
-                                        type="number"
-                                        name="tenure"
-                                        className="form-control"
-                                        value={72}
-                                        readOnly
-                                        disabled
-                                    />
-                                ) : (
-                                    <select
-                                        name="tenure"
-                                        className="form-control"
-                                        value={formData.tenure}
-                                        onChange={handleChange}
-                                        required
-                                    >
-                                        <option value="">Select tenure</option>
-                                        {tenureOptions.map(month => (
-                                            <option key={month} value={month}>
-                                                {month} months
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
+
+                                <select
+                                    name="tenure"
+                                    className="form-control"
+                                    value={formData.tenure}
+                                    onChange={handleChange}
+                                    required
+                                    disabled={formData.accountType === 'fixed'}
+                                >
+                                    <option value="">Select tenure</option>
+                                    {tenureOptions.map(month => (
+                                        <option key={month} value={month}>
+                                            {month} months
+                                        </option>
+                                    ))}
+                                </select>
+
                             </div>
                         )}
                         <div className="col-md-6 mb-3">
@@ -490,9 +512,9 @@ const CreateAccounts = () => {
                         </div>
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">
-                                {formData?.accountType === "Loan"
-                                    ? "Loan Amount / ऋण राशि"
-                                    : formData?.accountType === "Recurring"
+                                {formData?.accountType === "loan"
+                                    ? "loan Amount / ऋण राशि"
+                                    : formData?.accountType === "recurring"
                                         ? "Monthly Installment / मासिक क़िस्त"
                                         : "Deposit Amount / जमा राशि"}
                             </label>
@@ -503,14 +525,14 @@ const CreateAccounts = () => {
                                 onChange={handleChange}
                                 className="form-control"
                                 placeholder={
-                                    formData?.accountType === "Loan"
+                                    formData?.accountType === "loan"
                                         ? "Enter loan amount"
-                                        : formData?.accountType === "Recurring"
+                                        : formData?.accountType === "recurring"
                                             ? "Enter monthly installment"
                                             : "Enter deposit amount"
                                 }
                             />
-                            {['Recurring', 'Fixed', 'Loan', 'MIS'].includes(formData.accountType) && (
+                            {['recurring', 'fixed', 'loan', 'mis'].includes(formData.accountType) && (
                                 <small><strong>Maturity amount: {maturityAmount}</strong></small>
                             )}
                         </div>

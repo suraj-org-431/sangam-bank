@@ -183,7 +183,7 @@ const Transactions = () => {
                                             <td>{format(new Date(tx.date), 'dd MMM yyyy')}</td>
                                             <td>{tx.accountId?.accountNumber || '-'}</td>
                                             <td>{tx.accountId?.applicantName || '-'}</td>
-                                            <td>{tx.accountId?.accountType || '-'}</td>
+                                            <td>{tx.accountId?.accountType?.toUpperCase() || '-'}</td>
                                             <td>
                                                 <span className={`badge ${tx.type === 'deposit' ? 'bg-success' :
                                                     tx.type === 'loanDisbursed' ? 'bg-primary' :

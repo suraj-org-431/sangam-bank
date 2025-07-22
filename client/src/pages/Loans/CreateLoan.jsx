@@ -18,7 +18,8 @@ const CreateLoan = () => {
         interestRate: '',
         tenureMonths: '',
         remarks: '',
-        loanType: 'personal'
+        loanType: 'personal',
+        loanCategory: 'fixed'
     });
 
     // 🔁 Fetch interest rate + tenure from config based on loanType
@@ -119,39 +120,39 @@ const CreateLoan = () => {
                     <>
                         <hr />
 
-<div className='row'>
-  <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Customer Name</label>
-       <div> <i class="fa-solid fa-user me-2"></i> 
-       <b>{selectedAccount.applicantName}</b></div> 
-    </div>
-</div>
-    <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Account Number</label>
-       <div> <i class="fa-solid fa-building-columns me-2"></i>
-       <b>{selectedAccount.accountNumber}</b></div> 
-    </div>
-</div>
-    <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Account Type</label>
-       <div><i class="fa-solid fa-layer-group me-2"></i>
-       <b>{selectedAccount.accountType}</b></div> 
-    </div>
-</div>
+                        <div className='row'>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Customer Name</label>
+                                    <div> <i class="fa-solid fa-user me-2"></i>
+                                        <b>{selectedAccount.applicantName}</b></div>
+                                </div>
+                            </div>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Account Number</label>
+                                    <div> <i class="fa-solid fa-building-columns me-2"></i>
+                                        <b>{selectedAccount.accountNumber}</b></div>
+                                </div>
+                            </div>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Account Type</label>
+                                    <div><i class="fa-solid fa-layer-group me-2"></i>
+                                        <b>{selectedAccount.accountType}</b></div>
+                                </div>
+                            </div>
 
-    <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Balance</label>
-       <div><i class="fa-solid fa-indian-rupee-sign me-2"></i>
-       <b>{selectedAccount.balance}</b></div> 
-    </div>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Balance</label>
+                                    <div><i class="fa-solid fa-indian-rupee-sign me-2"></i>
+                                        <b>{selectedAccount.balance}</b></div>
+                                </div>
 
-  </div>
+                            </div>
 
-</div>
+                        </div>
                     </>
                 )}
 
@@ -170,21 +171,34 @@ const CreateLoan = () => {
                                     required
                                 />
                             </div>
-                            <div className="col-md-4 mb-3">
-                                <label className="text-black">Loan Type *</label>
+                            <div className="col-md-6 mb-3">
+                                <label className="form-label text-black">Loan Category / ऋण श्रेणी</label>
+                                <select
+                                    name="loanCategory"
+                                    value={formData.loanCategory}
+                                    onChange={handleChange}
+                                    className="form-select"
+                                >
+                                    <option value="">Select / चुनें</option>
+                                    <option value="personal">Personal / व्यक्तिगत</option>
+                                    <option value="education">Education / शिक्षा</option>
+                                    <option value="gold">Gold / सोना</option>
+                                    <option value="vehicle">Vehicle / वाहन</option>
+                                    <option value="home">Home / आवास</option>
+                                    <option value="business">Business / व्यवसाय</option>
+                                </select>
+                            </div>
+                            <div className="col-md-6 mb-3">
+                                <label className="form-label text-black">Loan Type / ऋण प्रकार</label>
                                 <select
                                     name="loanType"
-                                    className="form-control"
                                     value={formData.loanType}
                                     onChange={handleChange}
-                                    required
+                                    className="form-select"
                                 >
-                                    <option value="personal">Personal</option>
-                                    <option value="education">Education</option>
-                                    <option value="gold">Gold</option>
-                                    <option value="vehicle">Vehicle</option>
-                                    <option value="home">Home</option>
-                                    <option value="business">Business</option>
+                                    <option value="">Select / चुनें</option>
+                                    <option value="fixed">Fixed / निश्चित</option>
+                                    <option value="flexible">Flexible / लचीला</option>
                                 </select>
                             </div>
                             <div className="col-md-4 mb-3">

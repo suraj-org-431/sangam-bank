@@ -7,7 +7,8 @@ export const calculateMaturity = (
     compoundingFrequency = 1
 ) => {
     principal = Number(principal) || 0;
-    rate = Number(rate) || 0;
+    const monthlyRate = Number(rate);
+    rate = monthlyRate * 12;
     months = Number(months) || 0;
 
     if (principal <= 0 || rate < 0 || months <= 0) {
@@ -20,7 +21,7 @@ export const calculateMaturity = (
     let maturityAmount = 0;
     let totalInterest = 0;
 
-    if (accountType.toLowerCase() === 'mis') {
+    if (accountType.toLowerCase() === 'fixed') {
         // Monthly Income Scheme (only interest paid monthly, principal returned at end)
         const rate = 100 / 6; // ≈ 16.67%
 
