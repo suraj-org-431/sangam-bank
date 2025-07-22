@@ -29,7 +29,7 @@ const AdminHeader = () => {
             }
         };
         fetchData();
-    }, []);
+    }, [navigate]);
 
     const handleLogout = () => {
         logout();

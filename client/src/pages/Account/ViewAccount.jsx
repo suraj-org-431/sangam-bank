@@ -42,6 +42,18 @@ const ViewAccount = () => {
         </div>
     );
 
+    const renderMaturitySection = (title, data) => {
+        if (!data) return null;
+
+        return renderSection(title, <FaMoneyBill className="text-primary" />, [
+            renderField('Deposit Amount', `₹${data.depositAmount}`),
+            renderField('Interest Rate', `${data.interestRate}%`),
+            renderField('Maturity Amount', `₹${data.maturityAmount}`),
+            renderField('Total Interest', `₹${data.totalInterest}`),
+            renderField('Maturity Date', formatDate(data.maturityDate)),
+        ]);
+    };
+
     const renderImage = (label, path) => (
         <div className="col-md-4 mb-3 text-center" key={label}>
             <div className="card shadow-sm border-0 h-100">
@@ -171,6 +183,19 @@ const ViewAccount = () => {
                         renderField('Next Due Date', formatDate(account.loanDetails.nextDueDate)),
                     ])
                 }
+
+                {/* MIS Account */}
+                {account.accountType === 'MIS' && renderMaturitySection("MIS Account Details", account.misDetails)}
+
+                {/* Fixed Account */}
+                {account.accountType === 'Fixed' && renderMaturitySection("Fixed Deposit Details", account.fixedDetails)}
+
+                {/* Savings Account */}
+                {account.accountType === 'Savings' && renderMaturitySection("Savings Account Details", account.savingsDetails)}
+
+                {/* Current Account */}
+                {account.accountType === 'Current' && renderMaturitySection("Current Account Details", account.currentDetails)}
+
 
                 {/* Signatures & Images */}
                 {renderSection("Documents", <FaImage className="text-primary" />, [
