@@ -15,11 +15,12 @@ const loanScheduleSchema = new Schema({
     dueDate: Date,
     principal: Number,
     interest: Number,
-    amount: Number, // total = principal + interest
+    amount: Number,
+    fine: { type: Number, default: 0 },
     paid: { type: Boolean, default: false },
     paidOn: Date,
-    fine: { type: Number, default: 0 },
-    paymentRef: String
+    paymentRef: String,
+    prepayment: { type: Number, default: 0 }
 }, { _id: false });
 
 const recurringInstallmentSchema = new Schema({
@@ -31,69 +32,94 @@ const recurringInstallmentSchema = new Schema({
     paymentRef: String
 }, { _id: false });
 
+const maturitySchema = new Schema({
+    depositAmount: { type: Number, default: 0 },
+    interestRate: { type: Number, default: 0 },
+    maturityAmount: { type: Number, default: 0 },
+    maturityDate: { type: Date },
+    totalInterest: { type: Number, default: 0 }
+}, { _id: false });
+
 const accountsSchema = new Schema({
     accountType: {
         type: String,
         enum: ['Savings', 'Recurring', 'Fixed', 'Current', 'Loan', 'MIS', 'Auto-Created']
     },
     tenure: { type: Number, default: 0 },
-    branch: { type: String },
-    applicantName: { type: String },
-    gender: { type: String },
-    dob: { type: Date },
+    branch: String,
+    applicantName: String,
+    gender: String,
+    dob: Date,
     occupation: String,
     phone: String,
-    fatherOrHusbandName: { type: String },
-    relation: { type: String },
+    fatherOrHusbandName: String,
+    relation: String,
     address: addressSchema,
-    aadhar: { type: String },
-    depositAmount: { type: Number },
-    introducerName: { type: String },
-    membershipNumber: { type: String },
+    aadhar: String,
+    depositAmount: Number,
+    introducerName: String,
+    membershipNumber: String,
     introducerKnownSince: String,
     accountNumber: { type: String, unique: true, index: true },
-    nomineeName: { type: String },
-    nomineeRelation: { type: String },
-    nomineeAge: { type: Number },
+    nomineeName: String,
+    nomineeRelation: String,
+    nomineeAge: Number,
     managerName: String,
     lekhpalOrRokapal: String,
     formDate: Date,
     accountOpenDate: Date,
-    signaturePath: { type: String },
-    verifierSignaturePath: { type: String },
-    profileImage: { type: String },
+    signaturePath: String,
+    verifierSignaturePath: String,
+    profileImage: String,
     balance: { type: Number, default: 0 },
     hasLoan: { type: Boolean, default: false },
 
     loanDetails: {
         totalLoanAmount: { type: Number, default: 0 },
         disbursedAmount: { type: Number, default: 0 },
-        interestRate: { type: Number },
-        tenureMonths: { type: Number },
-        emiAmount: { type: Number },
-        disbursedDate: { type: Date },
+        interestRate: Number,
+        tenureMonths: Number,
+        emiAmount: Number,
+        disbursedDate: Date,
         status: {
             type: String,
             enum: ['pending', 'approved', 'disbursed', 'repaid', 'defaulted'],
             default: 'pending'
         },
-        nextDueDate: { type: Date },
-        lastEMIPaidOn: { type: Date }, // ✅ New field
-        totalPaidAmount: { type: Number, default: 0 }, // ✅ Optional useful field
-        defaultedOn: { type: Date }, // ✅ Optional for tracking NPAs
+        nextDueDate: Date,
+        lastEMIPaidOn: Date,
+        totalPaidAmount: { type: Number, default: 0 },
+        defaultedOn: Date,
+        maturityAmount: { type: Number, default: 0 },
+        totalInterest: { type: Number, default: 0 },
+        loanCategory: {
+            type: String,
+            enum: ['personal', 'education', 'gold', 'vehicle', 'home', 'business'],
+        },
+        loanType: {
+            type: String,
+            enum: ['fixed', 'flexible'],
+        },
         repaymentSchedule: [loanScheduleSchema]
     },
 
     recurringDetails: {
-        installmentAmount: { type: Number },
+        installmentAmount: Number,
         schedule: [recurringInstallmentSchema],
         fineTotal: { type: Number, default: 0 },
         completedInstallments: { type: Number, default: 0 },
         isMatured: { type: Boolean, default: false },
-        maturityDate: Date
+        maturityDate: Date,
+        maturityAmount: { type: Number, default: 0 },
+        totalInterest: { type: Number, default: 0 }
     },
 
-    status: { type: Boolean, default: true },
+    misDetails: maturitySchema,
+    fixedDetails: maturitySchema,
+    savingsDetails: maturitySchema,
+    currentDetails: maturitySchema,
+
+    status: { type: Boolean, default: true }
 }, { timestamps: true });
 
 export default mongoose.model("Accounts", accountsSchema);

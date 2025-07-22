@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { generateAccountNumber, upsertAccountDetails } from '../../api/account';
 import { adminRoute } from '../../utils/router';
 import { getConfig } from '../../api/config';
-import { calculateRecurringMaturityAmount } from '../../utils/recurringCalculator';
+import { calculateMaturityAmount } from '../../utils/maturityCalculator';
 
 const CreateAccounts = () => {
     const location = useLocation();
@@ -51,6 +51,7 @@ const CreateAccounts = () => {
         signature: null,
         verifierSignature: null,
         agreedToTerms: false,
+        loanCategory: '',
         loanType: '',
         interestRate: '',
 
@@ -59,11 +60,12 @@ const CreateAccounts = () => {
     useEffect(() => {
         const fetchConfig = async () => {
             const config = await getConfig();
-            if (formData?.accountType === "Recurring" && formData?.depositAmount && formData?.tenure) {
-                const { maturityAmount, interestRate } = calculateRecurringMaturityAmount(
+            if ((formData?.accountType === "Recurring" || formData?.accountType === "Fixed" || formData?.accountType === "MIS") && formData?.depositAmount && formData?.tenure) {
+                const { maturityAmount, interestRate } = calculateMaturityAmount(
                     formData?.depositAmount,
                     formData?.tenure,
-                    config
+                    config,
+                    formData?.accountType
                 );
                 setMaturityAmount(maturityAmount);
             }
@@ -267,7 +269,7 @@ const CreateAccounts = () => {
                 'introducerKnownSince', 'accountNumber', 'nomineeName', 'nomineeRelation',
                 'nomineeAge', 'managerName', 'lekhpalOrRokapal', 'formDate',
                 'accountOpenDate', 'address', 'signature', 'verifierSignature',
-                'profileImage', 'loanType', 'interestRate'
+                'profileImage', 'loanCategory', 'loanType', 'interestRate'
             ];
 
             const cleanPayload = {
@@ -337,10 +339,10 @@ const CreateAccounts = () => {
                         {formData.accountType === 'Loan' && (
                             <>
                                 <div className="col-md-6 mb-3">
-                                    <label className="form-label text-black">Loan Type / ऋण प्रकार</label>
+                                    <label className="form-label text-black">Loan Category / ऋण श्रेणी</label>
                                     <select
-                                        name="loanType"
-                                        value={formData.loanType}
+                                        name="loanCategory"
+                                        value={formData.loanCategory}
                                         onChange={handleChange}
                                         className="form-select"
                                     >
@@ -351,6 +353,20 @@ const CreateAccounts = () => {
                                         <option value="vehicle">Vehicle / वाहन</option>
                                         <option value="home">Home / आवास</option>
                                         <option value="business">Business / व्यवसाय</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-black">Loan Type / ऋण प्रकार</label>
+                                    <select
+                                        name="loanType"
+                                        value={formData.loanType}
+                                        onChange={handleChange}
+                                        className="form-select"
+                                    >
+                                        <option value="">Select / चुनें</option>
+                                        <option value="fixed">Fixed / निश्चित</option>
+                                        <option value="flexible">Flexible / लचीला</option>
                                     </select>
                                 </div>
 
@@ -366,7 +382,7 @@ const CreateAccounts = () => {
                                 </div>
                             </>
                         )}
-                        {['Recurring', 'Loan', 'MIS'].includes(formData.accountType) && (
+                        {['Recurring', 'Fixed', 'Loan', 'MIS'].includes(formData.accountType) && (
                             <div className="col-md-6 mb-3">
                                 <label className="form-label text-black">Tenure (months) / अवधि</label>
                                 {formData.accountType === 'MIS' ? (
@@ -494,11 +510,9 @@ const CreateAccounts = () => {
                                             : "Enter deposit amount"
                                 }
                             />
-                            {
-                                (formData?.accountType === "Recurring" || formData?.accountType === "Loan") && (
-                                    <small><strong>Maturity amount: {maturityAmount}</strong></small>
-                                )
-                            }
+                            {['Recurring', 'Fixed', 'Loan', 'MIS'].includes(formData.accountType) && (
+                                <small><strong>Maturity amount: {maturityAmount}</strong></small>
+                            )}
                         </div>
 
                         <div className="col-md-6 mb-3">

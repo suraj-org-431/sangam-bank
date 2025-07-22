@@ -193,40 +193,40 @@ const CreateTransaction = () => {
                 {selectedAccount && (
                     <>
                         <hr />
-<div className='row'>
-  <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Customer Name</label>
-       <div> <i class="fa-solid fa-user me-2"></i> 
-       <b>{selectedAccount.applicantName}</b></div> 
-    </div>
-</div>
-    <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Account Number</label>
-       <div> <i class="fa-solid fa-building-columns me-2"></i>
-       <b>{selectedAccount.accountNumber}</b></div> 
-    </div>
-</div>
-    <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Account Type</label>
-       <div><i class="fa-solid fa-layer-group me-2"></i>
-       <b>{selectedAccount.accountType}</b></div> 
-    </div>
-</div>
+                        <div className='row'>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Customer Name</label>
+                                    <div> <i class="fa-solid fa-user me-2"></i>
+                                        <b>{selectedAccount.applicantName}</b></div>
+                                </div>
+                            </div>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Account Number</label>
+                                    <div> <i class="fa-solid fa-building-columns me-2"></i>
+                                        <b>{selectedAccount.accountNumber}</b></div>
+                                </div>
+                            </div>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Account Type</label>
+                                    <div><i class="fa-solid fa-layer-group me-2"></i>
+                                        <b>{selectedAccount.accountType}</b></div>
+                                </div>
+                            </div>
 
-    <div className='col-md-3'>
-     <div className='alert alert-warning bank_info'>
-       <label className='text-black border-bottom mb-2 text-muted'>Balance</label>
-       <div><i class="fa-solid fa-indian-rupee-sign me-2"></i>
-       <b>{selectedAccount.balance}</b></div> 
-    </div>
+                            <div className='col-md-3'>
+                                <div className='alert alert-warning bank_info'>
+                                    <label className='text-black border-bottom mb-2 text-muted'>Balance</label>
+                                    <div><i class="fa-solid fa-indian-rupee-sign me-2"></i>
+                                        <b>{selectedAccount.balance}</b></div>
+                                </div>
 
-  </div>
+                            </div>
 
-</div>
-                       
+                        </div>
+
 
                     </>
                 )}
@@ -352,7 +352,7 @@ const CreateTransaction = () => {
                             </div>
                         )}
                         <div className="text-end">
-                            <button className="btn btn-success" type="submit">Submit Transaction</button>
+                            <button className="btn btn-success" type="submit" disabled={selectedAccount.accountType === 'Fixed' || selectedAccount.accountType === 'MIS'}>Submit Transaction</button>
                         </div>
                     </form>
                 ) : selectedAccount ? (

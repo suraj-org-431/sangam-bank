@@ -11,6 +11,7 @@ import {
 import { createTransactionAndLedger } from "../utils/accountLedger.js";
 import Config from '../models/Config.js';
 import Loan from "../models/Loan.js";
+import { calculateMaturity } from "../utils/calculateMaturity.js";
 
 const withFullUrl = (path, baseUrl) => {
     if (!path) return null;
@@ -42,13 +43,14 @@ export const upsertAccount = async (req, res) => {
             address, aadhar, depositAmount, introducerName,
             membershipNumber, introducerKnownSince, accountNumber,
             nomineeName, nomineeRelation, nomineeAge, managerName,
-            lekhpalOrRokapal, formDate, accountOpenDate, loanType
+            lekhpalOrRokapal, formDate, accountOpenDate, loanCategory, loanType
         } = req.body;
 
         const config = await Config.findOne();
         const lowerType = accountType?.toLowerCase();
         const defaultDeposit = config?.initialDeposits?.[lowerType] || 0;
         const actualDeposit = depositAmount || defaultDeposit;
+        const openDate = new Date(accountOpenDate || new Date());
 
         const payload = {
             accountType,
@@ -74,7 +76,7 @@ export const upsertAccount = async (req, res) => {
             managerName,
             lekhpalOrRokapal,
             formDate,
-            accountOpenDate,
+            accountOpenDate: openDate,
         };
 
         if (req.files) {
@@ -91,18 +93,33 @@ export const upsertAccount = async (req, res) => {
         }
 
         let account;
+
         if (accId) {
             account = await Account.findByIdAndUpdate(accId, payload, { new: true });
         } else {
+            let interestRate = 0;
+
+            if (lowerType === 'loan') {
+                const loanRateObj = config?.loanInterestRates?.find(
+                    r => r.type?.toLowerCase() === loanCategory?.toLowerCase()
+                );
+                interestRate =
+                    loanRateObj?.subTypes?.find(sub => sub.loanType?.toLowerCase() === loanType?.toLowerCase())?.rate || 0;
+            } else {
+                interestRate = config?.monthlyInterestRates?.find(
+                    r => r.type?.toLowerCase() === lowerType
+                )?.rate || 0;
+            }
+
+            const { maturityAmount, totalInterest } = calculateMaturity(accountType, actualDeposit, interestRate, parseInt(tenure));
+            const maturityDate = new Date(openDate);
+            maturityDate.setMonth(maturityDate.getMonth() + parseInt(tenure || 12));
+
             if (lowerType === 'recurring') {
-                const installmentAmount = actualDeposit;
                 const schedule = [];
-                const start = new Date(accountOpenDate || new Date());
-
                 for (let i = 0; i < tenure; i++) {
-                    const dueDate = new Date(start);
+                    const dueDate = new Date(openDate);
                     dueDate.setMonth(dueDate.getMonth() + i);
-
                     schedule.push({
                         month: i + 1,
                         dueDate,
@@ -111,13 +128,16 @@ export const upsertAccount = async (req, res) => {
                         paidDate: i === 0 ? new Date() : null
                     });
                 }
+
                 payload.recurringDetails = {
-                    installmentAmount,
+                    installmentAmount: actualDeposit,
                     schedule,
                     fineTotal: 0,
                     completedInstallments: 1,
                     isMatured: false,
-                    maturityDate: new Date(start.setMonth(start.getMonth() + tenure))
+                    maturityDate,
+                    maturityAmount,
+                    totalInterest
                 };
 
                 account = await Account.create(payload);
@@ -125,14 +145,12 @@ export const upsertAccount = async (req, res) => {
                 await createTransactionAndLedger({
                     account,
                     type: 'rdInstallment',
-                    amount: installmentAmount,
+                    amount: actualDeposit,
                     description: 'First RD installment on account opening',
-                    date: payload.accountOpenDate || new Date(),
+                    date: openDate,
                     createdBy: req.user?.name || 'System',
                 });
             } else if (lowerType === 'loan') {
-                const interestRate = config?.loanInterestRates?.find(r => r.type?.toLowerCase() === loanType?.toLowerCase())?.rate;
-
                 payload.depositAmount = 0;
                 payload.balance = 0;
                 payload.hasLoan = true;
@@ -148,21 +166,35 @@ export const upsertAccount = async (req, res) => {
                     lastEMIPaidOn: null,
                     totalPaidAmount: null,
                     defaultedOn: null,
+                    maturityAmount,
+                    totalInterest,
+                    loanType,
+                    loanCategory,
                     repaymentSchedule: []
                 };
+
                 account = await Account.create(payload);
 
                 await Loan.create({
                     borrower: account._id,
                     loanAmount: depositAmount,
                     loanType,
+                    loanCategory,
                     interestRate,
                     tenureMonths: parseInt(tenure) || 12,
                     status: 'pending',
                     remarks: 'Loan created during account creation',
                     repaymentSchedule: [],
                 });
-            } else {
+            } else if (['mis', 'fixed'].includes(lowerType)) {
+                payload[`${lowerType}Details`] = {
+                    depositAmount: actualDeposit,
+                    interestRate: lowerType === 'mis' ? 100 / 6 : interestRate,
+                    maturityAmount,
+                    maturityDate,
+                    totalInterest
+                };
+
                 account = await Account.create(payload);
 
                 if (actualDeposit > 0) {
@@ -171,12 +203,35 @@ export const upsertAccount = async (req, res) => {
                         type: 'deposit',
                         amount: actualDeposit,
                         description: 'Initial deposit on account opening',
-                        date: payload.accountOpenDate || new Date(),
+                        date: openDate,
+                        createdBy: req.user?.name || 'System',
+                    });
+                }
+            } else if (['savings', 'current', 'auto-created'].includes(lowerType)) {
+                const key = lowerType === 'auto-created' ? 'savingsDetails' : `${lowerType}Details`;
+                payload[key] = {
+                    depositAmount: actualDeposit,
+                    interestRate,
+                    maturityAmount,
+                    maturityDate,
+                    totalInterest
+                };
+
+                account = await Account.create(payload);
+
+                if (actualDeposit > 0) {
+                    await createTransactionAndLedger({
+                        account,
+                        type: 'deposit',
+                        amount: actualDeposit,
+                        description: 'Initial deposit on account opening',
+                        date: openDate,
                         createdBy: req.user?.name || 'System',
                     });
                 }
             }
-            await notify('account', account?._id || {}, {}, "Account Created", `Account #${payload.accountNumber} created`);
+
+            await notify('account', account?._id || null, null, "Account Created", `Account #${payload.accountNumber} created`);
         }
 
         return successResponse(res, 200, "Account saved successfully", account);

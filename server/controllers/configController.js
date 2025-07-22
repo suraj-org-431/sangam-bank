@@ -1,5 +1,5 @@
 import Config from '../models/Config.js';
-import { applyRecurringFines } from '../utils/fineService.js';
+import { applyLoanFines, applyRecurringFines } from '../utils/fineService.js';
 import { applyInterestToAllAccounts } from "../utils/interestService.js";
 import { successResponse, errorResponse } from '../utils/response.js';
 
@@ -17,12 +17,15 @@ export const getConfig = async (req, res) => {
 export const updateConfig = async (req, res) => {
     try {
         const updates = req.body;
-
         let config = await Config.findOne();
-        if (!config) config = new Config();
+
+        if (!config) {
+            config = new Config();
+        }
 
         Object.assign(config, updates);
         config.updatedAt = new Date();
+
         await config.save();
 
         return successResponse(res, 200, 'Config updated successfully', config);
@@ -31,17 +34,17 @@ export const updateConfig = async (req, res) => {
     }
 };
 
-// ✅ Apply Interest to All Accounts
+// ✅ Apply Interest and Fines to All Accounts
 export const applyMonthlyInterest = async (req, res) => {
     try {
         const interestResult = await applyInterestToAllAccounts();
-        const fineResult = await applyRecurringFines(); // RD fine
-        const loanFineResult = await applyLoanFines();  // 👈 Loan fine
+        const rdFineResult = await applyRecurringFines();
+        const loanFineResult = await applyLoanFines();
 
         return successResponse(res, 200, "Monthly interest and fines applied", {
             interestApplied: interestResult.updatedCount,
-            rdFinesApplied: fineResult.finedAccounts,
-            rdTotalFine: fineResult.totalFineAmount,
+            rdFinesApplied: rdFineResult.finedAccounts,
+            rdTotalFine: rdFineResult.totalFineAmount,
             loanFinesApplied: loanFineResult.finedLoans,
             loanTotalFine: loanFineResult.totalFineAmount
         });

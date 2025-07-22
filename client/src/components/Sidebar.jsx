@@ -32,7 +32,7 @@ const menuItems = [
         label: "Transactions",
         icon: "fa-solid fa-clipboard",
         to: adminRoute("/transactions"),
-        roles: ["super-admin", "account-officer"]
+        roles: ["super-admin", "branch-manager", "account-officer"]
     },
     {
         label: "Ledger",

@@ -31,7 +31,7 @@ export const createLoan = async (req, res) => {
 
         borrower.hasLoan = true;
         await borrower.save();
-        await notify('loan', {}, newLoan?._id || {}, "Loan Created", `Loan #${newLoan?._id} created`);
+        await notify('loan', null, newLoan?._id || null, "Loan Created", `Loan #${newLoan?._id} created`);
 
         return successResponse(res, 201, 'Loan application created', newLoan);
     } catch (err) {
