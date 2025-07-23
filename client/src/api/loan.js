@@ -71,6 +71,16 @@ export const repayLoan = async (loanId, repaymentPayload) => {
     }
 };
 
+// 🔹 Repay a loan
+export const repaySimpleInterestLoan = async (loanId, repaymentPayload) => {
+    try {
+        const res = await API.post(`/loans/${loanId}/repaySimpleInterest`, repaymentPayload);
+        return res?.data?.data;
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Loan repayment failed');
+    }
+};
+
 export const adjustLoan = async (loanId, adjustmentPayload) => {
     try {
         const res = await API.post(`/loans/${loanId}/adjust`, adjustmentPayload);

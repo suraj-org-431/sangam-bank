@@ -25,7 +25,7 @@ export const createLoan = async (req, res) => {
             borrower: borrowerId,
             loanAmount,
             loanCategory,
-            loanType,
+            paymentType,
             interestRate,
             tenureMonths,
             remarks,
@@ -345,7 +345,6 @@ export const repayLoan = async (req, res) => {
         if (!loan || loan.status !== 'disbursed') {
             return badRequestResponse(res, 400, 'Loan not disbursed or not found');
         }
-
         const borrower = loan.borrower;
         const schedule = loan.repaymentSchedule || [];
         const today = new Date();
@@ -472,7 +471,7 @@ export const repayLoan = async (req, res) => {
         const totalPaid = amount - remainingAmount;
 
         // Update Account.loanDetails
-        borrower.loanDetails.totalPaidAmount = (borrower.loanDetails.totalPaidAmount || 0) + totalPaid;
+        borrower.loanDetails.totalPaidAmount = (borrower?.loanDetails?.totalPaidAmount || 0) + totalPaid;
         borrower.loanDetails.disbursedAmount = Math.max(loan.loanAmount - borrower.loanDetails.totalPaidAmount, 0);
         borrower.loanDetails.lastEMIPaidOn = today;
         borrower.loanDetails.nextDueDate = schedule.find(i => !i.paid)?.dueDate || null;
@@ -550,6 +549,65 @@ export const repayLoan = async (req, res) => {
         return errorResponse(res, 500, 'Loan repayment failed', err.message);
     }
 };
+
+export const simpleinterestPayLoan = async (req, res) => {
+    try {
+        const { loanId } = req.params;
+        const { paymentRef, type, interest, amount } = req.body;
+        const today = new Date();
+        const loan = await Loan.findById(loanId).populate('borrower');
+        if (!loan || loan.status !== 'disbursed') {
+            return badRequestResponse(res, 400, 'Loan not disbursed or not found');
+        }
+        const borrower = loan.borrower;
+        if (type === 'interestOnly') {
+            await AccountCharge.create({
+                accountId: borrower?._id,
+                type: 'loanInterest',
+                label: `Simple interest Interest charge on ${borrower?.accountType}`,
+                amount: parseFloat(interest.toFixed(2)),
+                notes: 'Auto-charged during interest paid',
+                createdBy: req.user?._id || null
+            });
+        }
+        else {
+            await AccountCharge.create({
+                accountId: borrower?._id,
+                type: 'interest',
+                label: `Simple interest Interest charge on ${borrower?.accountType}`,
+                amount: parseFloat(interest.toFixed(2)),
+                notes: 'Auto-charged during interest paid',
+                createdBy: req.user?._id || null
+            });
+            await createTransactionAndLedger({
+                account: borrower,
+                type: 'loanRepayment',
+                amount: amount,
+                description: `Simple interest Principal Paid`,
+                date: today,
+                loanId: loan._id,
+                createdBy: req.user?.name || 'Clerk',
+                additionalTransactions: [
+                    {
+                        type: 'interestPayment',
+                        amount: interest,
+                        description: `loan Interest Paid`
+                    }
+                ],
+            });
+
+        }
+        return successResponse(res, 200, 'Loan repayment successful', {
+            paidMonthlyInterest: interest,
+            paidPrinciple: amount,
+            status: loan.status
+        });
+    }
+    catch (err) {
+        console.log(err?.message)
+        return errorResponse(res, 500, 'Loan repayment failed', err.message);
+    }
+}
 
 // PUT /loans/:loanId/reject
 export const rejectLoan = async (req, res) => {

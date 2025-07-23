@@ -1,5 +1,3 @@
-// configSeed.js
-
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -11,18 +9,21 @@ const seedConfig = async () => {
         useUnifiedTopology: true
     });
 
-    await Config.deleteMany({}); // Clear old configs if needed
+    await Config.deleteMany({}); // Optional: clear old configs
 
     const configData = {
         monthlyInterestRates: [
             { type: 'Savings', rate: 4 },
-            { type: 'Recurring', rate: 6.5 },
-            { type: 'Fixed', rate: 7.5 }
+            { type: 'Recurring', rate: 7.5 },
+            { type: 'Fixed', rate: 8 },
+            { type: 'Current', rate: 0 },
+            { type: 'Loan', rate: 1.5 },
+            { type: 'MIS', rate: 16.67 },
+            { type: 'Auto-Created', rate: 0 }
         ],
         loanInterestRates: [
-            { type: 'personal', rate: 12.5 },
-            { type: 'education', rate: 8.5 },
-            { type: 'gold', rate: 10 }
+            { type: 'personal', rate: 1.5 },
+            { type: 'education', rate: 2.5 }
         ],
         charges: [
             { name: 'processingFee', amount: 500, isPercentage: false },
@@ -30,12 +31,11 @@ const seedConfig = async () => {
             { name: 'foreclosureCharge', amount: 1, isPercentage: true }
         ],
         initialDeposits: {
-            savings: 500,
+            's/f': 100,
             recurring: 1000,
             fixed: 2000,
             Fixed: 500,
-            Recurring: 200,
-            Savings: 100
+            Recurring: 200
         },
         loanDurations: [6, 12, 24, 36, 60, 72, 84],
         repaymentModes: ['full', 'emi', 'custom'],
@@ -62,13 +62,40 @@ const seedConfig = async () => {
                 ledgerDescription: 'Loan EMI Fine'
             }
         ],
+        loanFlowConfig: [
+            {
+                type: 'personal',
+                loanType: 'fixed',
+                repayment: 'EMI',
+                formFields: ['amount', 'duration', 'monthlyEMI']
+            },
+            {
+                type: 'personal',
+                loanType: 'flexible',
+                repayment: 'interest-only',
+                formFields: ['amount', 'interestRate', 'monthlyInterest']
+            },
+            {
+                type: 'education',
+                loanType: 'fixed',
+                repayment: 'EMI',
+                formFields: ['amount', 'duration', 'monthlyEMI']
+            },
+            {
+                type: 'gold',
+                loanType: 'fixed',
+                repayment: 'EMI',
+                formFields: ['goldWeight', 'amount', 'monthlyEMI']
+            }
+        ],
         fineAffectsBalance: true,
         fineConfig: {
             enableAutoFine: true,
             fineDescription: 'Late payment fine',
             graceDays: 3
         },
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        createdAt: new Date()
     };
 
     await Config.create(configData);

@@ -7,7 +7,7 @@ const accountChargeSchema = new Schema({
 
     type: {
         type: String,
-        enum: ['processingFee', 'insurance', 'fine', 'serviceCharge', 'interest', 'other'],
+        enum: ['processingFee', 'insurance', 'fine', 'serviceCharge', 'interest', 'other', 'loanInterest'],
         required: true,
     },
 

@@ -374,23 +374,24 @@ const CreateAccounts = () => {
                     <div className="row">
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Upload Profile Image / प्रोफ़ाइल फोटो</label>
-                             <div className='profile_image'><input
+                            <div className='profile_image'><input
                                 type="file"
                                 accept="image/*"
                                 name="profileImage"
                                 onChange={handleChange}
                                 className="form-control"
                             />
-                            {formData?.profileImage && (
-                                <div className="mt-2">
-                                    <img
-                                        src={URL.createObjectURL(formData?.profileImage)}
-                                        alt="Profile Preview"
-                                        width={150}
-                                        style={{ borderRadius: '10px', objectFit: 'cover' }}
-                                    />
-                                </div>
-                            )}
+                                {formData?.profileImage && (
+                                    <div className="mt-2">
+                                        <img
+                                            src={URL.createObjectURL(formData?.profileImage)}
+                                            alt="Profile Preview"
+                                            width={150}
+                                            style={{ borderRadius: '10px', objectFit: 'cover' }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
 </div>
                         <div className="col-md-6 mb-3">
