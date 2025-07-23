@@ -393,7 +393,6 @@ const CreateAccounts = () => {
                                 )}
                             </div>
                         </div>
-</div>
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Account Type / खाता प्रकार</label>
                             <select name="accountType" value={formData.accountType} onChange={handleChange} className="form-select">
