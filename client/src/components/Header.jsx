@@ -84,21 +84,22 @@ const AdminHeader = () => {
                                 )}
                             </button>
                             <ul className="dropdown-menu dropdown-menu-end p-2" style={{ minWidth: '250px', maxHeight: '300px', overflowY: 'auto' }}>
-                                <li className="dropdown-header fw-bold">Notifications</li>
+                                <li className="dropdown-header fw-bold text-black">Notifications</li>
+                                <li><hr className="dropdown-divider" /></li>
                                 {notifications.length > 0 ? (
                                     notifications.map((note, idx) => (
                                         <li key={idx} onClick={() => toggleRead(note?._id)}>
-                                            <div className="dropdown-item">
+                                            <div className="dropdown-item  text-black">
                                                 {note.title}
-                                                <small>{note.body}</small>
+                                                <small className="text-black">{note.body}</small>
                                             </div>
                                         </li>
                                     ))
                                 ) : (
-                                    <li className="dropdown-item text-light">No new notifications</li>
+                                    <li className="dropdown-item text-light  text-black">No new notifications</li>
                                 )}
                                 <li><hr className="dropdown-divider" /></li>
-                                <li><Link className="dropdown-item text-center" to={adminRoute("/notifications")}>See all</Link></li>
+                                <li><Link className="dropdown-item text-center text-black" to={adminRoute("/notifications")}>See all</Link></li>
                             </ul>
                         </div>
 
@@ -113,22 +114,22 @@ const AdminHeader = () => {
                                 )}
                             </button>
                             <ul className="dropdown-menu dropdown-menu-end p-2" style={{ minWidth: '250px', maxHeight: '300px', overflowY: 'auto' }}>
-                                <li className="dropdown-header fw-bold">Messages</li>
+                                <li className="dropdown-header fw-bold text-black">Messages</li>
                                 <li><hr className="dropdown-divider" /></li>
                                 {messages.length > 0 ? (
                                     messages.map((msg, idx) => (
                                         <li key={idx}>
-                                            <div className="dropdown-item theme-text">
+                                            <div className="dropdown-item theme-text text-black">
                                                 <strong>{msg.fromUser?.name || 'Unknown'}:</strong><br />
-                                                <small className="text-muted">{msg.content}</small>
+                                                <small className="text-black">{msg.content}</small>
                                             </div>
                                         </li>
                                     ))
                                 ) : (
-                                    <li className="dropdown-item text-muted">No new messages</li>
+                                    <li className="dropdown-item text-black">No new messages</li>
                                 )}
                                 <li><hr className="dropdown-divider" /></li>
-                                <li><Link className="dropdown-item text-center" to={adminRoute("/messages")}>View all messages</Link></li>
+                                <li><Link className="dropdown-item text-center text-black" to={adminRoute("/messages")}>View all messages</Link></li>
                             </ul>
                         </div>
 

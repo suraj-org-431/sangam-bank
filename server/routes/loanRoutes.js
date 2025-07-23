@@ -1,5 +1,5 @@
 import express from 'express';
-import { addLoanAdjustment, approveLoan, approveLoanAdjustment, createLoan, disburseLoan, getAllLoans, getLoanById, rejectLoan, rejectLoanAdjustment, repayLoan } from '../controllers/loanController.js';
+import { addLoanAdjustment, approveLoan, approveLoanAdjustment, createLoan, disburseLoan, getAllLoans, getLoanById, rejectLoan, rejectLoanAdjustment, repayLoan, simpleinterestPayLoan } from '../controllers/loanController.js';
 import { authorize, autoRegisterPermission } from '../middleware/rbac.js';
 import { authenticateToken } from '../middleware/auth.js';
 
@@ -17,5 +17,6 @@ router.post('/:loanId/adjust', autoRegisterPermission, authorize(), addLoanAdjus
 router.put('/:loanId/adjust/:adjustId/approve', autoRegisterPermission, authorize(), approveLoanAdjustment); // ✅ already added
 router.put('/:loanId/adjust/:adjustId/reject', autoRegisterPermission, authorize(), rejectLoanAdjustment);
 router.post('/:loanId/repay', autoRegisterPermission, authorize(), repayLoan);
+router.post('/:loanId/repaySimpleInterest', autoRegisterPermission, authorize(), simpleinterestPayLoan);
 
 export default router;

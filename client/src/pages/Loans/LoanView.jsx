@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getLoanById, disburseLoan, repayLoan, approveLoan, rejectLoan, adjustLoan, approveLoanAdjustment, rejectLoanAdjustment } from '../../api/loan';
+import { getLoanById, disburseLoan, repayLoan, approveLoan, rejectLoan, adjustLoan, approveLoanAdjustment, rejectLoanAdjustment, repaySimpleInterestLoan } from '../../api/loan';
 import { adminRoute } from '../../utils/router';
 import { toast } from 'react-toastify';
 import EMICalculator from './EMICalculator';
 import { getConfig } from '../../api/config';
-import { calculateEMI } from '../../utils/loanUtils';
 import CommonModal from '../../components/common/CommonModal';
 import { fetchUserPermissions, hasPermission } from '../../utils/permissionUtils';
 
@@ -25,6 +24,11 @@ const LoanView = () => {
     const [adjustmentFilter, setAdjustmentFilter] = useState('');
     const [activeTab, setActiveTab] = useState('repayments');
     const [selectedInstallmentId, setSelectedInstallmentId] = useState('');
+
+    const [selectedType, setSelectedType] = useState('');
+    const [interest, setInterest] = useState('');
+    const [principal, setPrincipal] = useState('');
+    const [repayType, setRepayType] = useState('');
 
     const [modal, setModal] = useState({
         show: false,
@@ -235,9 +239,100 @@ const LoanView = () => {
                             Disburse Loan
                         </button>
                     </div>
-
                 )}
 
+                {loan.status === 'disbursed' && loan?.paymentType === 's/i' && (
+                    <div className="mt-4 mb-4 border rounded p-3 bg-light">
+                        <h5 className="mb-3 text-dark">💳 Make a Repayment</h5>
+                        <div className="row gy-2">
+
+                            <div className="col-md-4">
+                                <label className="form-label fw-bold text-black">Repayment Type</label>
+                                <select
+                                    className="form-select"
+                                    value={selectedType}
+                                    onChange={(e) => {
+                                        setSelectedType(e.target.value)
+                                        setRepayMode("Simple Interest")
+                                    }}
+                                >
+                                    <option value="">-- Select Option --</option>
+                                    <option value="interestOnly">Interest Only</option>
+                                    <option value="withPrincipal">With Principal</option>
+                                </select>
+                            </div>
+
+                            {selectedType === 'interestOnly' && (
+                                <div className="col-md-4">
+                                    <label className="form-label fw-bold text-black">Interest Amount</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        value={emiData?.monthlyInterest || interest}
+                                        onChange={(e) => setInterest(e.target.value)}
+                                        placeholder="Enter Interest Amount"
+                                        disabled
+                                    />
+                                </div>
+                            )}
+
+                            {selectedType === 'withPrincipal' && (
+                                <>
+                                    <div className="col-md-4">
+                                        <label className="form-label fw-bold text-black">Interest Amount</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={emiData?.monthlyInterest || interest}
+                                            onChange={(e) => setInterest(e.target.value)}
+                                            placeholder="Enter Interest Amount"
+                                            disabled
+                                        />
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label className="form-label fw-bold text-black">Principal Amount</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={principal}
+                                            onChange={(e) => setPrincipal(e.target.value)}
+                                            placeholder="Enter Principal Amount"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="col-md-4">
+                                <label className="form-label fw-bold text-black">Transaction Ref / Note</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    value={repaymentRef}
+                                    onChange={(e) => setRepaymentRef(e.target.value)}
+                                    placeholder="Optional reference"
+                                />
+                            </div>
+
+                            <div className="col-md-4 mt-2 d-flex align-items-center">
+                                <button
+                                    className="btn btn-success w-100 btn-md"
+                                    onClick={() => {
+                                        if (!hasPermission(userPermissions, `POST:/loans/${loan?._id}/repay`)) {
+                                            setShow403Modal(true);
+                                            return;
+                                        }
+
+                                        let amt = parseFloat(emiData?.monthlyInterest || interest);
+                                        setPreviewAmount(amt);
+                                        setShowRepayPreview(true);
+                                    }}
+                                >
+                                    💰 Preview & Submit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Repayment Section */}
                 {loan.status === 'disbursed' && loan?.paymentType === 'emi' && (
@@ -387,27 +482,25 @@ const LoanView = () => {
                         </div>
                     </div>
                 )}
-                {
-                    loan?.paymentType === 'emi' && (
-                        <ul className="nav nav-tabs mb-3">
-                            <li className="nav-item">
-                                <button
-                                    className={`nav-link ${activeTab === 'repayments' ? 'active' : ''}`}
-                                    onClick={() => {
-                                        if (!hasPermission(userPermissions, `POST:/loans/adjust`)) {
-                                            setShow403Modal(true);
-                                            return;
-                                        }
-                                        setActiveTab('repayments')
-                                    }}
-                                >
-                                    Repayments
-                                </button>
-                            </li>
-                        </ul>
-                    )
-                }
 
+                {loan?.paymentType === 'emi' && (
+                    <ul className="nav nav-tabs mb-3">
+                        <li className="nav-item">
+                            <button
+                                className={`nav-link ${activeTab === 'repayments' ? 'active' : ''}`}
+                                onClick={() => {
+                                    if (!hasPermission(userPermissions, `POST:/loans/adjust`)) {
+                                        setShow403Modal(true);
+                                        return;
+                                    }
+                                    setActiveTab('repayments')
+                                }}
+                            >
+                                Repayments
+                            </button>
+                        </li>
+                    </ul>
+                )}
 
                 {activeTab === 'repayments' && (
                     <div>
@@ -632,25 +725,50 @@ const LoanView = () => {
                 onHide={() => setShowRepayPreview(false)}
                 title="Confirm Repayment"
                 body={
-                    <div>
-                        <p><strong>Repayment Amount:</strong> ₹{previewAmount.toLocaleString('en-IN')}</p>
-                        <p><strong>Mode:</strong> {repayMode?.toUpperCase()}</p>
-                        <p><strong>Reference Note:</strong> {repaymentRef || 'N/A'}</p>
-                    </div>
+                    repayMode === "emi" ? (
+                        <div>
+                            <p><strong>Repayment Amount:</strong> ₹{previewAmount.toLocaleString('en-IN')}</p>
+                            <p><strong>Mode:</strong> {repayMode?.toUpperCase()}</p>
+                            <p><strong>Reference Note:</strong> {repaymentRef || 'N/A'}</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <p><strong>Interest Amount:</strong> ₹{previewAmount.toLocaleString('en-IN')}</p>
+                            {principal && (
+                                <p><strong>Principle Amount:</strong> ₹{principal.toLocaleString('en-IN')}</p>
+
+                            )}
+                            <p><strong>Mode:</strong> {repayMode?.toUpperCase()}</p>
+                            <p><strong>Reference Note:</strong> {repaymentRef || 'N/A'}</p>
+                        </div>
+                    )
+
                 }
                 onConfirm={async () => {
                     try {
-                        const payload = {
-                            amount: previewAmount,
-                            paymentRef: repaymentRef || `TXN-${Date.now()}`,
-                            mode: repayMode
-                        };
+                        let payload;
+                        if (repayMode === 'emi') {
+                            payload = {
+                                amount: previewAmount,
+                                paymentRef: repaymentRef || `TXN-${Date.now()}`,
+                                mode: repayMode
+                            };
+                            await repayLoan(loanId, payload);
+                        }
+                        if (repayMode?.toLowerCase() === 'simple interest') {
+                            payload = {
+                                interest: previewAmount,
+                                amount: principal,
+                                paymentRef: repaymentRef || `TXN-${Date.now()}`,
+                                type: selectedType
+                            };
+                            await repaySimpleInterestLoan(loanId, payload);
+                        }
 
                         if (repayMode === 'custom' && selectedInstallmentId) {
                             payload.selectedInstallmentMonth = selectedInstallmentId;
+                            await repayLoan(loanId, payload);
                         }
-
-                        await repayLoan(loanId, payload);
                         toast.success('Repayment successful');
                         setRepayAmount('');
                         setRepaymentRef('');
