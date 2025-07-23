@@ -132,18 +132,18 @@ const MonthlyLedgerReport = () => {
 
                 <div className='row'>
                     <div className='col-sm-4'>
-                        <div class="alert alert-success bank_info px-4">
-                            <label class="text-black border-bottom mb-2 text-muted">Opening Balance</label>
-                            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i>
+                        <div className="alert alert-success bank_info px-4">
+                            <label className="text-black border-bottom mb-2 text-muted">Opening Balance</label>
+                            <div className='d-flex align-items-center'> <i className="fa-solid h3 fa-indian-rupee-sign me-2"></i>
                                 <h1 className='text-primary'>{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
                             </div>
                         </div>
                     </div>
 
                     <div className='col-sm-4'>
-                        <div class="alert alert-success bank_info px-4">
-                            <label class="text-black border-bottom mb-2 text-muted">Closing Balance</label>
-                            <div className='d-flex align-items-center'> <i class="fa-solid h3 fa-indian-rupee-sign me-2"></i>
+                        <div className="alert alert-success bank_info px-4">
+                            <label className="text-black border-bottom mb-2 text-muted">Closing Balance</label>
+                            <div className='d-flex align-items-center'> <i className="fa-solid h3 fa-indian-rupee-sign me-2"></i>
                                 <h1 className='text-success'>
                                     {closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
                             </div>
@@ -151,10 +151,10 @@ const MonthlyLedgerReport = () => {
                     </div>
 
                     <div className='col-sm-4'>
-                        <div class="alert alert-success bank_info px-4">
-                            <label class="text-black border-bottom mb-2 text-muted">Total Ledger</label>
+                        <div className="alert alert-success bank_info px-4">
+                            <label className="text-black border-bottom mb-2 text-muted">Total Ledger</label>
                             <div className='d-flex align-items-center'>
-                                <i class="fa-solid fa-layer-group me-2 h3"></i>
+                                <i className="fa-solid fa-layer-group me-2 h3"></i>
                                 <h1 className='text-primary'>{totalEntries}</h1>
                             </div>
                         </div>

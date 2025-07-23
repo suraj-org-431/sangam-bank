@@ -155,28 +155,65 @@ const LoanView = () => {
 
                 <div className="row mb-3">
                     <div className="col-md-6">
-                        <p><strong>Borrower:</strong> {loan.borrowerName}</p>
-                        <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN')}</p>
-                        <p><strong>Interest Rate:</strong> {loan.interestRate}%</p>
-                        <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
-                        <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
-                        <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
-                        <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
-                        <p><strong>Next EMI Due:</strong> {
-                            loan.repaymentSchedule.find(r => !r.paid)?.dueDate
-                                ? <span className='text-danger'>{new Date(loan.repaymentSchedule.find(r => !r.paid).dueDate).toLocaleDateString()}</span>
-                                : 'N/A'
-                        }</p>
+                        {
+                            loan?.paymentType === 's/i' ? (
+                                <div>
+                                    <p><strong>Borrower:</strong> {loan.borrowerName || 'N/A'}</p>
+                                    <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN') || '0'}</p>
+                                    <p><strong>Interest Rate:</strong> {loan.interestRate ?? 0}%</p>
+                                    <p><strong>Tenure:</strong> Infinite </p>
+
+                                </div>
+                            )
+                                : (
+                                    <div>
+                                        <p><strong>Borrower:</strong> {loan.borrowerName || 'N/A'}</p>
+                                        <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN') || '0'}</p>
+                                        <p><strong>Interest Rate:</strong> {loan.interestRate ?? 0}%</p>
+                                        <p><strong>Tenure:</strong> {loan.tenureMonths ?? 0} months</p>
+                                        <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
+                                        <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()?.toLocaleString('en-IN') || '0'}</p>
+                                        {
+                                            (() => {
+                                                const summary = getEMIPaymentSummary();
+                                                return (
+                                                    <p><strong>EMIs Paid:</strong> {summary.paidEMIs} / {summary.totalEMIs}</p>
+                                                );
+                                            })()
+                                        }
+                                        <p><strong>Next EMI Due:</strong> {
+                                            (() => {
+                                                const nextDue = loan.repaymentSchedule?.find(r => !r.paid)?.dueDate;
+                                                return nextDue
+                                                    ? <span className='text-danger'>{new Date(nextDue).toLocaleDateString()}</span>
+                                                    : 'N/A';
+                                            })()
+                                        }</p>
+                                    </div>
+                                )
+                        }
+
                     </div>
-                    <div className="col-md-6">
-                        <p><strong>Principal:</strong> ₹{loan?.loanAmount?.toLocaleString('en-IN')}</p>
-                        <p><strong>Monthly EMI:</strong> ₹{emiData?.monthlyPayment?.toLocaleString('en-IN')}</p>
-                        <p><strong>Total Interest:</strong> ₹{emiData.totalInterest.toLocaleString('en-IN')}</p>
-                        <p><strong>Total Payable:</strong> ₹{emiData.totalPayable.toLocaleString('en-IN')}</p>
-                        <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
-                        <p><strong>Total Paid:</strong> ₹{getTotalPaid().toLocaleString('en-IN')}</p>
-                        <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
-                    </div>
+                    {
+                        loan?.paymentType === 's/i' ? (
+                            <div className="col-md-6">
+                                <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
+                                <p><strong>Principal:</strong> ₹{loan?.loanAmount?.toLocaleString('en-IN')}</p>
+                                <p><strong>Monthly EMI:</strong> ₹{emiData?.monthlyInterest?.toLocaleString('en-IN')}</p>
+                            </div>
+                        )
+                            : (
+                                <div className="col-md-6">
+                                    <p><strong>Principal:</strong> ₹{loan?.loanAmount?.toLocaleString('en-IN')}</p>
+                                    <p><strong>Monthly EMI:</strong> ₹{emiData?.monthlyPayment?.toLocaleString('en-IN')}</p>
+                                    <p><strong>Total Interest:</strong> ₹{emiData.totalInterest?.toLocaleString('en-IN')}</p>
+                                    <p><strong>Total Payable:</strong> ₹{emiData.totalPayable?.toLocaleString('en-IN')}</p>
+                                    <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary()?.paidEMIs} / {getEMIPaymentSummary()?.totalEMIs}</p>
+                                    <p><strong>Total Paid:</strong> ₹{getTotalPaid()?.toLocaleString('en-IN')}</p>
+                                    <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
+                                </div>
+                            )
+                    }
                 </div>
 
                 <hr />
@@ -229,7 +266,7 @@ const LoanView = () => {
 
 
                 {/* Repayment Section */}
-                {loan.status === 'disbursed' && (
+                {loan.status === 'disbursed' && loan?.paymentType === 'emi' && (
                     <div className="mt-4 mb-4 border rounded p-3 bg-light">
                         <h5 className="mb-3 text-dark">💳 Make a Repayment</h5>
                         <div className="row gy-2">
@@ -376,24 +413,27 @@ const LoanView = () => {
                         </div>
                     </div>
                 )}
+                {
+                    loan?.paymentType === 'emi' && (
+                        <ul className="nav nav-tabs mb-3">
+                            <li className="nav-item">
+                                <button
+                                    className={`nav-link ${activeTab === 'repayments' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        if (!hasPermission(userPermissions, `POST:/loans/adjust`)) {
+                                            setShow403Modal(true);
+                                            return;
+                                        }
+                                        setActiveTab('repayments')
+                                    }}
+                                >
+                                    Repayments
+                                </button>
+                            </li>
+                        </ul>
+                    )
+                }
 
-                <ul className="nav nav-tabs mb-3">
-
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === 'repayments' ? 'active' : ''}`}
-                            onClick={() => {
-                                if (!hasPermission(userPermissions, `POST:/loans/adjust`)) {
-                                    setShow403Modal(true);
-                                    return;
-                                }
-                                setActiveTab('repayments')
-                            }}
-                        >
-                            Repayments
-                        </button>
-                    </li>
-                </ul>
 
                 {activeTab === 'repayments' && (
                     <div>
@@ -466,7 +506,7 @@ const LoanView = () => {
                 )}
 
                 {/* Amortization Schedule */}
-                {loan.status === 'disbursed' && (
+                {loan.status === 'disbursed' && loan?.paymentType === 'emi' && (
                     <div className="mt-5">
                         <details>
                             <summary className="fw-bold">📅 View Amortization Schedule</summary>

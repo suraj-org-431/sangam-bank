@@ -8,11 +8,8 @@ export function generateRepaymentSchedule({
 }) {
     const schedule = [];
     const monthlyRate = interestRate / 100;
-    console.log(amount, tenure, openDate)
-
 
     if (!amount || !tenure || !openDate) return [];
-
 
     if (paymentType === 'emi') {
         const emiAmount = result?.monthlyPayment || 0;

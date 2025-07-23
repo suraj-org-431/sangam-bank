@@ -147,7 +147,7 @@ export const upsertAccount = async (req, res) => {
 
             const { maturityAmount, totalInterest } = calculateMaturity(accountType, actualDeposit, interestRate, parseInt(tenure));
             const maturityDate = new Date(openDate);
-            maturityDate.setMonth(maturityDate.getMonth() + parseInt(tenure || 12));
+            maturityDate.setMonth(maturityDate.getMonth() + parseInt(tenure));
 
             if (lowerType === 'recurring') {
                 const schedule = [];
@@ -214,7 +214,7 @@ export const upsertAccount = async (req, res) => {
                 const emiAmount = result.monthlyPayment || 0;
                 const totalInterest = result.totalInterest || 0;
                 const maturityAmount = result.totalPayable || 0;
-                const tenureMonths = parseInt(tenure || 12);
+                const tenureMonths = parseInt(tenure) || null;
 
                 payload.depositAmount = 0;
                 payload.balance = 0;
@@ -316,7 +316,7 @@ export const upsertAccount = async (req, res) => {
                     )?.rate || 0;
 
                     const secondaryMaturityDate = new Date(openDate);
-                    secondaryMaturityDate.setMonth(secondaryMaturityDate.getMonth() + parseInt(tenure || 12));
+                    secondaryMaturityDate.setMonth(secondaryMaturityDate.getMonth() + parseInt(tenure));
 
                     secondaryPayload[`${secondType === 's/f' ? 's/f' : secondType}Details`] = {
                         depositAmount: 0,
@@ -609,14 +609,14 @@ export const importAccountsFromCSV = async (req, res) => {
                     });
                 } else if (lowerType === 'loan') {
                     const loanType = row.loanType || 'General';
-                    const interestRate = config?.loanInterestRates?.find(r => r.type?.toLowerCase() === loanType?.toLowerCase())?.rate || 12;
+                    const interestRate = config?.loanInterestRates?.find(r => r.type?.toLowerCase() === loanType?.toLowerCase())?.rate;
 
                     payload.hasLoan = true;
                     payload.loanDetails = {
                         totalLoanAmount: actualDeposit,
                         disbursedAmount: 0,
                         interestRate,
-                        tenureMonths: parseInt(payload.tenure) || 12,
+                        tenureMonths: parseInt(payload.tenure) || Infinity,
                         emiAmount: 0,
                         disbursedDate: null,
                         status: 'pending',
@@ -633,7 +633,7 @@ export const importAccountsFromCSV = async (req, res) => {
                         loanAmount: actualDeposit,
                         loanType,
                         interestRate,
-                        tenureMonths: parseInt(payload.tenure) || 12,
+                        tenureMonths: parseInt(payload.tenure),
                         status: 'pending',
                         remarks: 'Loan created during CSV import',
                         repaymentSchedule: []

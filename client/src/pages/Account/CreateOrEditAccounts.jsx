@@ -580,7 +580,15 @@ const CreateAccounts = () => {
                         </div>
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Phone / फ़ोन</label>
-                            <input name="phone" value={formData.phone} onChange={handleChange} className="form-control" />
+                            <input
+                                type="tel"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                className="form-control"
+                                pattern="[0-9]{10}"
+                                placeholder="Enter 10-digit phone number"
+                            />
                         </div>
 
                         <div className="col-md-6 mb-3">

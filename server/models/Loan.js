@@ -74,7 +74,8 @@ const loanSchema = new Schema({
     },
     tenureMonths: {
         type: Number,
-        required: true
+        required: false,
+        default: null,
     },
     disbursedDate: Date,
     status: {

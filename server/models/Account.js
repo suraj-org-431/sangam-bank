@@ -78,7 +78,7 @@ const accountsSchema = new Schema({
         totalLoanAmount: { type: Number, default: 0 },
         disbursedAmount: { type: Number, default: 0 },
         interestRate: Number,
-        tenureMonths: Number,
+        tenureMonths: { type: Number, default: null },
         emiAmount: Number,
         disbursedDate: Date,
         status: {
