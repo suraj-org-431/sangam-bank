@@ -8,9 +8,9 @@ import { adminRoute } from '../../utils/router';
 const allowedTransactionTypes = {
     Savings: ['deposit', 'withdrawal'],
     Current: ['deposit', 'withdrawal'],
-    Fixed: ['deposit'],
-    Recurring: ['deposit'],
-    Loan: ['deposit'],
+    fixed: ['deposit'],
+    recurring: ['deposit'],
+    loan: ['deposit'],
 };
 
 const CreateTransaction = () => {
@@ -58,8 +58,8 @@ const CreateTransaction = () => {
                     setFormData({
                         accountId: acc._id,
                         accountType: acc.accountType,
-                        type: ['Fixed', 'Recurring', 'Loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
-                        amount: ['Fixed'].includes(acc.accountType) ? acc.balance : acc?.accountType === 'Loan' ? acc?.loanDetails?.emiAmount : acc?.accountType === 'Recurring' ? acc?.recurringDetails?.installmentAmount : '',
+                        type: ['fixed', 'recurring', 'loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
+                        amount: ['fixed'].includes(acc.accountType) ? acc.balance : acc?.accountType === 'loan' ? acc?.loanDetails?.emiAmount : acc?.accountType === 'recurring' ? acc?.recurringDetails?.installmentAmount : '',
                         description: '',
                         date: new Date().toISOString().split('T')[0],
                         paymentType: 'cash',
@@ -115,7 +115,7 @@ const CreateTransaction = () => {
             return;
         }
 
-        if (formData.paymentType === 'cash' && formData?.accountType === 'Recurring' && formData?.amount !== noteBreakdownAmount) {
+        if (formData.paymentType === 'cash' && formData?.accountType === 'recurring' && formData?.amount !== noteBreakdownAmount) {
             toast.error('Amount does not match note breakdown');
             return;
         }
@@ -151,7 +151,7 @@ const CreateTransaction = () => {
 
         setNoteBreakdownAmount(total);
 
-        if (formData?.accountType === 'Recurring') {
+        if (formData?.accountType === 'recurring') {
             setFormData(prev => ({
                 ...prev,
                 noteBreakdown: updatedNoteBreakdown,
@@ -243,7 +243,7 @@ const CreateTransaction = () => {
                                     onChange={handleChange}
                                     className="form-select"
                                     required
-                                    disabled={['Fixed', 'Recurring', 'Loan'].includes(selectedAccount?.accountType)}
+                                    disabled={['fixed', 'recurring', 'loan'].includes(selectedAccount?.accountType)}
                                 >
                                     <option value="">Select</option>
                                     {allowedTransactionTypes[selectedAccount?.accountType]?.map(t => (
@@ -287,7 +287,7 @@ const CreateTransaction = () => {
                                     value={formData.amount}
                                     onChange={handleChange}
                                     required
-                                    disabled={['Fixed', 'Recurring'].includes(selectedAccount.accountType)}
+                                    disabled={['fixed', 'recurring'].includes(selectedAccount.accountType)}
                                 />
                             </div>
                             <div className="col-md-4 mb-3">
@@ -314,7 +314,7 @@ const CreateTransaction = () => {
                                                         value={formData?.noteBreakdown[denom] || {}}
                                                         onChange={(e) => handleNoteChange(denom, e.target.value)}
                                                         placeholder="0"
-                                                        disabled={['Fixed'].includes(selectedAccount?.accountType)}
+                                                        disabled={['fixed'].includes(selectedAccount?.accountType)}
                                                     />
                                                 </div>
                                             </div>
@@ -346,13 +346,13 @@ const CreateTransaction = () => {
                         </div>
                         {selectedAccount?.accountType !== 'Savings' && (
                             <div className="alert alert-warning mt-2">
-                                {selectedAccount.accountType === 'Fixed' && "Only initial deposit allowed. Withdrawal requires special approval."}
-                                {selectedAccount.accountType === 'Recurring' && "Only monthly/periodic deposits are allowed."}
-                                {selectedAccount.accountType === 'Loan' && "Only repayment deposits (EMI) allowed. Withdrawals not permitted."}
+                                {selectedAccount.accountType === 'fixed' && "Only initial deposit allowed. Withdrawal requires special approval."}
+                                {selectedAccount.accountType === 'recurring' && "Only monthly/periodic deposits are allowed."}
+                                {selectedAccount.accountType === 'loan' && "Only repayment deposits (EMI) allowed. Withdrawals not permitted."}
                             </div>
                         )}
                         <div className="text-end">
-                            <button className="btn btn-success" type="submit" disabled={selectedAccount.accountType === 'Fixed' || selectedAccount.accountType === 'MIS'}>Submit Transaction</button>
+                            <button className="btn btn-success" type="submit" disabled={selectedAccount.accountType === 'fixed' || selectedAccount.accountType === 'MIS'}>Submit Transaction</button>
                         </div>
                     </form>
                 ) : selectedAccount ? (

@@ -573,7 +573,7 @@ export const simpleinterestPayLoan = async (req, res) => {
         else {
             await AccountCharge.create({
                 accountId: borrower?._id,
-                type: 'interest',
+                type: 'loanInterest',
                 label: `Simple interest Interest charge on ${borrower?.accountType}`,
                 amount: parseFloat(interest.toFixed(2)),
                 notes: 'Auto-charged during interest paid',
@@ -587,13 +587,7 @@ export const simpleinterestPayLoan = async (req, res) => {
                 date: today,
                 loanId: loan._id,
                 createdBy: req.user?.name || 'Clerk',
-                additionalTransactions: [
-                    {
-                        type: 'interestPayment',
-                        amount: interest,
-                        description: `loan Interest Paid`
-                    }
-                ],
+                additionalTransactions: [],
             });
 
         }
