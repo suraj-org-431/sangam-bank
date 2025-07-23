@@ -15,9 +15,9 @@ const seedConfig = async () => {
 
     const configData = {
         monthlyInterestRates: [
-            { type: 'Savings', rate: 4 },
-            { type: 'Recurring', rate: 6.5 },
-            { type: 'Fixed', rate: 7.5 }
+            { type: 's/f', rate: 4 },
+            { type: 'recurring', rate: 6.5 },
+            { type: 'fixed', rate: 7.5 }
         ],
         loanInterestRates: [
             { type: 'personal', rate: 12.5 },
@@ -30,12 +30,10 @@ const seedConfig = async () => {
             { name: 'foreclosureCharge', amount: 1, isPercentage: true }
         ],
         initialDeposits: {
-            savings: 500,
+            's/f': 100,
             recurring: 1000,
             fixed: 2000,
-            Fixed: 500,
-            Recurring: 200,
-            Savings: 100
+            recurring: 200,
         },
         loanDurations: [6, 12, 24, 36, 60, 72, 84],
         repaymentModes: ['full', 'emi', 'custom'],

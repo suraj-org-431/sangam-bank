@@ -158,20 +158,32 @@ const LoanView = () => {
                 </div>
 
                 <div className="row mb-3">
-                    <div className="col-md-6">
-                        <p><strong>Borrower:</strong> {loan.borrowerName}</p>
-                        <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN')}</p>
-                        <p><strong>Interest Rate:</strong> {loan.interestRate}%</p>
-                        <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
-                        <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
-                        <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
-                        <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
-                        <p><strong>Next EMI Due:</strong> {
-                            loan.repaymentSchedule.find(r => !r.paid)?.dueDate
-                                ? <span className='text-danger'>{new Date(loan.repaymentSchedule.find(r => !r.paid).dueDate).toLocaleDateString()}</span>
-                                : 'N/A'
-                        }</p>
-                    </div>
+                    {
+                        loan?.paymentType === 's/i' ? (
+                            <div className="col-md-6">
+                                <p><strong>Borrower:</strong> {loan.borrowerName}</p>
+                                <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN')}</p>
+                                <p><strong>Interest Rate:</strong> {loan.interestRate}%</p>
+                                <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
+
+                            </div>
+                        )
+                            : (
+                                <div className="col-md-6">
+                                    <p><strong>Borrower:</strong> {loan.borrowerName}</p>
+                                    <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN')}</p>
+                                    <p><strong>Interest Rate:</strong> {loan.interestRate}%</p>
+                                    <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
+                                    <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
+                                    <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
+                                    <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
+                                    <p><strong>Next EMI Due:</strong> {
+                                        loan.repaymentSchedule.find(r => !r.paid)?.dueDate
+                                            ? <span className='text-danger'>{new Date(loan.repaymentSchedule.find(r => !r.paid).dueDate).toLocaleDateString()}</span>
+                                            : 'N/A'
+                                    }</p>
+                                </div>
+                            )}
                     {
                         loan?.paymentType === 's/i' ? (
                             <div className="col-md-6">
