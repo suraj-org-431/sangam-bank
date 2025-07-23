@@ -132,7 +132,7 @@ const CreateEditRole = () => {
                     {error && <Alert variant="danger">{error}</Alert>}
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
-                            <label className="theme-label">Name</label>
+                            <label className="form-label text-black">Name</label>
                             <input
                                 type="text"
                                 name="name"
@@ -145,7 +145,7 @@ const CreateEditRole = () => {
                         </div>
 
                         <div className="mb-3">
-                            <label className="theme-label">Role Type</label>
+                            <label className="form-label text-black">Role Type</label>
                             <input
                                 type="text"
                                 name="roleType"
@@ -158,7 +158,7 @@ const CreateEditRole = () => {
                         </div>
 
                         <div className="mb-3">
-                            <label className="theme-label">Status</label>
+                            <label className="form-label text-black">Status</label>
                             <select
                                 name="status"
                                 value={form.status ? 'true' : 'false'}
@@ -171,7 +171,7 @@ const CreateEditRole = () => {
                         </div>
 
                         <div className="mb-3">
-                            <label className="theme-label">Permissions</label>
+                            <label className="form-label text-black">Permissions</label>
                             <input
                                 type="text"
                                 className="form-control theme-input mb-3"
