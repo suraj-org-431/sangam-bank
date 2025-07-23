@@ -139,9 +139,9 @@ const MonthlyLedgerReport = () => {
                                 <th>Date</th>
                                 <th>Ledger Head</th>
                                 <th>Description</th>
-                                <th>Debit (₹)</th>
-                                <th>Credit (₹)</th>
-                                <th>Balance (₹)</th>
+                                <th>Debit(₹) <i class="fa-solid fa-minus text-danger"></i> </th>
+                                <th>Credit(₹) <i class="fa-solid fa-plus text-success"></i></th>
+                                <th>Balance(₹) </th>
                             </tr>
                         </thead>
                         <tbody>

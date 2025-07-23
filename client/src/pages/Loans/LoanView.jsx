@@ -154,7 +154,6 @@ const LoanView = () => {
                         <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
                         <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
                         <p><strong>Balance Remaining:</strong> ₹{getRemainingBalance()}</p>
-                        <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
                         <p><strong>Next EMI Due:</strong> {
                             loan.repaymentSchedule.find(r => !r.paid)?.dueDate
                                 ? <span className='text-danger'>{new Date(loan.repaymentSchedule.find(r => !r.paid).dueDate).toLocaleDateString()}</span>

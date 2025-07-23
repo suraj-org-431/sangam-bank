@@ -100,7 +100,7 @@ const CreateOrEditLedger = () => {
         try {
             await upsertLedgerEntry(formData);
             toast.success(`Ledger ${ledgerData ? 'updated' : 'created'} successfully`);
-            navigate(adminRoute('/ledger'));
+            navigate(adminRoute('/ledger-report'));
         } catch (err) {
             toast.error(err.message || 'Failed to save');
         }

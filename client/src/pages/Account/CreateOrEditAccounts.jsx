@@ -293,7 +293,7 @@ const CreateAccounts = () => {
                     <div className="row">
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Upload Profile Image / प्रोफ़ाइल फोटो</label>
-                            <input
+                             <div className='profile_image'><input
                                 type="file"
                                 accept="image/*"
                                 name="profileImage"
@@ -310,6 +310,8 @@ const CreateAccounts = () => {
                                     />
                                 </div>
                             )}
+                            </div> 
+                            
                         </div>
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Account Type / खाता प्रकार</label>
@@ -354,7 +356,7 @@ const CreateAccounts = () => {
                                 </div>
                             </>
                         )}
-                        {['Recurring', 'Loan', 'MIS'].includes(formData.accountType) && (
+                        {['Recurring', 'Loan', 'MIS', 'Fixed'].includes(formData.accountType) && (
                             <div className="col-md-6 mb-3">
                                 <label className="form-label text-black">Tenure (months) / अवधि</label>
                                 {formData.accountType === 'MIS' ? (
