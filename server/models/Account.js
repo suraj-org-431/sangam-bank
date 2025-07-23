@@ -96,9 +96,9 @@ const accountsSchema = new Schema({
             type: String,
             enum: ['personal', 'education', 'gold', 'vehicle', 'home', 'business'],
         },
-        loanType: {
+        paymentType: {
             type: String,
-            enum: ['fixed', 'flexible'],
+            enum: ['s/i', 'emi'],
         },
         repaymentSchedule: [loanScheduleSchema]
     },

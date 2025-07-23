@@ -13,6 +13,9 @@ import Config from '../models/Config.js';
 import Loan from "../models/Loan.js";
 import { calculateMaturity } from "../utils/calculateMaturity.js";
 import { accountNumberStartFrom } from "../utils/constants.js";
+import { calculateLoanDetails } from "../utils/calculateLoanDetails.js";
+import AccountCharge from "../models/AccountCharge.js";
+import { generateRepaymentSchedule } from "../utils/loanUtils.js";
 
 const withFullUrl = (path, baseUrl) => {
     if (!path) return null;
@@ -67,7 +70,7 @@ export const upsertAccount = async (req, res) => {
             address, aadhar, depositAmount, introducerName,
             membershipNumber, introducerKnownSince, accountNumber,
             nomineeName, nomineeRelation, nomineeAge, managerName,
-            lekhpalOrRokapal, formDate, accountOpenDate, loanCategory, loanType, interestAccType
+            lekhpalOrRokapal, formDate, accountOpenDate, loanCategory, interestAccType, paymentType, hasInsurance
         } = req.body;
 
 
@@ -132,11 +135,10 @@ export const upsertAccount = async (req, res) => {
             let interestRate = 0;
 
             if (lowerType === 'loan') {
-                const loanRateObj = config?.loanInterestRates?.find(
-                    r => r.type?.toLowerCase() === loanCategory?.toLowerCase()
-                );
-                interestRate =
-                    loanRateObj?.subTypes?.find(sub => sub.loanType?.toLowerCase() === loanType?.toLowerCase())?.rate || 0;
+                interestRate = config?.loanInterestRates?.find(
+                    r => r.type?.toLowerCase() === loanCategory
+                )?.rate;
+
             } else {
                 interestRate = config?.monthlyInterestRates?.find(
                     r => r.type?.toLowerCase() === lowerType
@@ -183,40 +185,74 @@ export const upsertAccount = async (req, res) => {
                     createdBy: req.user?.name || 'System',
                 });
             } else if (lowerType === 'loan') {
+
+                const interestRate = config?.loanInterestRates?.find(
+                    r => r.type?.toLowerCase() === loanCategory
+                )?.rate || 0;
+
+                const result = calculateLoanDetails({
+                    amount: actualDeposit,
+                    interestRate,
+                    tenure: parseInt(tenure),
+                    paymentType
+                });
+
+                if (!result) {
+                    return badRequestResponse(res, 400, "Invalid loan calculation");
+                }
+
+                const schedule = generateRepaymentSchedule({
+                    amount: Number(actualDeposit),
+                    interestRate,
+                    tenure: parseInt(tenure),
+                    paymentType,
+                    openDate,
+                    result
+                });
+
+                const processingFee = 50;
+                const emiAmount = result.monthlyPayment || 0;
+                const totalInterest = result.totalInterest || 0;
+                const maturityAmount = result.totalPayable || 0;
+                const tenureMonths = parseInt(tenure || 12);
+
                 payload.depositAmount = 0;
                 payload.balance = 0;
                 payload.hasLoan = true;
+                payload.processingFee = processingFee;
                 payload.loanDetails = {
-                    totalLoanAmount: depositAmount,
+                    totalLoanAmount: actualDeposit,
                     disbursedAmount: 0,
                     interestRate,
-                    tenureMonths: parseInt(tenure),
-                    emiAmount: 0,
+                    tenureMonths,
+                    emiAmount,
                     disbursedDate: null,
                     status: 'pending',
                     nextDueDate: null,
                     lastEMIPaidOn: null,
-                    totalPaidAmount: null,
+                    totalPaidAmount: 0,
                     defaultedOn: null,
                     maturityAmount,
                     totalInterest,
-                    loanType,
                     loanCategory,
-                    repaymentSchedule: []
+                    paymentType,
+                    processingFee,
+                    repaymentSchedule: schedule
                 };
 
                 account = await Account.create(payload);
 
                 await Loan.create({
                     borrower: account._id,
-                    loanAmount: depositAmount,
-                    loanType,
+                    loanAmount: actualDeposit,
                     loanCategory,
+                    paymentType,
                     interestRate,
-                    tenureMonths: parseInt(tenure) || 12,
+                    tenureMonths,
                     status: 'pending',
                     remarks: 'Loan created during account creation',
-                    repaymentSchedule: [],
+                    processingFee,
+                    repaymentSchedule: schedule
                 });
             } else if (lowerType === 'fixed') {
                 payload[`${lowerType}Details`] = {
@@ -323,6 +359,47 @@ export const upsertAccount = async (req, res) => {
                     });
                 }
             }
+
+            // ---- Prevent Duplicate Insurance Charge ----
+            if (hasInsurance?.toLowerCase() === 'yes' && account) {
+                const existingInsuranceCharge = await AccountCharge.findOne({
+                    accountId: account._id,
+                    type: 'insurance'
+                });
+
+                if (!existingInsuranceCharge) {
+                    const insuranceAmount = actualDeposit * 0.02;
+
+                    await AccountCharge.create({
+                        accountId: account._id,
+                        type: 'insurance',
+                        label: `2% Insurance charge on ${accountType}`,
+                        amount: parseFloat(insuranceAmount.toFixed(2)),
+                        notes: 'Auto-charged during account creation',
+                        createdBy: req.user?._id || null
+                    });
+                }
+            }
+
+            // ---- Add ₹50 Processing Fee (one-time only) ----
+            if (account) {
+                const existingProcessingFee = await AccountCharge.findOne({
+                    accountId: account._id,
+                    type: 'processingFee'
+                });
+
+                if (!existingProcessingFee) {
+                    await AccountCharge.create({
+                        accountId: account._id,
+                        type: 'processingFee',
+                        label: `₹50 Processing fee for ${accountType}`,
+                        amount: 50,
+                        notes: 'One-time processing fee charged during account creation',
+                        createdBy: req.user?._id || null
+                    });
+                }
+            }
+
 
             await notify('account', account?._id || null, null, "Account Created", `Account #${payload.accountNumber} created`);
         }

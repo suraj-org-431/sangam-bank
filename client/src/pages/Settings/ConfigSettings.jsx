@@ -7,17 +7,18 @@ const ConfigSettings = () => {
         monthlyInterestRates: [],
         loanInterestRates: [],
         charges: [],
-        penaltyCharges: { rdMissedDeposit: 0, loanMissedEmi: 0, penaltyPerDay: 0 },
-        initialDeposits: { savings: 0, recurring: 0, fixed: 0 },
+        penaltyCharges: {
+            rdMissedDeposit: 0,
+            loanMissedEmi: 0,
+            penaltyPerDay: 0
+        },
+        initialDeposits: {
+            savings: 0,
+            recurring: 0,
+            fixed: 0
+        },
         loanDurations: [],
-        repaymentModes: [],
-        fineRules: [],
-        fineAffectsBalance: true,
-        fineConfig: {
-            enableAutoFine: true,
-            fineDescription: '',
-            graceDays: 3
-        }
+        repaymentModes: []
     });
 
     useEffect(() => {
@@ -42,21 +43,6 @@ const ConfigSettings = () => {
         }
     };
 
-    // Handle subType change
-    const handleSubTypeChange = (mainIdx, subIdx, field, value) => {
-        const updated = [...config.loanInterestRates];
-        updated[mainIdx].subTypes[subIdx][field] = value;
-        setConfig({ ...config, loanInterestRates: updated });
-    };
-
-    // Add a new subType
-    const addSubType = (mainIdx) => {
-        const updated = [...config.loanInterestRates];
-        if (!updated[mainIdx].subTypes) updated[mainIdx].subTypes = [];
-        updated[mainIdx].subTypes.push({ loanType: '', rate: 0 });
-        setConfig({ ...config, loanInterestRates: updated });
-    };
-
     const handleInterestRateChange = (listName, index, field, value) => {
         const updated = [...config[listName]];
         updated[index][field] = value;
@@ -66,7 +52,7 @@ const ConfigSettings = () => {
     const addInterestRate = (listName) => {
         setConfig((prev) => ({
             ...prev,
-            [listName]: [...prev[listName], { type: '', fixedRate: 0, flexibleRate: 0 }]
+            [listName]: [...prev[listName], { type: '', rate: 0 }]
         }));
     };
 
@@ -117,61 +103,29 @@ const ConfigSettings = () => {
 
                 <h5>Loan Interest Rates</h5>
                 {config.loanInterestRates.map((item, idx) => (
-                    <div key={idx} className="border rounded p-3 mb-3">
-                        <div className="row mb-2">
-                            <div className="col">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={item.type}
-                                    placeholder="Loan Category (e.g., personal)"
-                                    onChange={(e) =>
-                                        handleInterestRateChange('loanInterestRates', idx, 'type', e.target.value)
-                                    }
-                                />
-                            </div>
+                    <div className="row mb-2" key={idx}>
+                        <div className="col">
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={item.type}
+                                placeholder="Loan Type (e.g., personal)"
+                                onChange={(e) => handleInterestRateChange('loanInterestRates', idx, 'type', e.target.value)}
+                            />
                         </div>
-
-                        {item.subTypes?.map((subItem, subIdx) => (
-                            <div className="row mb-2" key={subIdx}>
-                                <div className="col">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        value={subItem.loanType}
-                                        placeholder="Sub Type (e.g., fixed)"
-                                        onChange={(e) =>
-                                            handleSubTypeChange(idx, subIdx, 'loanType', e.target.value)
-                                        }
-                                    />
-                                </div>
-                                <div className="col">
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        value={subItem.rate}
-                                        placeholder="Rate %"
-                                        onChange={(e) =>
-                                            handleSubTypeChange(idx, subIdx, 'rate', parseFloat(e.target.value))
-                                        }
-                                    />
-                                </div>
-                            </div>
-                        ))}
-
-                        <button
-                            type="button"
-                            className="btn btn-sm btn-outline-primary mt-2"
-                            onClick={() => addSubType(idx)}
-                        >
-                            + Add Sub Type
-                        </button>
+                        <div className="col">
+                            <input
+                                type="number"
+                                className="form-control"
+                                value={item.rate}
+                                placeholder="Rate %"
+                                onChange={(e) => handleInterestRateChange('loanInterestRates', idx, 'rate', e.target.value)}
+                            />
+                        </div>
                     </div>
                 ))}
-
-
                 <button className="btn btn-sm btn-outline-primary mb-3" onClick={() => addInterestRate('loanInterestRates')}>
-                    + Add Loan Category
+                    + Add Loan Rate
                 </button>
 
                 <h5>Penalty Charges</h5>
@@ -445,11 +399,11 @@ const ConfigSettings = () => {
                 <h5>Initial Deposits (₹)</h5>
                 <div className="row mb-2">
                     <div className="col">
-                        <label className="text-black">Saving Fund</label>
+                        <label className="text-black">Savings</label>
                         <input
                             type="number"
                             className="form-control"
-                            value={config.initialDeposits?.['s/f'] || 0}
+                            value={config.initialDeposits?.savings || 0}
                             onChange={(e) =>
                                 setConfig((prev) => ({
                                     ...prev,

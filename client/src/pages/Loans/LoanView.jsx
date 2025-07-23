@@ -15,6 +15,7 @@ const LoanView = () => {
     const [userPermissions, setUserPermissions] = useState([]);
     const [show403Modal, setShow403Modal] = useState(false);
     const [loan, setLoan] = useState(null);
+    const [emiData, setEmiData] = useState(null);
     const [repayAmount, setRepayAmount] = useState('');
     const [repayMode, setRepayMode] = useState('emi');
     const [repaymentModes, setRepaymentModes] = useState([]);
@@ -83,19 +84,11 @@ const LoanView = () => {
         try {
             const res = await getLoanById(loanId);
             setLoan(res);
+            setEmiData(res?.calculation)
         } catch (err) {
             toast.error('Failed to fetch loan');
         }
     };
-
-    const emiData = useMemo(() => {
-        if (!loan) return { emi: 0, totalPayable: 0, totalInterest: 0, schedule: [] };
-        return calculateEMI({
-            loanAmount: loan.loanAmount,
-            interestRate: loan.interestRate,
-            tenureMonths: loan.tenureMonths
-        });
-    }, [loan]);
 
 
     const getTotalPaid = () =>
@@ -176,8 +169,8 @@ const LoanView = () => {
                         }</p>
                     </div>
                     <div className="col-md-6">
-                        <p><strong>Principal:</strong> ₹{loan.loanAmount.toLocaleString('en-IN')}</p>
-                        <p><strong>Monthly EMI:</strong> ₹{emiData.emi.toLocaleString('en-IN')}</p>
+                        <p><strong>Principal:</strong> ₹{loan?.loanAmount?.toLocaleString('en-IN')}</p>
+                        <p><strong>Monthly EMI:</strong> ₹{emiData?.monthlyPayment?.toLocaleString('en-IN')}</p>
                         <p><strong>Total Interest:</strong> ₹{emiData.totalInterest.toLocaleString('en-IN')}</p>
                         <p><strong>Total Payable:</strong> ₹{emiData.totalPayable.toLocaleString('en-IN')}</p>
                         <p><strong>EMIs Paid:</strong> {getEMIPaymentSummary().paidEMIs} / {getEMIPaymentSummary().totalEMIs}</p>
@@ -234,20 +227,6 @@ const LoanView = () => {
 
                 )}
 
-                {loan?.status === 'disbursed' && (
-                    <div className="d-flex gap-2 mb-4">
-                        <button className="btn btn-outline-warning mt-3" onClick={() => {
-                            if (!hasPermission(userPermissions, `POST:/loans/${loan?._id}/adjust`)) {
-                                setShow403Modal(true);
-                                return;
-                            }
-                            openModal('adjust')
-                        }}>
-                            Adjustment
-                        </button>
-                    </div>
-
-                )}
 
                 {/* Repayment Section */}
                 {loan.status === 'disbursed' && (
@@ -274,10 +253,10 @@ const LoanView = () => {
                                         let label = mode.toUpperCase();
                                         if (mode === 'emi') {
                                             if (upcomingEMI?.amount > 0) {
-                                                label += ` ${((upcomingEMI?.amount || 0) - (upcomingEMI?.amountPaid || 0)).toLocaleString('en-IN')} of (₹${emiData?.emi?.toLocaleString('en-IN')})`;
+                                                label += ` ${((upcomingEMI?.amount || 0) - (upcomingEMI?.amountPaid || 0)).toLocaleString('en-IN')} of (₹${emiData?.monthlyPayment?.toLocaleString('en-IN')})`;
                                             }
                                             else {
-                                                label += ` (₹${emiData?.emi?.toLocaleString('en-IN')})`;
+                                                label += ` (₹${emiData?.monthlyPayment?.toLocaleString('en-IN')})`;
                                             }
                                         } else if (mode === 'full') {
                                             label += ` (₹${getRemainingBalance()})`;
@@ -362,13 +341,13 @@ const LoanView = () => {
                                     }
                                     let amt = 0;
                                     if (repayMode === 'emi') {
-                                        amt = emiData.emi;
+                                        amt = emiData.monthlyPayment;
                                     } else if (repayMode === 'full') {
                                         amt = parseFloat(getRemainingBalance());
                                     } else {
                                         amt = parseFloat(repayAmount);
                                     }
-
+                                    console.log(amt)
                                     if (!amt || amt <= 0) {
                                         return toast.error('Enter a valid repayment amount');
                                     }
@@ -412,23 +391,6 @@ const LoanView = () => {
                             }}
                         >
                             Repayments
-                        </button>
-                    </li>
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === 'adjustments' ? 'active' : ''}`}
-                            onClick={() => {
-                                if (!hasPermission(userPermissions, `POST:/loans/adjust`)) {
-                                    setShow403Modal(true);
-                                    return;
-                                }
-                                setActiveTab('adjustments')
-                            }}
-                        >
-                            Adjustments
-                            <span className="badge bg-warning ms-2">
-                                {loan.adjustments?.filter(adj => adj.status === 'pending').length || 0}
-                            </span>
                         </button>
                     </li>
                 </ul>
@@ -503,111 +465,6 @@ const LoanView = () => {
                     </div>
                 )}
 
-                {activeTab === 'adjustments' && (
-                    <div>
-                        {filteredAdjustments.length > 0 && (
-                            <>
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                    <h5 className="mb-0">Loan Adjustments</h5>
-                                    <select
-                                        className="form-select form-select-sm w-auto"
-                                        value={adjustmentFilter}
-                                        onChange={(e) => {
-                                            setAdjustmentFilter(e.target.value);
-                                            setCurrentPage(1); // reset to first page
-                                        }}
-                                    >
-                                        <option value="">All</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="rejected">Rejected</option>
-                                    </select>
-                                </div>
-                                <table className="table table-bordered table-sm">
-                                    <thead className="table-light">
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Type</th>
-                                            <th>Amount</th>
-                                            <th>Remarks</th>
-                                            <th>Status</th>
-                                            <th>Requested By</th>
-                                            <th>Approved By</th>
-                                            <th>Approved At</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {paginatedAdjustments.map((adj, index) => (
-                                            <tr key={index}>
-                                                <td>{(currentPage - 1) * adjustmentsPerPage + index + 1}</td>
-                                                <td className="text-capitalize">{adj.type}</td>
-                                                <td>₹{adj.amount?.toLocaleString('en-IN')}</td>
-                                                <td>{adj.remarks || '-'}</td>
-                                                <td>
-                                                    <span className={`badge bg-${adj.status === 'approved' ? 'success' : adj.status === 'rejected' ? 'danger' : 'warning'} text-uppercase`}>
-                                                        {adj.status}
-                                                    </span>
-                                                </td>
-                                                <td>{adj.createdBy || '-'}</td>
-                                                <td>{adj.approvedBy || '-'}</td>
-                                                <td>{adj.approvedAt ? new Date(adj.approvedAt).toLocaleDateString() : '-'}</td>
-                                                <td>
-                                                    {adj.status === 'pending' && (
-                                                        <>
-                                                            <button className="btn btn-sm btn-success me-2" onClick={async () => {
-                                                                try {
-                                                                    if (!hasPermission(userPermissions, `POST:/loans/${loan._id}/adjust/${adj._id}/approve`)) {
-                                                                        setShow403Modal(true);
-                                                                        return;
-                                                                    }
-                                                                    await approveLoanAdjustment(loan._id, adj._id);
-                                                                    toast.success('Adjustment approved');
-                                                                    fetchLoan();
-                                                                } catch (err) {
-                                                                    toast.error(err.message);
-                                                                }
-                                                            }}>Approve</button>
-                                                            <button className="btn btn-sm btn-danger" onClick={async () => {
-                                                                if (!hasPermission(userPermissions, `POST:/loans/${loan._id}/adjust/${adj._id}/reject`)) {
-                                                                    setShow403Modal(true);
-                                                                    return;
-                                                                }
-                                                                const reason = prompt('Enter reason for rejection');
-                                                                if (!reason) return;
-                                                                try {
-                                                                    await rejectLoanAdjustment(loan._id, adj._id, reason);
-                                                                    toast.success('Adjustment rejected');
-                                                                    fetchLoan();
-                                                                } catch (err) {
-                                                                    toast.error(err.message);
-                                                                }
-                                                            }}>Reject</button>
-                                                        </>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                {totalPages > 1 && (
-                                    <nav className="mt-2">
-                                        <ul className="pagination pagination-sm">
-                                            {Array.from({ length: totalPages }).map((_, i) => (
-                                                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                                    <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
-                                                        {i + 1}
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </nav>
-                                )}
-                            </>
-                        )}
-                    </div>
-                )}
-
                 {/* Amortization Schedule */}
                 {loan.status === 'disbursed' && (
                     <div className="mt-5">
@@ -624,10 +481,10 @@ const LoanView = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {emiData.schedule.map((row, idx) => (
+                                    {loan?.repaymentSchedule.map((row, idx) => (
                                         <tr key={idx}>
                                             <td>{row.month}</td>
-                                            <td>₹{row.emi.toLocaleString('en-IN')}</td>
+                                            <td>₹{row.amount.toLocaleString('en-IN')}</td>
                                             <td>₹{row.interest.toLocaleString('en-IN')}</td>
                                             <td>₹{row.principal.toLocaleString('en-IN')}</td>
                                             <td>₹{row.balance.toLocaleString('en-IN')}</td>

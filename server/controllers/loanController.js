@@ -6,6 +6,8 @@ import Config from '../models/Config.js';
 import { generateRepaymentSchedule } from '../utils/loanUtils.js';
 import { applyApprovedLoanAdjustment } from '../utils/adjustmentUtils.js';
 import { notify } from '../utils/notify.js';
+import { calculateLoanDetails } from '../utils/calculateLoanDetails.js';
+import AccountCharge from '../models/AccountCharge.js';
 
 // ✅ Create Loan Application
 export const createLoan = async (req, res) => {
@@ -126,48 +128,64 @@ export const getAllLoans = async (req, res) => {
         const { search = '', status, page = 1, limit = 10 } = req.query;
 
         const query = {};
-
         if (status) {
             query.status = status;
         }
 
-        // Optional: search borrower name or accountNumber
         if (search) {
             query.$or = [
-                { 'borrowerName': { $regex: search, $options: 'i' } }, // from virtual/projected fields
+                { 'borrowerName': { $regex: search, $options: 'i' } },
             ];
         }
 
-        // Populate borrower
+        const skip = (page - 1) * limit;
+
+        // Fetch loans
         const loans = await Loan.find(query)
-            .populate('borrower', 'applicantName accountNumber')
-            .skip((page - 1) * limit)
+            .populate('borrower', 'applicantName accountNumber loanDetails')
+            .skip(skip)
             .limit(Number(limit))
             .sort({ createdAt: -1 });
 
         const total = await Loan.countDocuments(query);
         const totalPages = Math.ceil(total / limit);
 
-        // Transform response
+        // Transform entries
         const entries = loans.map((loan) => {
-            const monthlyInterestRate = loan.interestRate / 100 / 12;
-            const emi =
-                loan.loanAmount && loan.tenureMonths
-                    ? (
-                        (loan.loanAmount * monthlyInterestRate *
-                            Math.pow(1 + monthlyInterestRate, loan.tenureMonths)) /
-                        (Math.pow(1 + monthlyInterestRate, loan.tenureMonths) - 1)
-                    )
-                    : null;
+            const loanAmount = loan.loanAmount || 0;
+            const interestRate = loan.interestRate || 0;
+            const tenureMonths = loan.tenureMonths || 0;
+            const paymentType = loan.paymentType || 'emi'; // Default fallback to 'emi'
+
+            const r = interestRate / 100;
+            const n = tenureMonths;
+
+            let emiAmount = null;
+            let simpleInterestAmount = null;
+
+            if (loanAmount > 0 && r > 0 && n > 0) {
+                if (paymentType.toLowerCase() === 'emi') {
+                    // EMI formula
+                    const monthlyRate = r;
+                    emiAmount = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, n)) /
+                        (Math.pow(1 + monthlyRate, n) - 1);
+                } else if (['simple', 's/i', 'si'].includes(paymentType.toLowerCase())) {
+                    // Simple Interest
+                    const totalInterest = (loanAmount * r * n);
+                    simpleInterestAmount = (loanAmount + totalInterest) / n;
+                }
+            }
 
             return {
                 _id: loan._id,
                 borrowerName: loan.borrower?.applicantName || 'N/A',
-                accountNumber: loan.borrower?.accountNumber || '',
-                amount: loan.loanAmount,
+                accountNumber: loan.borrower?.accountNumber || 'N/A',
+                amount: loanAmount,
                 loanType: loan.loanType,
+                paymentType,
                 status: loan.status,
-                emiAmount: emi ? Number(emi) : null,
+                emiAmount: emiAmount ? Number(emiAmount.toFixed(2)) : null,
+                simpleInstallment: simpleInterestAmount ? Number(simpleInterestAmount.toFixed(2)) : null,
                 remainingPrincipal: loan.borrower?.loanDetails?.disbursedAmount || 0
             };
         });
@@ -189,16 +207,24 @@ export const getLoanById = async (req, res) => {
 
         if (!loan) return badRequestResponse(res, 404, 'Loan not found');
 
+        const loanCalculation = calculateLoanDetails({
+            amount: loan.loanAmount,
+            interestRate: loan.interestRate,
+            tenure: loan.tenureMonths,
+            paymentType: loan.paymentType // 'emi' or 's/i'
+        });
+
         const response = {
             _id: loan._id,
             borrowerName: loan.borrower.applicantName,
             loanAmount: loan.loanAmount,
-            loanType: loan.loanType,
+            paymentType: loan.paymentType,
             interestRate: loan.interestRate,
             tenureMonths: loan.tenureMonths,
             status: loan.status,
             repaymentSchedule: loan.repaymentSchedule || [],
-            adjustments: loan.adjustments || []
+            adjustments: loan.adjustments || [],
+            calculation: loanCalculation
         };
 
         return successResponse(res, 200, 'Loan fetched successfully', response);
@@ -246,23 +272,24 @@ export const disburseLoan = async (req, res) => {
         const config = await Config.findOne();
 
         // ✅ UPDATED: Get nested rate based on both category and type
-        let interestRate = loan.interestRate || 12; // fallback
-        const category = config?.loanInterestRates?.find(c =>
-            c.type?.toLowerCase() === loan.loanCategory?.toLowerCase()
-        );
-
-        const subRate = category?.subTypes?.find(s =>
-            s.loanType?.toLowerCase() === loan.loanType?.toLowerCase()
-        )?.rate;
-
-        if (subRate) interestRate = subRate;
-
-        // Generate schedule
-        const { schedule, emiAmount } = generateRepaymentSchedule({
-            loanAmount: loan.loanAmount,
+        const interestRate = config?.loanInterestRates?.find(
+            r => r.type?.toLowerCase() === loan?.loanCategory
+        )?.rate || 0;
+        const isSimpleInterest = loan?.paymentType === 's/i';
+        const result = calculateLoanDetails({
+            amount: Number(loan.loanAmount),
             interestRate,
-            tenureMonths: loan.tenureMonths,
-            disbursementDate: disbursedDate
+            tenure: isSimpleInterest ? Infinity : Number(loan?.tenureMonths),
+            paymentType: loan?.paymentType
+        });
+        // Generate schedule
+        const schedule = generateRepaymentSchedule({
+            amount: loan.loanAmount,
+            interestRate,
+            tenure: loan.tenureMonths,
+            paymentType: loan?.paymentType,
+            openDate: disbursedDate,
+            result
         });
 
         // Update Borrower
@@ -273,7 +300,7 @@ export const disburseLoan = async (req, res) => {
             disbursedAmount: loan.loanAmount,
             interestRate,
             tenureMonths: loan.tenureMonths,
-            emiAmount,
+            emiAmount: loan?.borrower?.loanDetails?.emiAmount,
             disbursedDate,
             status: 'disbursed',
             nextDueDate: schedule[0]?.dueDate,
@@ -286,7 +313,7 @@ export const disburseLoan = async (req, res) => {
         loan.disbursedAmount = loan.loanAmount;
         loan.disbursedDate = disbursedDate;
         loan.repaymentSchedule = schedule;
-        loan.emiAmount = emiAmount;
+        loan.emiAmount = loan?.borrower?.loanDetails?.emiAmount;
         loan.interestRate = interestRate;
         loan.nextDueDate = schedule[0]?.dueDate;
         await loan.save();
@@ -501,6 +528,14 @@ export const repayLoan = async (req, res) => {
                 ],
             });
 
+            await AccountCharge.create({
+                accountId: borrower._id,
+                type: 'interest',
+                label: `Emi Interest charge on ${borrower?.accountType}`,
+                amount: parseFloat(interestPaid.toFixed(2)),
+                notes: `${emiLabel} Interest`,
+                createdBy: req.user?._id || null
+            });
         }
 
         return successResponse(res, 200, 'Loan repayment successful', {

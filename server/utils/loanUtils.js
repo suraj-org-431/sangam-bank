@@ -1,57 +1,66 @@
-export const generateRepaymentSchedule = ({
-    loanAmount,
+export function generateRepaymentSchedule({
+    amount,
     interestRate,
-    tenureMonths,
-    disbursementDate = new Date()
-}) => {
-    const P = parseFloat(loanAmount);
-    const r = interestRate / 100 / 12;
-    const n = tenureMonths;
-
-    let emi = 0;
-    if (r === 0) {
-        emi = parseFloat((P / n).toFixed(2));
-    } else {
-        emi = parseFloat(((P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)).toFixed(2));
-    }
-
-    let balance = P;
+    tenure,
+    paymentType,
+    openDate,
+    result
+}) {
     const schedule = [];
+    const monthlyRate = interestRate / 100;
+    console.log(amount, tenure, openDate)
 
-    let totalPrincipalPaid = 0;
 
-    for (let i = 1; i <= n; i++) {
-        const interest = parseFloat((balance * r).toFixed(2));
-        let principal = parseFloat((emi - interest).toFixed(2));
+    if (!amount || !tenure || !openDate) return [];
 
-        // Handle last EMI adjustment
-        if (i === n || totalPrincipalPaid + principal > P) {
-            principal = parseFloat((P - totalPrincipalPaid).toFixed(2));
-            emi = parseFloat((principal + interest).toFixed(2));
+
+    if (paymentType === 'emi') {
+        const emiAmount = result?.monthlyPayment || 0;
+        let balance = amount;
+
+        for (let i = 0; i < tenure; i++) {
+            const dueDate = new Date(openDate);
+            dueDate.setMonth(dueDate.getMonth() + i);
+
+            const interest = balance * monthlyRate;
+            const principal = emiAmount - interest;
+
+            schedule.push({
+                month: i + 1,
+                dueDate,
+                amount: parseFloat(emiAmount.toFixed(2)),
+                interest: parseFloat(interest.toFixed(2)),
+                principal: parseFloat(principal.toFixed(2)),
+                balance: parseFloat(balance?.toFixed(2)),
+                paid: false,
+                paidOn: null,
+                amountPaid: 0
+            });
+
+            balance -= principal;
         }
+    } else if (paymentType === 's/i') {
+        const monthlyInterest = amount * monthlyRate;
+        const totalInterest = monthlyInterest * tenure;
+        const totalPayable = amount + totalInterest;
+        const monthlyPayment = totalPayable / tenure;
 
-        totalPrincipalPaid += principal;
-        balance = parseFloat((balance - principal).toFixed(2));
-        balance = Math.max(balance, 0); // avoid negative
+        for (let i = 0; i < tenure; i++) {
+            const dueDate = new Date(openDate);
+            dueDate.setMonth(dueDate.getMonth() + i);
 
-        const dueDate = new Date(disbursementDate);
-        dueDate.setMonth(disbursementDate.getMonth() + i);
-        dueDate.setDate(15);
-
-        schedule.push({
-            month: i,
-            dueDate,
-            amount: emi,
-            interest,
-            principal,
-            balance,
-            paid: false,
-            paidOn: null,
-            amountPaid: 0,
-            fine: 0,
-            paymentRef: ""
-        });
+            schedule.push({
+                month: i + 1,
+                dueDate,
+                amount: parseFloat(monthlyPayment.toFixed(2)),
+                interest: parseFloat(monthlyInterest.toFixed(2)),
+                principal: parseFloat((monthlyPayment - monthlyInterest).toFixed(2)),
+                balance: parseFloat(amount.toFixed(2)),
+                paid: false,
+                paidOn: null,
+                amountPaid: 0
+            });
+        }
     }
-
-    return { schedule, emiAmount: emi };
-};
+    return schedule;
+}
