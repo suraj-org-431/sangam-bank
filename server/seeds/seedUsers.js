@@ -57,11 +57,43 @@ const seed = async () => {
         // Insert valid permissions
         const createdPermissions = await Permission.insertMany(uniquePermissions);
 
-        // Roles
+        // ROLES: Define access levels
         const superAdminRole = await Role.create({
             name: "SuperAdmin",
-            roleType: "superadmin",
-            permissions: createdPermissions.map(p => p._id)
+            roleType: "super-admin",
+            permissions: createdPermissions.map(p => p._id) // full access
+        });
+
+        const branchManagerPermissions = createdPermissions.filter(p =>
+            // Can GET and POST anything EXCEPT admin-level settings or user/permission/role configs
+            ["GET", "POST"].includes(p.method) &&
+            !p.route.includes("/admin") &&
+            !p.route.includes("/roles") &&
+            !p.route.includes("/permissions") &&
+            !p.route.includes("/users")
+        ).map(p => p._id);
+
+        const branchManagerRole = await Role.create({
+            name: "Branch Manager",
+            roleType: "branch-manager",
+            permissions: branchManagerPermissions
+        });
+
+        const accountOfficerPermissions = createdPermissions.filter(p =>
+            // GET-only access to non-admin financial data
+            p.method === "GET" &&
+            (
+                p.route.includes("/accounts") ||
+                p.route.includes("/transactions") ||
+                p.route.includes("/ledger") ||
+                p.route.includes("/loans")
+            )
+        ).map(p => p._id);
+
+        const accountOfficerRole = await Role.create({
+            name: "Account Officer",
+            roleType: "account-officer",
+            permissions: accountOfficerPermissions
         });
 
         const viewerPermissions = createdPermissions
@@ -98,14 +130,28 @@ const seed = async () => {
         await User.create({
             name: "Super Admin",
             email: "super@admin.com",
-            password: await bcrypt.hash("super@123", 10),
+            password: await bcrypt.hash("Super@123", 10),
             role: superAdminRole._id
+        });
+
+        await User.create({
+            name: "Branch Manager",
+            email: "branch@bank.com",
+            password: await bcrypt.hash("Branch@123", 10),
+            role: branchManagerRole._id
+        });
+
+        await User.create({
+            name: "Account Officer",
+            email: "officer@bank.com",
+            password: await bcrypt.hash("Officer@123", 10),
+            role: accountOfficerRole._id
         });
 
         await User.create({
             name: "Admin",
             email: "admin@gmail.com",
-            password: await bcrypt.hash("admin@123", 10),
+            password: await bcrypt.hash("Admin@123", 10),
             role: adminRole._id
         });
 

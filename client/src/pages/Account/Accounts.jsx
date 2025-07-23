@@ -175,7 +175,7 @@ const Accounts = () => {
                                 onChange={(e) => setFilters(prev => ({ ...prev, accountType: e.target.value }))}
                             >
                                 <option value="">All</option>
-                                <option value="Savings">Saving / बचत</option>
+                                <option value="s/f">Saving Fund / बचत कोष</option>
                                 <option value="Current">Current / चालू खाता</option>
                                 <option value="Fixed">Fixed / सावधि जमा</option>
                                 <option value="Recurring">Recurring / आवर्ती जमा</option>
@@ -250,7 +250,7 @@ const Accounts = () => {
                     <button
                         className="btn btn-sm btn-outline-primary"
                         onClick={() => {
-                            if (!hasPermission(userPermissions, 'POST:/accounts')) {
+                            if (!hasPermission(userPermissions, 'POST:/accounts/import')) {
                                 setShow403Modal(true);
                                 return;
                             }
@@ -297,7 +297,7 @@ const Accounts = () => {
                                 <tr key={acc._id}>
                                     <td>{(currentPage - 1) * accountsPerPage + idx + 1}</td>
                                     <td>{acc.applicantName}</td>
-                                    <td>{acc.accountType || '-'}</td>
+                                    <td>{acc.accountType?.toUpperCase() || '-'}</td>
                                     <td>{acc.accountNumber || '-'}</td>
                                     <td>{acc.balance?.toFixed(2) || '-'}</td>
                                     <td>{format(new Date(acc.accountOpenDate), 'dd MMM yyyy')}</td>

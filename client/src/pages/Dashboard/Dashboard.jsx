@@ -215,7 +215,7 @@ const Dashboard = () => {
 
                                     <td>₹{tx.amount.toLocaleString()}</td>
                                     <td>
-                                        <span class="badge bg-success">Success</span>
+                                        <span className="badge bg-success">Success</span>
                                         {/* <span className={`badge 
     ${tx?.accountId?.status === true ? "bg-success" : 
       tx?.accountId?.status === false ? "bg-warning text-dark" : 

@@ -43,6 +43,18 @@ const ViewAccount = () => {
         </div>
     );
 
+    const renderMaturitySection = (title, data) => {
+        if (!data) return null;
+
+        return renderSection(title, <FaMoneyBill className="text-primary" />, [
+            renderField('Deposit Amount', `₹${data.depositAmount}`),
+            renderField('Interest Rate', `${data.interestRate.toFixed(2)}%`),
+            renderField('Maturity Amount', `₹${data.maturityAmount}`),
+            renderField('Total Interest', `₹${data.totalInterest}`),
+            renderField('Maturity Date', formatDate(data.maturityDate)),
+        ]);
+    };
+
     const renderImage = (label, path) => (
         <div className="col-md-4 mb-3 text-center" key={label}>
             <div className="card shadow-sm border-0 h-100">
@@ -89,78 +101,6 @@ const ViewAccount = () => {
                         ← Back to Summary
                     </button>
                 </div>
-
-
-   <div className='mb-4'>
-     <h5 className='border-bottom pb-2 d-flex align-items-center text-primary'>
-        <i className="fa-solid fa-chart-pie"></i>
-       <span className='ms-2'>Ledger</span> </h5>
-   
-   <div className="row mb-3">
-      <div className="col-md-3">
-        <label className="form-label text-black">From Date:</label>
-        <input
-          type="date"
-          className="form-control form-select-sm"/>
-      </div>
-      <div className="col-md-3">
-        <label className="form-label text-black">To Date:</label>
-        <input
-          type="date"
-          className="form-control form-select-sm"/>
-      </div>
-       
-      <div className="col-md-3 d-flex align-items-end">
-        <button className="btn btn-primary btn-sm px-4">
-         <i className="fa-solid fa-filter me-2"></i>  Filter
-        </button>
-      </div>
-    </div>
-
-      <table className="w-full border-collapse border text-sm table table-striped">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="border px-3 py-2">Date</th>
-            <th className="border px-3 py-2">Particulars</th>
-            <th className="border px-3 py-2">Debit(₹) <i class="fa-solid fa-minus text-danger"></i></th>
-            <th className="border px-3 py-2">Credit(₹) <i class="fa-solid fa-plus text-success"></i> </th>
-            <th className="border px-3 py-2">Balance(₹)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td className="border px-3 py-2">07-12-2022</td>
-            <td className="border px-3 py-2">PID</td>
-            <td className="border px-3 py-2 text-right">-</td>
-            <td className="border px-3 py-2 text-right">20,000</td>
-            <td className="border px-3 py-2 text-right"><b>20,000</b></td>
-          </tr>
-          <tr>
-            <td className="border px-3 py-2">28-01-2023</td>
-            <td className="border px-3 py-2">By Tr. Int</td>
-            <td className="border px-3 py-2 text-right">-</td>
-            <td className="border px-3 py-2 text-right">1,700</td>
-            <td className="border px-3 py-2 text-right"><b>21,700</b></td>
-          </tr>
-          <tr>
-            <td className="border px-3 py-2">22-06-2023</td>
-            <td className="border px-3 py-2">By Tr. Amt</td>
-            <td className="border px-3 py-2 text-right">-</td>
-            <td className="border px-3 py-2 text-right">1,697</td>
-            <td className="border px-3 py-2 text-right"><b>23,397</b></td>
-          </tr>
-          <tr>
-            <td className="border px-3 py-2">21-08-2023</td>
-            <td className="border px-3 py-2">By Tr. Amt</td>
-            <td className="border px-3 py-2 text-right">-</td>
-            <td className="border px-3 py-2 text-right">1,805</td>
-            <td className="border px-3 py-2 text-right"><b>25,202</b></td>
-          </tr>
-        </tbody>
-      </table>
-   </div>
-      
-
                 {account?.accountType === 'Recurring' && (
                     <div className="text-end mb-4">
                         <button
@@ -176,7 +116,7 @@ const ViewAccount = () => {
                 {/* Basic Info */}
                 {renderSection("Basic Information", <FaUser className="text-primary" />, [
                     renderField('Account Number', account.accountNumber),
-                    renderField('Account Type', account.accountType),
+                    renderField('Account Type', account.accountType?.toUpperCase()),
                     renderField('Applicant Name', account.applicantName),
                     renderField('Gender', account.gender),
                     renderField('DOB', formatDate(account.dob)),
@@ -217,7 +157,7 @@ const ViewAccount = () => {
                 ])}
 
                 {/* Recurring Details */}
-                {account.accountType === 'Recurring' && account.recurringDetails &&
+                {account.accountType === 'recurring' && account.recurringDetails &&
                     renderSection("Recurring Deposit", <FaMoneyBill className="text-primary" />, [
                         <div className="col-md-12 text-end mb-3" key="pay-button">
                             <button className="btn btn-primary" onClick={() => setShowPayModal(true)} disabled={isPaying}>
@@ -232,11 +172,11 @@ const ViewAccount = () => {
                 }
 
                 {/* Loan Details */}
-                {account.accountType === 'Loan' && account.loanDetails &&
+                {account.accountType === 'loan' && account.loanDetails &&
                     renderSection("Loan Details", <FaGavel className="text-primary" />, [
                         renderField('Loan Amount', `₹${account.loanDetails.totalLoanAmount}`),
                         renderField('Disbursed Amount', `₹${account.loanDetails.disbursedAmount}`),
-                        renderField('Interest Rate', `${account.loanDetails.interestRate}%`),
+                        renderField('Interest Rate', `${account.loanDetails.interestRate.toFixed(2)}%`),
                         renderField('Tenure Months', account.loanDetails.tenureMonths),
                         renderField('EMI Amount', `₹${account.loanDetails.emiAmount}`),
                         renderField('Status', account.loanDetails.status),
@@ -244,6 +184,16 @@ const ViewAccount = () => {
                         renderField('Next Due Date', formatDate(account.loanDetails.nextDueDate)),
                     ])
                 }
+
+                {/* MIS Account */}
+                {account.accountType === 'mis' && renderMaturitySection("MIS Account Details", account.misDetails)}
+
+                {/* Fixed Account */}
+                {account.accountType === 'fixed' && renderMaturitySection("Fixed Deposit Details", account.fixedDetails)}
+
+                {/* Savings Account */}
+                {account.accountType === 's/f' && renderMaturitySection("Savings Account Details", account.savingsDetails)}
+
 
                 {/* Signatures & Images */}
                 {renderSection("Documents", <FaImage className="text-primary" />, [

@@ -1,34 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import defaultAvatar from '../assets/images/pic3.webp';
-import { logout } from "../utils/auth";
 import { adminRoute } from "../utils/router";
 import { getUnreadNotifications, markAsRead } from "../api/notification";
 import { getUnreadMessages } from "../api/message";
 import { toast } from "react-toastify";
 import { useProfile } from "../context/ProfileContext";
+import { useAuth } from "../context/AuthContext";
 
 const AdminHeader = () => {
+    const { logout } = useAuth();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [messages, setMessages] = useState([]);
     const [profile, setProfile] = useProfile();
 
-    useEffect((props) => {
+    useEffect(() => {
         const fetchData = async () => {
             try {
                 const [notifRes, messageRes] = await Promise.all([
                     getUnreadNotifications(),
                     getUnreadMessages()
                 ]);
-                setNotifications(notifRes?.data);
-                setMessages(messageRes?.data);
+                setNotifications(notifRes?.data || []);
+                setMessages(messageRes?.data || []);
             } catch (err) {
                 console.error("Header fetch error:", err);
             }
         };
         fetchData();
-    }, []);
+    }, [navigate]);
 
     const handleLogout = () => {
         logout();
@@ -60,10 +61,10 @@ const AdminHeader = () => {
 
                     <div className='d-flex align-items-center gap-3 me-3'>
                         <Link to={adminRoute('/transaction/create')} className='btn btn-sm btn-primary'>
-                            <i className='fa-solid fa-building-columns me-2'></i> Add New Transaction 
+                            <i className='fa-solid fa-building-columns me-2'></i> Add New Transaction
                         </Link>
                         <Link to={adminRoute('/account/create')} className='btn btn-sm btn-primary'>
-                            <i class="fa-solid fa-user-plus me-1"></i> Add New Account 
+                            <i className="fa-solid fa-user-plus me-1"></i> Add New Account
                         </Link>
                     </div>
 
@@ -88,7 +89,7 @@ const AdminHeader = () => {
                                     notifications.map((note, idx) => (
                                         <li key={idx} onClick={() => toggleRead(note?._id)}>
                                             <div className="dropdown-item">
-                                                      {note.title} 
+                                                {note.title}
                                                 <small>{note.body}</small>
                                             </div>
                                         </li>

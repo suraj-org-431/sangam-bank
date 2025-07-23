@@ -2,24 +2,30 @@ import React, { useEffect, useState } from 'react';
 import './Login.css';
 import logo from '../../assets/images/logo.png';
 import { Link, useNavigate } from 'react-router-dom';
-import { login } from '../../api/auth';
-import { getToken, getUser, setToken, setUser } from '../../utils/auth';
+import { useAuth } from '../../context/AuthContext';
 import { adminRoute } from '../../utils/router';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login, token, user } = useAuth(); // ✅ use login method and auth state from context
 
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // ✅ Auto-redirect if already logged in
     useEffect(() => {
-        const token = getToken();
-        const user = getUser;
         if (token && user) {
             navigate(adminRoute('/dashboard'));
         }
-    }, [navigate]);
+    }, [token, user, navigate]);
+
+    useEffect(() => {
+        if (error) {
+            const timer = setTimeout(() => setError(''), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [error]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,7 +34,6 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         const { email, password } = formData;
 
         if (!email || !password) {
@@ -38,25 +43,19 @@ const Login = () => {
 
         try {
             setLoading(true);
-            const res = await login(email, password);
-
-            if (!res?.token || !res?.user) {
+            const user = await login({ email, password }); // ✅ use context's login
+            if (user) {
+                navigate(adminRoute('/dashboard'));
+            } else {
                 setError("Invalid login response.");
-                return;
             }
-
-            setToken(res.token);
-            setUser(res.user);
-
-            navigate(adminRoute('/dashboard'));
         } catch (err) {
-            console.error("Login failed:", err); // ✅ Log the error
-            setError(err.message || "Login failed.");
+            console.error("Login failed:", err);
+            setError(err.response?.data?.message || err.message || "Login failed.");
         } finally {
             setLoading(false);
         }
     };
-
 
     return (
         <div className="login-container d-flex align-items-center justify-content-center">

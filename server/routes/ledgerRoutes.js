@@ -12,18 +12,24 @@ import {
     getMonthlyLedgerReport,
     exportMonthlyLedgerReport,
 } from "../controllers/ledgerController.js";
+import { authenticateToken } from "../middleware/auth.js";
+import { authorize, autoRegisterPermission } from '../middleware/rbac.js';
 
 const router = express.Router();
+
+router.use(authenticateToken);
+
 const upload = multer({ dest: "uploads/" });
 
-router.post("/", upsertLedger);
-router.get('/monthly-report/export', exportMonthlyLedgerReport);
-router.get('/monthly-report', getMonthlyLedgerReport)
-router.get('/today-count', getTodayLedgerEntryCount);
-router.get('/financial-summary', getOverallFinancialSummary);
-router.get('/summary/:particular', getLedgerSummaryByParticular);
-router.get("/:ledgerId", getLedger);
-router.get("/", getAllLedgers);
-router.delete("/:ledgerId", deleteLedger);
-router.post("/import", upload.single("file"), importLedgerFromCSV); // Optional CSV import
+router.post("/", autoRegisterPermission, authorize(), upsertLedger);
+router.get('/monthly-report/export', autoRegisterPermission, authorize(), exportMonthlyLedgerReport);
+router.get('/monthly-report', autoRegisterPermission, authorize(), getMonthlyLedgerReport)
+router.get('/today-count', autoRegisterPermission, authorize(), getTodayLedgerEntryCount);
+router.get('/financial-summary', autoRegisterPermission, authorize(), getOverallFinancialSummary);
+router.get('/summary/:particular', autoRegisterPermission, authorize(), getLedgerSummaryByParticular);
+router.get("/:ledgerId", autoRegisterPermission, authorize(), getLedger);
+router.get("/", autoRegisterPermission, authorize(), getAllLedgers);
+router.delete("/:ledgerId", autoRegisterPermission, authorize(), deleteLedger);
+router.post("/import", autoRegisterPermission, authorize(), upload.single("file"), importLedgerFromCSV); // Optional CSV import
+
 export default router;

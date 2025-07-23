@@ -4,8 +4,12 @@ import { toast } from 'react-toastify';
 import { Form } from 'react-bootstrap';
 import { getAllLedgers } from '../../api/ledger';
 import { adminRoute } from '../../utils/router';
+import { fetchUserPermissions, hasPermission } from '../../utils/permissionUtils';
+import CommonModal from '../../components/common/CommonModal';
 
 const Ledger = () => {
+    const [userPermissions, setUserPermissions] = useState([]);
+    const [show403Modal, setShow403Modal] = useState(false);
     const [ledgerGroups, setLedgerGroups] = useState([]);
     const [summaryTotals, setSummaryTotals] = useState({});
     const [query, setQuery] = useState('');
@@ -21,6 +25,17 @@ const Ledger = () => {
     });
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const permissions = await fetchUserPermissions();
+                setUserPermissions(permissions || []);
+            } catch (err) {
+                console.error('Failed to load permissions', err);
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         loadSummary();
@@ -133,7 +148,13 @@ const Ledger = () => {
                     <div>
                         <button
                             className="btn btn-sm btn-primary"
-                            onClick={() => navigate(adminRoute('/ledger/create'))}
+                            onClick={() => {
+                                if (!hasPermission(userPermissions, 'POST:/ledger')) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                navigate(adminRoute('/ledger/create'))
+                            }}
                         >
                             + Create Ledger
                         </button>
@@ -230,6 +251,13 @@ const Ledger = () => {
                     </button>
                 </div>
             </div>
+            <CommonModal
+                show={show403Modal}
+                onHide={() => setShow403Modal(false)}
+                title="Access Denied"
+                type="access-denied"
+                emoji="🚫"
+            />
         </div>
     );
 };

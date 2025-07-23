@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { generateAccountNumber, upsertAccountDetails } from '../../api/account';
 import { adminRoute } from '../../utils/router';
 import { getConfig } from '../../api/config';
+import { calculateMaturityAmount } from '../../utils/maturityCalculator';
+import { calculateLoanDetails } from '../../utils/calculateLoanDetails';
 
 const CreateAccounts = () => {
     const location = useLocation();
@@ -12,6 +14,8 @@ const CreateAccounts = () => {
     const [loading, setLoading] = useState(false);
     const [interestRates, setInterestRates] = useState({});
     const [tenureOptions, setTenureOptions] = useState([]);
+    const [maturityAmount, setMaturityAmount] = useState(0);
+    const [loanDetails, setloanDetails] = useState('');
 
     const [formData, setFormData] = useState({
         accountType: '',
@@ -49,28 +53,100 @@ const CreateAccounts = () => {
         signature: null,
         verifierSignature: null,
         agreedToTerms: false,
-        loanType: '',
+        loanCategory: '',
         interestRate: '',
+        interestAccType: '',
+        paymentType: '',
+        totalInterest: '',
+        totalPayable: '',
+        monthlyPayment: '',
+        hasInsurance: 'yes',
 
     });
 
     useEffect(() => {
         const fetchConfig = async () => {
             const config = await getConfig();
-            if (config?.loanInterestRates) {
+
+            // Set interest rates and tenure options for loan
+            if (Array.isArray(config?.loanInterestRates)) {
                 const ratesMap = {};
-                config.loanInterestRates.forEach(rate => {
-                    ratesMap[rate.type] = rate.rate;
+                config.loanInterestRates.forEach(category => {
+                    ratesMap[category.type] = category.rate;
                 });
                 setInterestRates(ratesMap);
             }
-            if (Array.isArray(config.loanDurations)) {
+
+            if (Array.isArray(config?.loanDurations)) {
                 setTenureOptions(config.loanDurations);
+            }
+
+            const { accountType, depositAmount, tenure, paymentType, interestRate } = formData;
+
+            // For RD/FD/MIS
+            if (['recurring', 'fixed', 'mis'].includes(accountType)) {
+                const result = calculateMaturityAmount(
+                    depositAmount,
+                    tenure,
+                    config,
+                    accountType
+                );
+                setMaturityAmount(result.maturityAmount);
+            }
+
+            // For Loan EMI Calculation
+            if (accountType === 'loan') {
+                const principal = parseFloat(depositAmount);
+                const rate = parseFloat(interestRate); // Annual interest rate in %
+                const months = parseInt(tenure);
+                const isSimpleInterest = paymentType === 's/i';
+
+                const validPrincipal = !isNaN(principal);
+                const validRate = !isNaN(rate);
+                const validTenure = !isNaN(months) && months > 0;
+
+                const result = calculateLoanDetails({
+                    amount: Number(principal),
+                    interestRate: Number(rate),
+                    tenure: isSimpleInterest ? Infinity : Number(months),
+                    paymentType
+                });
+
+                if (validPrincipal && validRate && (validTenure || isSimpleInterest)) {
+                    if (result) {
+                        setloanDetails(result);
+
+                        setFormData(prev => ({
+                            ...prev,
+                            totalInterest: result?.totalInterest?.toFixed?.(2) || '',
+                            totalPayable: result?.totalPayable?.toFixed?.(2) || '',
+                            monthlyPayment: result?.monthlyPayment?.toFixed?.(2) || result?.monthlyInterest?.toFixed?.(2) || '',
+                            tenure: isSimpleInterest ? '' : months
+                        }));
+                    }
+                } else {
+                    setFormData(prev => ({
+                        ...prev,
+                        totalInterest: '',
+                        totalPayable: '',
+                        monthlyPayment: '',
+                        tenure: ''
+                    }));
+                }
+            }
+            else {
+                setFormData(prev => ({
+                    ...prev,
+                    totalInterest: '',
+                    totalPayable: '',
+                    monthlyPayment: '',
+                }));
             }
         };
 
         fetchConfig();
-    }, []);
+    }, [formData?.tenure, formData?.depositAmount, formData?.paymentType, formData?.interestRate]);
+
 
     useEffect(() => {
         const formatDate = (dateStr) => {
@@ -100,14 +176,16 @@ const CreateAccounts = () => {
 
     }, [accountData]);
 
-
     const handleChange = (e) => {
         const { name, value, type, checked, files } = e.target;
-        const val = type === 'checkbox' ? checked
-            : type === 'file' ? files[0]
+        const val = type === 'checkbox'
+            ? checked
+            : type === 'file'
+                ? files[0]
                 : value.trimStart();
-        if (name.includes('address.')) {
-            const [_, field] = name.split('.');
+
+        if (name.startsWith('address.')) {
+            const [, field] = name.split('.');
             setFormData(prev => ({
                 ...prev,
                 address: {
@@ -116,25 +194,27 @@ const CreateAccounts = () => {
                 }
             }));
         }
-        else if (name === 'loanType') {
-            const rate = interestRates[value] || '';
+        else if (name === 'loanCategory') {
+            const selectedCategory = value;
+            const rate = interestRates?.[selectedCategory] ?? '';
             setFormData(prev => ({
                 ...prev,
-                loanType: value,
+                loanCategory: selectedCategory,
                 interestRate: rate
             }));
-            return;
-        } else if (name === 'accountType') {
+        }
+        else if (name === 'accountType') {
             let updatedFields = { accountType: value };
-            if (value === 'MIS') {
-                updatedFields.tenure = 72;
+            if (value === 'fixed') {
+                updatedFields.tenure = 84;
             }
+
             setFormData(prev => ({
                 ...prev,
                 ...updatedFields
             }));
-            return;
-        } else {
+        }
+        else {
             setFormData(prev => ({ ...prev, [name]: val }));
         }
     };
@@ -228,7 +308,7 @@ const CreateAccounts = () => {
 
     const handleGenerateAccountNumber = async () => {
         try {
-            const res = await generateAccountNumber();
+            const res = await generateAccountNumber(formData?.accountType);
             if (res?.accountNumber) {
                 setFormData(prev => ({ ...prev, accountNumber: res.accountNumber }));
                 toast.success('Account number generated');
@@ -236,6 +316,7 @@ const CreateAccounts = () => {
                 toast.error('Failed to generate account number');
             }
         } catch (err) {
+            console.log(err)
             toast.error('Error generating account number');
         }
     };
@@ -255,7 +336,7 @@ const CreateAccounts = () => {
                 'introducerKnownSince', 'accountNumber', 'nomineeName', 'nomineeRelation',
                 'nomineeAge', 'managerName', 'lekhpalOrRokapal', 'formDate',
                 'accountOpenDate', 'address', 'signature', 'verifierSignature',
-                'profileImage', 'loanType', 'interestRate'
+                'profileImage', 'loanCategory', 'interestRate', 'interestAccType', 'paymentType', 'hasInsurance'
             ];
 
             const cleanPayload = {
@@ -310,27 +391,41 @@ const CreateAccounts = () => {
                                     />
                                 </div>
                             )}
-                            </div> 
-                            
                         </div>
+
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Account Type / खाता प्रकार</label>
                             <select name="accountType" value={formData.accountType} onChange={handleChange} className="form-select">
                                 <option value="">Select / चुनें</option>
-                                <option value="Recurring">RD / आवर्ती जमा</option>
-                                <option value="Savings">Saving / बचत</option>
-                                <option value="Fixed">Fixed / सावधि जमा</option>
-                                <option value="MIS">MIS / मासिक आय योजना</option>
-                                <option value="Loan">Loan / ऋण</option>
+                                <option value="s/f">Saving Fund / बचत कोष</option>
+                                <option value="recurring">RD / आवर्ती जमा</option>
+                                <option value="fixed">fixed / सावधि जमा</option>
+                                <option value="mis">mis / मासिक आय योजना</option>
+                                <option value="loan">loan / ऋण</option>
                             </select>
                         </div>
-                        {formData.accountType === 'Loan' && (
+
+                        <div className="col-md-6 mb-3">
+                            <label className="form-label text-black">Insurance / बीमा</label>
+                            <select
+                                name="hasInsurance"
+                                value={formData.hasInsurance}
+                                onChange={handleChange}
+                                className="form-select"
+                            >
+                                <option value="">Select / चुनें</option>
+                                <option value="yes">Yes / हाँ</option>
+                                <option value="no">No / नहीं</option>
+                            </select>
+                        </div>
+
+                        {formData.accountType === 'loan' && (
                             <>
                                 <div className="col-md-6 mb-3">
-                                    <label className="form-label text-black">Loan Type / ऋण प्रकार</label>
+                                    <label className="form-label text-black">loan Category / ऋण श्रेणी</label>
                                     <select
-                                        name="loanType"
-                                        value={formData.loanType}
+                                        name="loanCategory"
+                                        value={formData.loanCategory}
                                         onChange={handleChange}
                                         className="form-select"
                                     >
@@ -345,6 +440,20 @@ const CreateAccounts = () => {
                                 </div>
 
                                 <div className="col-md-6 mb-3">
+                                    <label className="form-label text-black">Payment Type / भुगतान प्रकार</label>
+                                    <select
+                                        name="paymentType"
+                                        value={formData.paymentType}
+                                        onChange={handleChange}
+                                        className="form-select"
+                                    >
+                                        <option value="">Select / चुनें</option>
+                                        <option value="s/i">Simple Interest / साधारण ब्याज</option>
+                                        <option value="emi">EMI / ईएमआई (समान मासिक किस्त)</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
                                     <label className="form-label text-black">Interest Rate (%) / ब्याज दर</label>
                                     <input
                                         name="interestRate"
@@ -352,37 +461,90 @@ const CreateAccounts = () => {
                                         className="form-control"
                                         value={formData.interestRate}
                                         readOnly
+                                        disabled
                                     />
                                 </div>
                             </>
                         )}
-                        {['Recurring', 'Loan', 'MIS', 'Fixed'].includes(formData.accountType) && (
-                            <div className="col-md-6 mb-3">
-                                <label className="form-label text-black">Tenure (months) / अवधि</label>
-                                {formData.accountType === 'MIS' ? (
-                                    <input
-                                        type="number"
-                                        name="tenure"
-                                        className="form-control"
-                                        value={72}
-                                        readOnly
-                                        disabled
-                                    />
-                                ) : (
+
+                        {formData.accountType === 'mis' && (
+                            <>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-black">Interest Account Type / खाता प्रकार</label>
+                                    <select name="interestAccType" value={formData.interestAccType} onChange={handleChange} className="form-select">
+                                        <option value="">Select / चुनें</option>
+                                        <option value="s/f">Saving Fund / बचत कोष</option>
+                                        <option value="recurring">RD / आवर्ती जमा</option>
+                                    </select>
+                                </div>
+                            </>
+                        )}
+                        {(
+                            (formData.accountType === 'loan' && formData.paymentType === 'emi') ||
+                            ['recurring', 'fixed', 'mis'].includes(formData.accountType)
+                        ) && (
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-black">Tenure (months) / अवधि</label>
                                     <select
                                         name="tenure"
                                         className="form-control"
                                         value={formData.tenure}
                                         onChange={handleChange}
                                         required
+                                        disabled={formData.accountType === 'fixed'}
                                     >
                                         <option value="">Select tenure</option>
-                                        {tenureOptions.map(month => (
+                                        {(
+                                            formData.accountType === 'loan' && formData.paymentType === 'emi'
+                                                ? tenureOptions.filter(month => month <= 36)
+                                                : tenureOptions
+                                        ).map(month => (
                                             <option key={month} value={month}>
                                                 {month} months
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+                            )}
+                        <div className="col-md-6 mb-3">
+                            <label className="form-label text-black">
+                                {formData?.accountType === "loan"
+                                    ? "loan Amount / ऋण राशि"
+                                    : formData?.accountType === "recurring"
+                                        ? "Monthly Installment / मासिक क़िस्त"
+                                        : "Deposit Amount / जमा राशि"}
+                            </label>
+                            <input
+                                name="depositAmount"
+                                type="number"
+                                value={formData.depositAmount}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder={
+                                    formData?.accountType === "loan"
+                                        ? "Enter loan amount"
+                                        : formData?.accountType === "recurring"
+                                            ? "Enter monthly installment"
+                                            : "Enter deposit amount"
+                                }
+                            />
+                            {['recurring', 'fixed', 'mis'].includes(formData.accountType) && (
+                                <p className="bg-gray-100 p-4 rounded"><strong>Maturity Amount (परिपक्व राशि):</strong> ₹{maturityAmount}</p>
+                            )}
+                        </div>
+                        {loanDetails && (
+                            <div className="bg-gray-100 p-4 rounded">
+                                {formData.paymentType === 's/i' && loanDetails.monthlyInterest ? (
+                                    <>
+                                        <p><strong>मासिक भुगतान (Monthly Payment):</strong> ₹{loanDetails.monthlyInterest.toFixed(2)}</p>
+                                        <p>{loanDetails.message}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p><strong>कुल ब्याज (Total Interest):</strong>  ₹{loanDetails.totalInterest?.toFixed(2)}</p>
+                                        <p><strong>मासिक भुगतान (Monthly Payment):</strong> ₹{loanDetails.monthlyPayment?.toFixed(2)}</p>
+                                        <p><strong>कुल भुगतान (Total Payable):</strong> ₹{loanDetails.totalPayable?.toFixed(2)}</p>
+                                    </>
                                 )}
                             </div>
                         )}
@@ -418,7 +580,15 @@ const CreateAccounts = () => {
                         </div>
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Phone / फ़ोन</label>
-                            <input name="phone" value={formData.phone} onChange={handleChange} className="form-control" />
+                            <input
+                                type="tel"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                className="form-control"
+                                pattern="[0-9]{10}"
+                                placeholder="Enter 10-digit phone number"
+                            />
                         </div>
 
                         <div className="col-md-6 mb-3">
@@ -462,29 +632,6 @@ const CreateAccounts = () => {
                             <label className="form-label text-black">Aadhar / आधार</label>
                             <input name="aadhar" value={formData.aadhar} onChange={handleChange} className="form-control" />
                         </div>
-                        <div className="col-md-6 mb-3">
-                            <label className="form-label text-black">
-                                {formData?.accountType === "Loan"
-                                    ? "Loan Amount / ऋण राशि"
-                                    : formData?.accountType === "Recurring"
-                                        ? "Monthly Installment / मासिक क़िस्त"
-                                        : "Deposit Amount / जमा राशि"}
-                            </label>
-                            <input
-                                name="depositAmount"
-                                type="number"
-                                value={formData.depositAmount}
-                                onChange={handleChange}
-                                className="form-control"
-                                placeholder={
-                                    formData?.accountType === "Loan"
-                                        ? "Enter loan amount"
-                                        : formData?.accountType === "Recurring"
-                                            ? "Enter monthly installment"
-                                            : "Enter deposit amount"
-                                }
-                            />
-                        </div>
 
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Introducer Name / पहचानकर्ता का नाम</label>
@@ -527,10 +674,6 @@ const CreateAccounts = () => {
                             </div>
                         </div>
 
-                        {/* <div className="col-md-6 mb-3">
-                            <label className="form-label text-black">Account Number / खाता संख्या</label>
-                            <input name="accountNumber" value={formData.accountNumber} onChange={handleChange} className="form-control" />
-                        </div> */}
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Nominee Name / नामांकित</label>
                             <input name="nomineeName" value={formData.nomineeName} onChange={handleChange} className="form-control" />

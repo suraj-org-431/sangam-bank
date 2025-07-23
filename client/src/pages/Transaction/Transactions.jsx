@@ -6,9 +6,13 @@ import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import { adminRoute } from '../../utils/router';
 import { getAllTransactions, exportTransactions } from '../../api/transaction';
+import { fetchUserPermissions, hasPermission } from '../../utils/permissionUtils';
+import CommonModal from '../../components/common/CommonModal';
 
 const Transactions = () => {
     const [transactions, setTransactions] = useState([]);
+    const [userPermissions, setUserPermissions] = useState([]);
+    const [show403Modal, setShow403Modal] = useState(false);
     const [query, setQuery] = useState('');
     const [filters, setFilters] = useState({ type: '', accountType: '' });
     const [loading, setLoading] = useState(false);
@@ -16,6 +20,17 @@ const Transactions = () => {
     const [totalPages, setTotalPages] = useState(1);
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const permissions = await fetchUserPermissions();
+                setUserPermissions(permissions || []);
+            } catch (err) {
+                console.error('Failed to load permissions', err);
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         fetchTransactions();
@@ -104,15 +119,33 @@ const Transactions = () => {
                 </div>
 
                 <div className="d-flex gap-2 flex-wrap mt-3 mb-3 justify-content-end">
-                    <button className="btn btn-sm btn-outline-primary" onClick={() => handleExport('excel')}>
+                    <button className="btn btn-sm btn-outline-primary" onClick={() => {
+                        if (!hasPermission(userPermissions, 'POST:/transactions/export')) {
+                            setShow403Modal(true);
+                            return;
+                        }
+                        handleExport('excel')
+                    }}>
                         📥 Export Excel
                     </button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleExport('pdf')}>
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => {
+                        if (!hasPermission(userPermissions, 'POST:/transactions/export')) {
+                            setShow403Modal(true);
+                            return;
+                        }
+                        handleExport('pdf')
+                    }}>
                         📄 Export PDF
                     </button>
                     <button
                         className="btn btn-sm btn-primary"
-                        onClick={() => navigate(adminRoute('/transaction/create'))}
+                        onClick={() => {
+                            if (!hasPermission(userPermissions, 'POST:/transactions')) {
+                                setShow403Modal(true);
+                                return;
+                            }
+                            navigate(adminRoute('/transaction/create'))
+                        }}
                     >
                         + Create Transaction
                     </button>
@@ -150,7 +183,7 @@ const Transactions = () => {
                                             <td>{format(new Date(tx.date), 'dd MMM yyyy')}</td>
                                             <td>{tx.accountId?.accountNumber || '-'}</td>
                                             <td>{tx.accountId?.applicantName || '-'}</td>
-                                            <td>{tx.accountId?.accountType || '-'}</td>
+                                            <td>{tx.accountId?.accountType?.toUpperCase() || '-'}</td>
                                             <td>
                                                 <span className={`badge ${tx.type === 'deposit' ? 'bg-success' :
                                                     tx.type === 'loanDisbursed' ? 'bg-primary' :
@@ -188,6 +221,10 @@ const Transactions = () => {
                                             <td>{tx.description || '-'}</td>
                                             <td>
                                                 <button className="btn btn-sm btn-outline-info me-2" onClick={() => {
+                                                    if (!hasPermission(userPermissions, 'GET:/transactions')) {
+                                                        setShow403Modal(true);
+                                                        return;
+                                                    }
                                                     navigate(adminRoute(`/transaction/view/${tx?._id}`), { state: { transaction: tx } });
                                                 }}>Receipt</button>
                                             </td>
@@ -219,6 +256,13 @@ const Transactions = () => {
                     </div>
                 )}
             </div>
+            <CommonModal
+                show={show403Modal}
+                onHide={() => setShow403Modal(false)}
+                title="Access Denied"
+                type="access-denied"
+                emoji="🚫"
+            />
         </div>
     );
 };

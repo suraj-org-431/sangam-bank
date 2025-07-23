@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken, logout } from '../utils/auth';
+import { getToken, removeToken } from '../utils/auth';
 
 const API = axios.create({
     baseURL: process.env.REACT_APP_API_URL,
@@ -23,8 +23,7 @@ API.interceptors.response.use(
     (res) => res,
     (err) => {
         if (err.response?.status === 401) {
-            logout();
-            window.location.href = '/admin/login';
+            removeToken();
         }
         return Promise.reject(err);
     }

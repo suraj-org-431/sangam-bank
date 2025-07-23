@@ -76,9 +76,9 @@ export const importAccountsFromCSV = async (formData) => {
     }
 };
 
-export const generateAccountNumber = async () => {
+export const generateAccountNumber = async (accountType) => {
     try {
-        const res = await API.get('/accounts/generate-account-number');
+        const res = await API.get(`/accounts/generate-account-number/?accountType=${accountType}`);
         return res.data?.data;
     } catch (err) {
         throw new Error(err?.response?.data?.message || 'Error in generating account number');

@@ -34,7 +34,7 @@ const configSchema = new mongoose.Schema({
     },
 
     initialDeposits: {
-        Savings: { type: Number, default: 100 },    // Default min deposit for savings
+        's/f': { type: Number, default: 100 },    // Default min deposit for savings
         Recurring: { type: Number, default: 200 },  // For RD
         Fixed: { type: Number, default: 500 }       // For FD
     },

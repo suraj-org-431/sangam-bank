@@ -55,10 +55,14 @@ const loanSchema = new Schema({
         type: Number,
         required: true
     },
-    loanType: {
+    loanCategory: {
         type: String,
         enum: ['personal', 'education', 'gold', 'vehicle', 'home', 'business'],
         required: true
+    },
+    paymentType: {
+        type: String,
+        enum: ['s/i', 'emi'],
     },
     disbursedAmount: {
         type: Number,
@@ -70,7 +74,8 @@ const loanSchema = new Schema({
     },
     tenureMonths: {
         type: Number,
-        required: true
+        required: false,
+        default: null,
     },
     disbursedDate: Date,
     status: {

@@ -1,17 +1,21 @@
 import express from 'express';
 import { addLoanAdjustment, approveLoan, approveLoanAdjustment, createLoan, disburseLoan, getAllLoans, getLoanById, rejectLoan, rejectLoanAdjustment, repayLoan } from '../controllers/loanController.js';
+import { authorize, autoRegisterPermission } from '../middleware/rbac.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/', createLoan);
-router.get('/', getAllLoans);
-router.get('/:loanId', getLoanById);
-router.put('/:loanId/approve', approveLoan);
-router.put('/:loanId/reject', rejectLoan);
-router.post('/:loanId/disburse', disburseLoan);
-router.post('/:loanId/adjust', addLoanAdjustment);
-router.put('/:loanId/adjust/:adjustId/approve', approveLoanAdjustment); // ✅ already added
-router.put('/:loanId/adjust/:adjustId/reject', rejectLoanAdjustment);
-router.post('/:loanId/repay', repayLoan);
+router.use(authenticateToken);
+
+router.post('/', autoRegisterPermission, authorize(), createLoan);
+router.get('/', autoRegisterPermission, authorize(), getAllLoans);
+router.get('/:loanId', autoRegisterPermission, authorize(), getLoanById);
+router.put('/:loanId/approve', autoRegisterPermission, authorize(), approveLoan);
+router.put('/:loanId/reject', autoRegisterPermission, authorize(), rejectLoan);
+router.post('/:loanId/disburse', autoRegisterPermission, authorize(), disburseLoan);
+router.post('/:loanId/adjust', autoRegisterPermission, authorize(), addLoanAdjustment);
+router.put('/:loanId/adjust/:adjustId/approve', autoRegisterPermission, authorize(), approveLoanAdjustment); // ✅ already added
+router.put('/:loanId/adjust/:adjustId/reject', autoRegisterPermission, authorize(), rejectLoanAdjustment);
+router.post('/:loanId/repay', autoRegisterPermission, authorize(), repayLoan);
 
 export default router;

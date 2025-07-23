@@ -2,10 +2,11 @@ import React from 'react';
 import './Unauthorized.css';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/images/logo.png';
-import { logout } from '../../utils/auth';
 import { adminRoute } from '../../utils/router';
+import { useAuth } from '../../context/AuthContext';
 
 const Unauthorized = () => {
+    const { logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
