@@ -33,6 +33,11 @@ const recurringInstallmentSchema = new Schema({
 }, { _id: false });
 
 const maturitySchema = new Schema({
+    interestAccount: {
+        type: Schema.Types.ObjectId,
+        ref: 'Accounts',
+        required: false
+    },
     depositAmount: { type: Number, default: 0 },
     interestRate: { type: Number, default: 0 },
     maturityAmount: { type: Number, default: 0 },

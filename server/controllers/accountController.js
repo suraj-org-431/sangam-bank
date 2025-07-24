@@ -279,26 +279,6 @@ export const upsertAccount = async (req, res) => {
                     });
                 }
             } else if (lowerType === 'mis') {
-                payload[`${lowerType}Details`] = {
-                    depositAmount: actualDeposit,
-                    interestRate: 100 / 7,
-                    maturityAmount,
-                    maturityDate,
-                    totalInterest
-                };
-
-                account = await Account.create(payload);
-
-                if (actualDeposit > 0) {
-                    await createTransactionAndLedger({
-                        account,
-                        type: 'deposit',
-                        amount: actualDeposit,
-                        description: 'Initial deposit on account opening',
-                        date: openDate,
-                        createdBy: req.user?.name || 'System',
-                    });
-                }
                 if (['recurring', 's/f'].includes(interestAccType?.toLowerCase())) {
                     const secondType = interestAccType.toLowerCase();
 
@@ -331,6 +311,15 @@ export const upsertAccount = async (req, res) => {
 
                     const secondaryAccount = await Account.create(secondaryPayload);
 
+                    payload[`${lowerType}Details`] = {
+                        interestAccount: secondaryAccount?._id,
+                        depositAmount: actualDeposit,
+                        interestRate: 100 / 7,
+                        maturityAmount,
+                        maturityDate,
+                        totalInterest
+                    };
+
                     await notify(
                         'account',
                         secondaryAccount?._id,
@@ -338,6 +327,20 @@ export const upsertAccount = async (req, res) => {
                         `Auto-Created ${interestAccType.toUpperCase()} Account`,
                         `Account #${secondaryPayload.accountNumber} created for interest payout from MIS`
                     );
+                }
+
+
+                account = await Account.create(payload);
+
+                if (actualDeposit > 0) {
+                    await createTransactionAndLedger({
+                        account,
+                        type: 'deposit',
+                        amount: actualDeposit,
+                        description: 'Initial deposit on account opening',
+                        date: openDate,
+                        createdBy: req.user?.name || 'System',
+                    });
                 }
             } else if (['s/f', 'current', 'auto-created'].includes(lowerType)) {
                 const key = lowerType === 'auto-created' ? 'savingsDetails' : `${lowerType}Details`;
