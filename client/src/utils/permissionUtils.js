@@ -24,9 +24,16 @@ export const hasPermission = (permissions, permissionString) => {
     return permissions.some(p => {
         if (p.method?.toUpperCase() !== method.toUpperCase()) return false;
 
-        const matchFn = match(p.route, { decode: decodeURIComponent });
-        return matchFn(path) !== false;
+        if (!p.route || typeof p.route !== 'string') return false;
+
+        try {
+            const matchFn = match(p.route, { decode: decodeURIComponent });
+            return matchFn(path) !== false;
+        } catch (err) {
+            return false;
+        }
     });
+
 };
 
 

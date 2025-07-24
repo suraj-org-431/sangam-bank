@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import API from './axios';
 
 // 🔹 Fetch paginated account details
@@ -114,5 +115,66 @@ export const payRecurringInstallment = async (accountId) => {
         return res.data?.data;
     } catch (err) {
         throw new Error(err?.response?.data?.message || 'Failed to pay installment');
+    }
+};
+
+// 🔹 Get account details by user ID
+export const getAccountTransactions = async ({
+    accountId,
+    page = 1,
+    limit = 10,
+    type,
+    startDate,
+    endDate
+}) => {
+    try {
+        const res = await API.get(`/accounts/${accountId}/transactions`, {
+            params: {
+                page,
+                limit,
+                type,
+                startDate,
+                endDate
+            },
+        });
+        return res?.data;
+    } catch (err) {
+        throw new Error(err?.response?.data?.message || 'Failed to fetch account details');
+    }
+};
+
+// ✅ Export transactions to PDF or Excel
+export const exportAccountTransactions = async ({
+    accountId,
+    page = 1,
+    limit = 10,
+    type,
+    startDate,
+    endDate,
+    format,
+}) => {
+    try {
+        const res = await API.get(`/accounts/${accountId}/export`, {
+            responseType: 'blob',
+            params: {
+                page,        // Optional, depending on how you handle data in backend
+                limit,       // Optional
+                type,
+                startDate,
+                endDate,
+                format
+            }
+        });
+
+        const contentType = format === 'pdf'
+            ? 'application/pdf'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+        const blob = new Blob([res.data], { type: contentType });
+        const filename = `transactions.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+        saveAs(blob, filename);
+    } catch (err) {
+        console.error(`❌ Failed to export ${format}:`, err);
+        throw new Error(`Failed to export ${format}`);
     }
 };

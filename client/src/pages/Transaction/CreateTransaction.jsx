@@ -7,7 +7,6 @@ import { adminRoute } from '../../utils/router';
 
 const allowedTransactionTypes = {
     's/f': ['deposit', 'withdrawal'],
-    current: ['deposit', 'withdrawal'],
     fixed: ['deposit'],
     recurring: ['deposit'],
     loan: ['deposit'],
@@ -45,7 +44,7 @@ const CreateTransaction = () => {
     }, [formData.date]);
 
     const isBlockedAccountType = (accountType) => {
-        return ['MIS'].includes(accountType); // You can add more types if needed
+        return ['mis'].includes(accountType); // You can add more types if needed
     };
 
     const handleSearch = async () => {
@@ -352,7 +351,7 @@ const CreateTransaction = () => {
                             </div>
                         )}
                         <div className="text-end">
-                            <button className="btn btn-success" type="submit" disabled={selectedAccount.accountType === 'fixed' || selectedAccount.accountType === 'MIS'}>Submit Transaction</button>
+                            <button className="btn btn-success" type="submit" disabled={selectedAccount.accountType === 'fixed' || selectedAccount.accountType === 'mis'}>Submit Transaction</button>
                         </div>
                     </form>
                 ) : selectedAccount ? (

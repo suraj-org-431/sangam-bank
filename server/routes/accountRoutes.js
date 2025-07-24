@@ -10,7 +10,9 @@ import {
     importAccountsFromCSV,
     searchAccounts,
     upsertAccount,
-    payRecurringInstallment // ✅ Add the new controller here
+    payRecurringInstallment, // ✅ Add the new controller here
+    getAllTransaction,
+    exportAccountTransactions
 } from "../controllers/accountController.js";
 
 import { upload } from "../middleware/upload.js";
@@ -31,7 +33,6 @@ router.post("/", upload.fields([
 
 // ✅ Recurring Installment Payment Route
 router.post("/:accountId/pay-installment", autoRegisterPermission, authorize(), payRecurringInstallment);
-
 // ✅ Other account routes
 router.get('/search', autoRegisterPermission, authorize(), searchAccounts);
 router.get('/count', autoRegisterPermission, authorize(), getAccountsCount);
@@ -40,6 +41,8 @@ router.get('/total-amount', autoRegisterPermission, authorize(), getTotalDeposit
 router.get("/generate-account-number", autoRegisterPermission, authorize(), generateAccountNumberAPI);
 router.post("/import", uploadCSV.single("file"), autoRegisterPermission, authorize(), importAccountsFromCSV);
 router.get("/", autoRegisterPermission, authorize(), getAllAccounts);
+router.get("/:accId/transactions", autoRegisterPermission, authorize(), getAllTransaction);
+router.get('/:accId/export', autoRegisterPermission, authorize(), exportAccountTransactions);
 router.get("/:accId", autoRegisterPermission, authorize(), getAccount);
 router.delete("/:accId", autoRegisterPermission, authorize(), deleteAccount);
 

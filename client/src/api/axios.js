@@ -24,6 +24,7 @@ API.interceptors.response.use(
     (err) => {
         if (err.response?.status === 401) {
             removeToken();
+            window.location.href = '/admin/login';
         }
         return Promise.reject(err);
     }

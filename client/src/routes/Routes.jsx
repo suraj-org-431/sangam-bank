@@ -34,6 +34,7 @@ import MonthlyLedgerReport from "../pages/Ledger/MonthlyLedgerReport";
 import RoleManagement from "../pages/Roles/Roles";
 import CreateEditRole from "../pages/Roles/CreateEditRole";
 import ViewPermissions from "../pages/Roles/ViewPermissions";
+import ViewTransactions from "../pages/Account/ViewTransactions";
 
 // ✅ Constants for allowed roles
 const allowedRoles = ["super-admin", "branch-manager", "account-officer"];
@@ -80,6 +81,7 @@ const AdminRoutes = () => {
                 <Route path="account/create" element={<CreateAccounts />} />
                 <Route path="account/edit/:id" element={<CreateAccounts />} />
                 <Route path="account/view/:id" element={<ViewAccount />} />
+                <Route path="account/transactions/:id" element={<ViewTransactions />} />
 
                 {/* Ledger */}
                 <Route path="ledger-report" element={<MonthlyLedgerReport />} />

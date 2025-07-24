@@ -16,6 +16,9 @@ import { accountNumberStartFrom } from "../utils/constants.js";
 import { calculateLoanDetails } from "../utils/calculateLoanDetails.js";
 import AccountCharge from "../models/AccountCharge.js";
 import { generateRepaymentSchedule } from "../utils/loanUtils.js";
+import Transaction from "../models/Transaction.js";
+import ExcelJS from "exceljs";
+import PDFDocument from "pdfkit";
 
 const withFullUrl = (path, baseUrl) => {
     if (!path) return null;
@@ -801,5 +804,215 @@ export const payRecurringInstallment = async (req, res) => {
     } catch (err) {
         console.error("❌ RD Payment Error:", err);
         return errorResponse(res, 500, "Installment payment failed", err.message);
+    }
+};
+
+export const getAllTransaction = async (req, res) => {
+    try {
+        const { accId } = req.params;
+        const {
+            page = 1,
+            limit = 10,
+            type,
+            startDate,
+            endDate
+        } = req.query;
+
+        const skip = (Number(page) - 1) * Number(limit);
+
+        // ✅ Check if account exists
+        const account = await Account.findById(accId);
+        if (!account) {
+            return res.status(404).json({ success: false, message: "Account not found" });
+        }
+
+        // ✅ Build date filter
+        const dateFilter = {};
+        if (startDate) dateFilter.$gte = new Date(startDate);
+        if (endDate) dateFilter.$lte = new Date(endDate);
+
+        // ✅ Build filter for Transaction model
+        const transactionQuery = { accountId: accId };
+        if (type) transactionQuery.type = type;
+        if (startDate || endDate) transactionQuery.date = dateFilter;
+
+        const transactions = await Transaction.find(transactionQuery).sort({ date: -1 });
+
+        // ✅ Build filter for AccountCharge
+        const chargeQuery = { accountId: accId };
+        if (type && type !== 'loanRepayment') chargeQuery.type = type;
+        if (startDate || endDate) chargeQuery.chargedDate = dateFilter;
+
+        const charges = await AccountCharge.find(chargeQuery).sort({ chargedDate: -1 });
+
+        // ✅ Merge and format both sources
+        const merged = [
+            ...transactions.map(tx => ({
+                source: "Transaction",
+                type: tx.type,
+                label: tx.description || tx.type,
+                amount: tx.amount,
+                paymentType: tx.paymentType,
+                date: tx.date,
+                createdAt: tx.createdAt,
+                transactionNo: tx.transactionNo,
+                transactionId: tx.transactionId,
+                noteBreakdown: tx.noteBreakdown
+            })),
+            ...charges.map(charge => ({
+                source: "Charge",
+                type: charge.type,
+                label: charge.label,
+                amount: charge.amount,
+                date: charge.chargedDate,
+                createdAt: charge.createdAt,
+                notes: charge.notes
+            }))
+        ];
+
+        // ✅ Sort by createdAt or date
+        const sorted = merged.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+
+        // ✅ Paginate
+        const paginated = sorted.slice(skip, skip + Number(limit));
+
+        return res.status(200).json({
+            success: true,
+            message: "Transactions fetched successfully",
+            data: paginated,
+            totalCount: sorted.length,
+            page: Number(page),
+            limit: Number(limit)
+        });
+
+    } catch (error) {
+        console.error("Error fetching transactions:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch transactions",
+            error: error.message
+        });
+    }
+};
+
+export const exportAccountTransactions = async (req, res) => {
+    try {
+        const { accId } = req.params;
+        const { type, startDate, endDate, format = 'pdf' } = req.query;
+
+        // ✅ Validate account
+        const account = await Account.findById(accId);
+        if (!account) {
+            return res.status(404).json({ success: false, message: "Account not found" });
+        }
+
+        const dateFilter = {};
+        if (startDate) dateFilter.$gte = new Date(startDate);
+        if (endDate) dateFilter.$lte = new Date(endDate);
+
+        const transactionQuery = { accountId: accId };
+        if (type) transactionQuery.type = type;
+        if (startDate || endDate) transactionQuery.date = dateFilter;
+
+        const chargeQuery = { accountId: accId };
+        if (type && type !== 'loanRepayment') chargeQuery.type = type;
+        if (startDate || endDate) chargeQuery.chargedDate = dateFilter;
+
+        const transactions = await Transaction.find(transactionQuery).sort({ date: -1 });
+        const charges = await AccountCharge.find(chargeQuery).sort({ chargedDate: -1 });
+
+        const merged = [
+            ...transactions.map(tx => ({
+                source: "Transaction",
+                type: tx.type,
+                label: tx.description || tx.type,
+                amount: tx.amount,
+                date: tx.date,
+                paymentType: tx.paymentType || ""
+            })),
+            ...charges.map(charge => ({
+                source: "Charge",
+                type: charge.type,
+                label: charge.label,
+                amount: charge.amount,
+                date: charge.chargedDate,
+                paymentType: ""
+            }))
+        ];
+
+        const sorted = merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // ✅ Handle PDF Export
+        if (format === 'pdf') {
+            const doc = new PDFDocument({ margin: 30, size: 'A4' });
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=account_${accId}_transactions.pdf`);
+
+            doc.pipe(res);
+
+            doc.fontSize(18).text(`Account Transactions Report`, { align: 'center' });
+            doc.moveDown();
+            doc.fontSize(12).text(`Account ID: ${accId}`);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`);
+            doc.moveDown();
+
+            sorted.forEach((entry, index) => {
+                doc.text(`${index + 1}. [${entry.source}] ${entry.label}`);
+                doc.text(`   Type: ${entry.type}`);
+                doc.text(`   Amount: ₹${entry.amount}`);
+                doc.text(`   Date: ${new Date(entry.date).toLocaleString()}`);
+                if (entry.paymentType) doc.text(`   Payment Type: ${entry.paymentType}`);
+                doc.moveDown();
+            });
+
+            doc.end();
+        }
+
+        // ✅ Handle Excel Export
+        else if (format === 'excel') {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Account Transactions");
+
+            worksheet.columns = [
+                { header: "S.No", key: "sno", width: 8 },
+                { header: "Source", key: "source", width: 15 },
+                { header: "Label", key: "label", width: 30 },
+                { header: "Type", key: "type", width: 15 },
+                { header: "Amount", key: "amount", width: 15 },
+                { header: "Date", key: "date", width: 25 },
+                { header: "Payment Type", key: "paymentType", width: 20 }
+            ];
+
+            sorted.forEach((entry, index) => {
+                worksheet.addRow({
+                    sno: index + 1,
+                    ...entry,
+                    date: new Date(entry.date).toLocaleString()
+                });
+            });
+
+            res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            res.setHeader("Content-Disposition", `attachment; filename=account_${accId}_transactions.xlsx`);
+
+            await workbook.xlsx.write(res);
+            res.end();
+        }
+
+        // ❌ Unsupported format
+        else {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid format. Only 'pdf' and 'excel' are supported."
+            });
+        }
+
+    } catch (error) {
+        console.error("Export Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to export transactions",
+            error: error.message
+        });
     }
 };

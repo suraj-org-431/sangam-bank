@@ -309,13 +309,13 @@ const Accounts = () => {
                                             }
                                             navigate(adminRoute(`/account/view/${acc?._id}`), { state: { accountData: acc } });
                                         }}>View</button>
-                                        {/* <button className="btn btn-sm btn-outline-secondary" onClick={() => {
-                                            if (!hasPermission(userPermissions, 'POST:/accounts')) {
-                                                setShow403Modal(true);
-                                                return;
-                                            }
-                                            navigate(adminRoute(`/account/edit/${acc?._id}`), { state: { accountData: acc } });
-                                        }}>Edit</button> */}
+                                        <button className="btn btn-sm btn-outline-secondary" onClick={() => {
+                                            // if (!hasPermission(userPermissions, `GET:/accounts/${acc?._id}/transactions`)) {
+                                            //     setShow403Modal(true);
+                                            //     return;
+                                            // }
+                                            navigate(adminRoute(`/account/transactions/${acc?._id}`), { state: { accountData: acc } });
+                                        }}>View Transactions</button>
                                     </td>
                                 </tr>
                             ))}
