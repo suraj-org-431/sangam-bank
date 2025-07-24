@@ -4,120 +4,95 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminRoute } from '../../utils/router';
 
-const ledgerParticularOptions = [
-    "Interest Payout",
-    "Salary Payment",
-    "Office Expenses",
-    "Adjustment Entry",
-    "Cash in Hand Adjustment",
-    "Add new..."
+const chargeTypes = [
+    { value: 'interestPayout', label: 'Interest Payout' },
+    { value: 'salaryPayment', label: 'Salary Payment' },
+    { value: 'officeExpenses', label: 'Office Expenses' },
+    { value: 'cashInHand', label: 'Cash in Hand Adjustment' },
+    { value: 'processingFee', label: 'Processing Fee' },
+    { value: 'insurance', label: 'Insurance' },
+    { value: 'fine', label: 'Fine' },
+    { value: 'serviceCharge', label: 'Service Charge' },
+    { value: 'interest', label: 'Interest' },
+    { value: 'loanInterest', label: 'Loan Interest' },
+    { value: 'other', label: 'Other' },
+    { value: 'addNew', label: '"Add new..."' }
 ];
 
-const transactionTypes = [
-    { value: "deposit", label: "Deposit / जमा" },
-    { value: "withdrawal", label: "Withdrawal / निकासी" },
-    { value: "adjustment", label: "Adjustment / समायोजन" },
-];
-
-const CreateOrEditLedger = () => {
+const CreateOrEditCharge = () => {
     const navigate = useNavigate();
     const { state } = useLocation();
-    const { ledgerData } = state || {};
-
+    const { chargeData } = state || {};
     const [showCustomParticular, setShowCustomParticular] = useState(false);
-    const [particularOptions, setParticularOptions] = useState(ledgerParticularOptions);
-    const [formData, setFormData] = useState({
-        date: '',
-        particulars: '',
-        transactionType: '',
-        amount: '',
-        balance: '',
-        description: ''
-    });
 
     const customInputRef = useRef(null);
 
+    const [formData, setFormData] = useState({
+        type: '',
+        label: '',
+        amount: '',
+        chargedDate: '',
+        notes: ''
+    });
+
     useEffect(() => {
-        const formatDate = (dateStr) => {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            return date.toISOString().split('T')[0];
-        };
-
-        if (ledgerData) {
-            setFormData({
-                ...ledgerData,
-                date: formatDate(ledgerData.date)
-            });
-
-            if (
-                ledgerData.particulars &&
-                !ledgerParticularOptions.includes(ledgerData.particulars)
-            ) {
-                setParticularOptions(prev =>
-                    [...new Set([...prev.filter(p => p !== 'Add new...'), ledgerData.particulars, 'Add new...'])]
-                );
-            }
+        if (chargeData) {
+            const formattedDate = new Date(chargeData.chargedDate).toISOString().split('T')[0];
+            setFormData({ ...chargeData, chargedDate: formattedDate });
         } else {
             setFormData(prev => ({
                 ...prev,
-                date: formatDate(new Date())
+                chargedDate: new Date().toISOString().split('T')[0]
             }));
         }
-    }, [ledgerData]);
-
-    useEffect(() => {
-        if (showCustomParticular && customInputRef.current) {
-            customInputRef.current.focus();
-        }
-    }, [showCustomParticular]);
+    }, [chargeData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleParticularSelect = (e) => {
+    const handleTypeSelect = (e) => {
         const value = e.target.value;
-        if (value === 'Add new...') {
+        if (value === 'addNew') {
             setShowCustomParticular(true);
-            setFormData(prev => ({ ...prev, particulars: '' }));
+            setFormData(prev => ({ ...prev, type: '' }));
         } else {
             setShowCustomParticular(false);
-            setFormData(prev => ({ ...prev, particulars: value }));
+            setFormData(prev => ({ ...prev, type: value }));
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const { date, particulars, transactionType, amount } = formData;
+        const { type, label, amount, chargedDate, notes } = formData;
 
-        if (!date || !particulars || !transactionType || !amount) {
+        if (!type || !label || !amount || !chargedDate) {
             toast.error("All required fields must be filled");
             return;
         }
 
         try {
             await upsertLedgerEntry(formData);
-            toast.success(`Ledger ${ledgerData ? 'updated' : 'created'} successfully`);
-            navigate(adminRoute('/ledger-report'));
+            toast.success(`Charge ${chargeData ? 'updated' : 'created'} successfully`);
+            navigate(adminRoute('/charges'));
         } catch (err) {
-            toast.error(err.message || 'Failed to save');
+            toast.error(err.message || 'Failed to save charge');
         }
     };
 
     return (
         <div className="px-4 py-4">
             <div className="card p-4 shadow-sm border-0">
-                <h4 className="mb-4 text-primary">{ledgerData ? 'Edit' : 'Create'} Ledger</h4>
+                <h4 className="mb-4 text-primary">{chargeData ? 'Edit' : 'Create'} Account Ledger</h4>
                 <form onSubmit={handleSubmit}>
                     <div className="row g-3">
                         <div className="col-md-4">
-                            <label className="form-label text-black">Date <span className="text-danger">*</span></label>
+                            <label className="form-label">Date <span className="text-danger">*</span></label>
                             <input
                                 type="date"
-                                name="date"
-                                value={formData.date}
+                                name="chargedDate"
+                                value={formData.chargedDate}
                                 onChange={handleChange}
                                 className="form-control"
                                 required
@@ -125,18 +100,18 @@ const CreateOrEditLedger = () => {
                         </div>
 
                         <div className="col-md-4">
-                            <label className="form-label text-black">Particulars <span className="text-danger">*</span></label>
+                            <label className="form-label">Charge Type <span className="text-danger">*</span></label>
                             {!showCustomParticular ? (
                                 <select
                                     name="particulars"
                                     className="form-select"
-                                    value={formData.particulars}
-                                    onChange={handleParticularSelect}
+                                    value={formData.type}
+                                    onChange={handleTypeSelect}
                                     required
                                 >
-                                    <option value="">-- Select Particular --</option>
-                                    {particularOptions.map((item, idx) => (
-                                        <option key={idx} value={item}>{item}</option>
+                                    <option value="">-- Select Type --</option>
+                                    {chargeTypes.map(t => (
+                                        <option key={t.value} value={t.value}>{t.label}</option>
                                     ))}
                                 </select>
                             ) : (
@@ -144,7 +119,7 @@ const CreateOrEditLedger = () => {
                                     type="text"
                                     name="particulars"
                                     className="form-control"
-                                    value={formData.particulars}
+                                    value={formData.type}
                                     onChange={handleChange}
                                     ref={customInputRef}
                                     placeholder="Enter new particular"
@@ -154,25 +129,7 @@ const CreateOrEditLedger = () => {
                         </div>
 
                         <div className="col-md-4">
-                            <label className="form-label text-black">Transaction Type <span className="text-danger">*</span></label>
-                            <select
-                                name="transactionType"
-                                value={formData.transactionType}
-                                onChange={handleChange}
-                                className="form-select"
-                                required
-                            >
-                                <option value="">-- Select Type --</option>
-                                {transactionTypes.map(txnT => (
-                                    <option key={txnT?.value} value={txnT?.value}>
-                                        {txnT?.value.charAt(0).toUpperCase() + txnT?.label.slice(1)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="col-md-4">
-                            <label className="form-label text-black">Amount ₹ <span className="text-danger">*</span></label>
+                            <label className="form-label">Amount ₹ <span className="text-danger">*</span></label>
                             <input
                                 type="number"
                                 name="amount"
@@ -184,28 +141,41 @@ const CreateOrEditLedger = () => {
                             />
                         </div>
 
-                        <div className="col-md-8">
-                            <label className="form-label text-black">Remarks</label>
+                        <div className="col-md-6">
+                            <label className="form-label">Label <span className="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                name="label"
+                                value={formData.label}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="e.g. Processing Fee for FD"
+                                required
+                            />
+                        </div>
+
+                        <div className="col-md-6">
+                            <label className="form-label">Notes</label>
                             <textarea
-                                name="description"
-                                value={formData.description}
+                                name="notes"
+                                value={formData.notes}
                                 onChange={handleChange}
                                 className="form-control"
                                 rows={2}
-                                placeholder="Optional notes or references"
+                                placeholder="Optional remarks"
                             />
                         </div>
                     </div>
 
                     <div className="text-end mt-4">
                         <button className="btn btn-success px-4" type="submit">
-                            {ledgerData ? 'Update Ledger' : 'Save Ledger'}
+                            {chargeData ? 'Update Charge' : 'Save Charge'}
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 
-export default CreateOrEditLedger;
+export default CreateOrEditCharge;

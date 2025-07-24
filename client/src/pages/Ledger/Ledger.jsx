@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MonthlyLedgerTable from "./MonthlyLedgerReport";
 import { useNavigate } from "react-router-dom";
 import { fetchUserPermissions, hasPermission } from "../../utils/permissionUtils";
@@ -12,6 +12,7 @@ const monthNames = [
 ];
 
 const Ledger = () => {
+    const printRef = useRef();
     const navigate = useNavigate();
     const [userPermissions, setUserPermissions] = useState([]);
     const [categorizedEntry, setCategorizedEntry] = useState([]);
@@ -102,7 +103,7 @@ const Ledger = () => {
 
                         <div>
                             <button className="btn btn-sm btn-outline-primary" onClick={() => {
-                                if (!hasPermission(userPermissions, 'GET:/monthly-report/export')) {
+                                if (!hasPermission(userPermissions, 'GET:/ledger/export')) {
                                     setShow403Modal(true);
                                     return;
                                 }
@@ -111,9 +112,9 @@ const Ledger = () => {
                                 📥 Export Excel
                             </button>
                         </div>
-                        <div>
+                        {/* <div>
                             <button className="btn btn-sm btn-outline-danger" onClick={() => {
-                                if (!hasPermission(userPermissions, 'GET:/monthly-report/export')) {
+                                if (!hasPermission(userPermissions, 'GET:/ledger/export')) {
                                     setShow403Modal(true);
                                     return;
                                 }
@@ -121,7 +122,7 @@ const Ledger = () => {
                             }}>
                                 📄 Export PDF
                             </button>
-                        </div>
+                        </div> */}
                         <div>
                             <button
                                 className="btn btn-sm btn-primary"
@@ -140,6 +141,7 @@ const Ledger = () => {
                 </div>
                 <div className='border my-4'></div>
                 <MonthlyLedgerTable
+                    ref={printRef}
                     categorizedEntry={categorizedEntry}
                     entries={entries}
                     openingBalance={openingBalance}

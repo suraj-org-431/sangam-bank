@@ -106,9 +106,8 @@ export const getMonthlyLedgerReport = async ({ month, year, page = 1, limit = 10
 // 🔹 Export Monthly Ledger Report (Excel / PDF)
 export const exportMonthlyLedgerReport = async ({ month, year, format = 'excel' }) => {
 
-    console.log(format)
     try {
-        const response = await API.get('/ledger/monthly-report/export', {
+        const response = await API.get('/ledger/export', {
             params: { month, year, format },
             responseType: format === 'excel' ? 'blob' : 'arraybuffer', // important for binary download
         });

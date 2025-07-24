@@ -93,6 +93,18 @@ const Loans = () => {
                     <h4 className="theme-text">Loan List</h4>
                     <div className="d-flex gap-2 flex-wrap align-items-end">
                         <div>
+                            <input
+                                type="text"
+                                placeholder="Search borrower..."
+                                className="form-control form-control-sm"
+                                value={query}
+                                onChange={(e) => {
+                                    setQuery(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                            />
+                        </div>
+                        <div>
                             <label className="form-label mb-1 text-black">Loan Status</label>
                             <Form.Select
                                 size="sm"
@@ -134,7 +146,7 @@ const Loans = () => {
                             }}
                         />
                     </div>
-                    <div>
+                    {/* <div>
                         <button
                             className="btn btn-sm btn-primary"
                             onClick={() => {
@@ -147,7 +159,7 @@ const Loans = () => {
                         >
                             + Create Loan
                         </button>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Table */}
