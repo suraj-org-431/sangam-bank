@@ -13,6 +13,7 @@ import Transaction from "../models/Transaction.js";
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { generateMonthlyLedgerData } from '../utils/ledgerUtils.js';
+import AccountCharge from "../models/AccountCharge.js";
 
 // ✅ Create or Update (Upsert) Ledger
 export const upsertLedger = async (req, res) => {
@@ -745,100 +746,100 @@ export const getTodayLedgerEntryCount = async (req, res) => {
     }
 };
 
-export const getMonthlyLedgerReport = async (req, res) => {
-    try {
-        let { month, year, page = 1, limit = 10 } = req.query;
-        page = parseInt(page);
-        limit = parseInt(limit);
+// export const getMonthlyLedgerReport = async (req, res) => {
+//     try {
+//         let { month, year, page = 1, limit = 10 } = req.query;
+//         page = parseInt(page);
+//         limit = parseInt(limit);
 
-        if (!month || !year) {
-            const now = new Date();
-            month = now.getMonth() + 1;
-            year = now.getFullYear();
-        }
+//         if (!month || !year) {
+//             const now = new Date();
+//             month = now.getMonth() + 1;
+//             year = now.getFullYear();
+//         }
 
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 1);
+//         const startDate = new Date(year, month - 1, 1);
+//         const endDate = new Date(year, month, 1);
 
-        const allLedgers = await Ledger.find().sort({ createdAt: 1 }).lean();
+//         const allLedgers = await Ledger.find().sort({ createdAt: 1 }).lean();
 
-        let openingBalance = 0;
-        for (const entry of allLedgers) {
-            if (new Date(entry.date) >= startDate) break;
+//         let openingBalance = 0;
+//         for (const entry of allLedgers) {
+//             if (new Date(entry.date) >= startDate) break;
 
-            const amt = entry.amount || 0;
-            if (["deposit", "interest", "openingBalance", "rdInstallment"].includes(entry.transactionType)) {
-                openingBalance += amt;
-            } else if (["withdrawal", "loanDisbursed", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType)) {
-                openingBalance -= amt;
-            }
-        }
+//             const amt = entry.amount || 0;
+//             if (["deposit", "interest", "openingBalance", "rdInstallment"].includes(entry.transactionType)) {
+//                 openingBalance += amt;
+//             } else if (["withdrawal", "loanDisbursed", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType)) {
+//                 openingBalance -= amt;
+//             }
+//         }
 
-        let balance = openingBalance;
-        let fullEntries = [];
-        let entryId = 1;
+//         let balance = openingBalance;
+//         let fullEntries = [];
+//         let entryId = 1;
 
-        fullEntries.push({
-            entryId: entryId++,
-            date: startDate.toISOString().split('T')[0],
-            ledgerHead: "Opening Balance",
-            description: "Cash in hand",
-            debit: `₹${openingBalance.toLocaleString('en-IN')}`,
-            credit: "-",
-            balance: `₹${openingBalance.toLocaleString('en-IN')}`
-        });
+//         fullEntries.push({
+//             entryId: entryId++,
+//             date: startDate.toISOString().split('T')[0],
+//             ledgerHead: "Opening Balance",
+//             description: "Cash in hand",
+//             debit: `₹${openingBalance.toLocaleString('en-IN')}`,
+//             credit: "-",
+//             balance: `₹${openingBalance.toLocaleString('en-IN')}`
+//         });
 
-        for (const entry of allLedgers) {
-            const entryDate = new Date(entry.date);
-            if (entryDate < startDate || entryDate >= endDate) continue;
+//         for (const entry of allLedgers) {
+//             const entryDate = new Date(entry.date);
+//             if (entryDate < startDate || entryDate >= endDate) continue;
 
-            const isCredit = ["deposit", "interest", "openingBalance", "rdInstallment"].includes(entry.transactionType);
-            const isDebit = ["withdrawal", "loanDisbursed", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType);
-            const amt = entry.amount || 0;
+//             const isCredit = ["deposit", "interest", "openingBalance", "rdInstallment"].includes(entry.transactionType);
+//             const isDebit = ["withdrawal", "loanDisbursed", "loanRepayment", "fine", "penalty", "principal", "interestPayment"].includes(entry.transactionType);
+//             const amt = entry.amount || 0;
 
-            if (isCredit) balance += amt;
-            if (isDebit) balance -= amt;
+//             if (isCredit) balance += amt;
+//             if (isDebit) balance -= amt;
 
-            fullEntries.push({
-                entryId: entryId++,
-                date: entryDate.toISOString().split('T')[0],
-                ledgerHead: entry.transactionType.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-                description: entry.description || '-',
-                debit: isDebit ? `₹${amt.toLocaleString('en-IN')}` : '-',
-                credit: isCredit ? `₹${amt.toLocaleString('en-IN')}` : '-',
-                balance: `₹${balance.toLocaleString('en-IN')}`
-            });
-        }
+//             fullEntries.push({
+//                 entryId: entryId++,
+//                 date: entryDate.toISOString().split('T')[0],
+//                 ledgerHead: entry.transactionType.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+//                 description: entry.description || '-',
+//                 debit: isDebit ? `₹${amt.toLocaleString('en-IN')}` : '-',
+//                 credit: isCredit ? `₹${amt.toLocaleString('en-IN')}` : '-',
+//                 balance: `₹${balance.toLocaleString('en-IN')}`
+//             });
+//         }
 
-        fullEntries.push({
-            entryId: entryId,
-            date: new Date(endDate.getTime() - 1).toISOString().split('T')[0],
-            ledgerHead: "Closing Balance",
-            description: "End of period balance",
-            debit: "-",
-            credit: "-",
-            balance: `₹${balance.toLocaleString('en-IN')}`
-        });
+//         fullEntries.push({
+//             entryId: entryId,
+//             date: new Date(endDate.getTime() - 1).toISOString().split('T')[0],
+//             ledgerHead: "Closing Balance",
+//             description: "End of period balance",
+//             debit: "-",
+//             credit: "-",
+//             balance: `₹${balance.toLocaleString('en-IN')}`
+//         });
 
-        const totalEntries = fullEntries.length;
-        const totalPages = Math.ceil(totalEntries / limit);
-        const paginatedEntries = fullEntries.slice((page - 1) * limit, page * limit);
+//         const totalEntries = fullEntries.length;
+//         const totalPages = Math.ceil(totalEntries / limit);
+//         const paginatedEntries = fullEntries.slice((page - 1) * limit, page * limit);
 
-        return successResponse(res, 200, "Monthly ledger report generated", {
-            month,
-            year,
-            openingBalance,
-            closingBalance: balance,
-            currentPage: page,
-            totalPages,
-            totalEntries,
-            entries: paginatedEntries,
-        });
-    } catch (err) {
-        console.error("❌ Monthly Ledger Report Error:", err);
-        return errorResponse(res, 500, "Failed to generate report", err.message);
-    }
-};
+//         return successResponse(res, 200, "Monthly ledger report generated", {
+//             month,
+//             year,
+//             openingBalance,
+//             closingBalance: balance,
+//             currentPage: page,
+//             totalPages,
+//             totalEntries,
+//             entries: paginatedEntries,
+//         });
+//     } catch (err) {
+//         console.error("❌ Monthly Ledger Report Error:", err);
+//         return errorResponse(res, 500, "Failed to generate report", err.message);
+//     }
+// };
 
 export const exportMonthlyLedgerReport = async (req, res) => {
     try {
@@ -904,4 +905,221 @@ export const exportMonthlyLedgerReport = async (req, res) => {
         return errorResponse(res, 500, "Failed to export monthly ledger report", err.message);
     }
 };
+
+export const getMonthlyLedgerReport = async (req, res) => {
+    try {
+        const { month, year } = req.query;
+        if (!month || !year) return badRequestResponse(res, "Month and Year are required.");
+
+        const selectedMonth = parseInt(month);
+        const selectedYear = parseInt(year);
+        const startDate = new Date(selectedYear, selectedMonth - 1, 1);
+        const endDate = new Date(selectedYear, selectedMonth, 1);
+
+        const creditTypes = ['deposit', 'rdinstallment', 'loanrepayment', 'interestpayment'];
+        const debitTypes = ['withdrawal', 'loandisbursed', 'processingfee', 'fine', 'servicecharge', 'insurance', 'principal', 'loaninterest'];
+        const accountTypes = ['deposit', 'withdrawal', 'rdinstallment', 'transfer'];
+        const loanTypes = ['loanrepayment', 'loandisbursed', 'principal', 'interestpayment'];
+        const chargeTypes = ['fine', 'processingfee', 'insurance', 'servicecharge', 'loaninterest', 'other'];
+
+        const accountEntriesGrouped = {};
+        const loanEntriesGrouped = {};
+        const chargeEntriesGrouped = {};
+        const mergedEntries = [];
+
+        let accountTotalDebitAll = 0, accountTotalCreditAll = 0;
+        let loanTotalDebitAll = 0, loanTotalCreditAll = 0;
+        let chargeTotalDebitAll = 0, chargeTotalCreditAll = 0;
+
+        const transactions = await Transaction.find({ createdAt: { $gte: startDate, $lt: endDate } })
+            .populate('accountId', 'accountType accountNumber')
+            .lean();
+
+        const charges = await AccountCharge.find({ createdAt: { $gte: startDate, $lt: endDate } })
+            .populate('accountId', 'accountType accountNumber')
+            .lean();
+
+        for (const tx of transactions) {
+            const type = tx.type?.toLowerCase();
+            const isCredit = creditTypes.includes(type);
+            const isDebit = debitTypes.includes(type);
+            const amount = tx.amount || 0;
+
+            mergedEntries.push({
+                type: tx.type?.toLowerCase(),
+                amount,
+                debit: isDebit ? amount : 0,
+                credit: isCredit ? amount : 0,
+                description: tx.description || tx.note || '',
+                date: tx.createdAt,
+                source: 'Transaction',
+                accountType: tx.accountId?.accountType || 'Unknown',
+                accountNumber: tx.accountId?.accountNumber || '',
+            });
+        }
+
+        for (const charge of charges) {
+            const chargeType = charge.type?.toLowerCase() || 'unknown';
+            if (!chargeTypes.includes(chargeType)) continue;
+
+            if (!chargeEntriesGrouped[chargeType]) {
+                chargeEntriesGrouped[chargeType] = {
+                    entries: [],
+                    totalDebit: 0,
+                    totalCredit: 0,
+                    total: 0
+                };
+            }
+
+            const entry = {
+                date: charge.chargedDate || charge.createdAt,
+                particulars: charge.label || charge.notes || 'Charge',
+                type: chargeType,
+                debit: 0,
+                credit: charge.amount || 0,
+                accountNumber: charge.accountId?.accountNumber || '',
+                accountHolderName: charge.accountId?.accountHolderName || '',
+                accountType: charge.accountId?.accountType || 'Unknown'
+            };
+
+            chargeEntriesGrouped[chargeType].entries.push(entry);
+            chargeEntriesGrouped[chargeType].totalCredit += entry.credit || 0;
+            chargeEntriesGrouped[chargeType].total =
+                chargeEntriesGrouped[chargeType].totalCredit - chargeEntriesGrouped[chargeType].totalDebit;
+
+            chargeTotalCreditAll += entry.credit || 0;
+
+            mergedEntries.push({
+                ...entry,
+                amount: entry.credit,
+                description: entry.particulars,
+                source: 'AccountCharge',
+            });
+        }
+
+        mergedEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // === Opening Balance ===
+        const pastTransactions = await Transaction.find({ createdAt: { $lt: startDate } }).lean();
+        const pastCharges = await AccountCharge.find({ createdAt: { $lt: startDate } }).lean();
+
+        const pastCredits = pastTransactions
+            .filter(tx => creditTypes.includes(tx.type?.toLowerCase()))
+            .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+        const pastDebits = [
+            ...pastTransactions.filter(tx => debitTypes.includes(tx.type?.toLowerCase())),
+            ...pastCharges
+        ].reduce((sum, entry) => sum + (entry.amount || 0), 0);
+
+        const openingBalance = pastCredits - pastDebits;
+
+        const openingEntry = {
+            type: "Opening Balance",
+            amount: openingBalance,
+            debit: 0,
+            credit: openingBalance,
+            description: "Opening Balance",
+            date: startDate,
+            source: "System",
+            accountType: "All"
+        };
+
+        // === Closing Balance ===
+        const tillTransactions = await Transaction.find({ createdAt: { $lt: endDate } }).lean();
+        const tillCharges = await AccountCharge.find({ createdAt: { $lt: endDate } }).lean();
+
+        const tillCredits = tillTransactions
+            .filter(tx => creditTypes.includes(tx.type?.toLowerCase()))
+            .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+        const tillDebits = [
+            ...tillTransactions.filter(tx => debitTypes.includes(tx.type?.toLowerCase())),
+            ...tillCharges
+        ].reduce((sum, entry) => sum + (entry.amount || 0), 0);
+
+        const closingBalance = tillCredits - tillDebits;
+
+        const closingEntry = {
+            type: "Closing Balance",
+            amount: closingBalance,
+            debit: 0,
+            credit: closingBalance,
+            description: "Closing Balance",
+            date: new Date(endDate.getTime() - 1),
+            source: "System",
+            accountType: "All"
+        };
+
+        mergedEntries.unshift(openingEntry);
+        mergedEntries.push(closingEntry);
+
+        // === Categorization ===
+        for (const entry of mergedEntries.slice(1, -1)) {
+            const type = entry.type?.toLowerCase();
+            const accType = entry.accountType || 'Unknown';
+
+            if (accountTypes.includes(type)) {
+                if (!accountEntriesGrouped[accType]) {
+                    accountEntriesGrouped[accType] = { entries: [], totalDebit: 0, totalCredit: 0, total: 0 };
+                }
+                accountEntriesGrouped[accType].entries.push(entry);
+                accountEntriesGrouped[accType].totalDebit += entry.debit || 0;
+                accountEntriesGrouped[accType].totalCredit += entry.credit || 0;
+                accountEntriesGrouped[accType].total =
+                    accountEntriesGrouped[accType].totalCredit - accountEntriesGrouped[accType].totalDebit;
+
+                accountTotalDebitAll += entry.debit || 0;
+                accountTotalCreditAll += entry.credit || 0;
+
+            } else if (loanTypes.includes(type)) {
+                if (!loanEntriesGrouped[accType]) {
+                    loanEntriesGrouped[accType] = { entries: [], totalDebit: 0, totalCredit: 0, total: 0 };
+                }
+                loanEntriesGrouped[accType].entries.push(entry);
+                loanEntriesGrouped[accType].totalDebit += entry.debit || 0;
+                loanEntriesGrouped[accType].totalCredit += entry.credit || 0;
+                loanEntriesGrouped[accType].total =
+                    loanEntriesGrouped[accType].totalCredit - loanEntriesGrouped[accType].totalDebit;
+
+                loanTotalDebitAll += entry.debit || 0;
+                loanTotalCreditAll += entry.credit || 0;
+            }
+        }
+
+        return successResponse(res, 200, "Monthly Ledger Report", {
+            opening: openingEntry,
+            closing: closingEntry,
+            fullEntries: mergedEntries,
+            categorized: {
+                accountEntries: {
+                    ...accountEntriesGrouped,
+                    totalDebitAll: accountTotalDebitAll,
+                    totalCreditAll: accountTotalCreditAll,
+                    totalAll: accountTotalCreditAll - accountTotalDebitAll
+                },
+                loanEntries: {
+                    ...loanEntriesGrouped,
+                    totalDebitAll: loanTotalDebitAll,
+                    totalCreditAll: loanTotalCreditAll,
+                    totalAll: loanTotalCreditAll - loanTotalDebitAll
+                },
+                chargeEntries: {
+                    ...chargeEntriesGrouped,
+                    totalDebitAll: chargeTotalDebitAll,
+                    totalCreditAll: chargeTotalCreditAll,
+                    totalAll: chargeTotalCreditAll - chargeTotalDebitAll
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        return errorResponse(res, 500, "Failed to generate ledger report.");
+    }
+};
+
+
+
+
 

@@ -22,24 +22,33 @@ const transactionSchema = new Schema({
 });
 
 transactionSchema.pre('save', async function (next) {
-    if (this.isNew && !this.transactionNo) {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
+    if (!this.isNew || this.transactionNo) return next();
 
-        const prefix = `TRX${year}${month}${day}`;
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const prefix = `TRX${year}${month}${day}`;
 
-        // Count how many transactions were created today (based on createdAt)
-        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    let sequence = 1;
+    let transactionNo;
+    let exists = true;
 
-        const count = await mongoose.model('Transaction').countDocuments({
-            createdAt: { $gte: startOfDay, $lte: endOfDay }
-        });
+    while (exists && sequence < 1000) {
+        transactionNo = `${prefix}${String(sequence).padStart(3, '0')}`;
 
-        const sequence = String(count + 1).padStart(3, '0'); // e.g., 001, 002...
-        this.transactionNo = `${prefix}${sequence}`;
+        // Check if this transactionNo already exists
+        const existing = await mongoose.model('Transaction').findOne({ transactionNo });
+        if (!existing) {
+            this.transactionNo = transactionNo;
+            exists = false;
+        } else {
+            sequence++;
+        }
+    }
+
+    if (exists) {
+        return next(new Error("Failed to generate unique transaction number"));
     }
 
     next();

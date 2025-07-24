@@ -84,8 +84,8 @@ const AdminRoutes = () => {
                 <Route path="account/transactions/:id" element={<ViewTransactions />} />
 
                 {/* Ledger */}
-                <Route path="ledger-report" element={<MonthlyLedgerReport />} />
-                <Route path="ledger" element={<Ledger />} />
+                <Route path="ledger" element={<MonthlyLedgerReport />} />
+                <Route path="ledger-report" element={<Ledger />} />
                 <Route path="ledger/create" element={<CreateOrEditLedger />} />
                 <Route path="ledger/edit/:id" element={<CreateOrEditLedger />} />
                 <Route path="ledger/particular/:particular" element={<LedgerSummary />} />

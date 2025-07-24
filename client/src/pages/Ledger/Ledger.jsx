@@ -1,30 +1,30 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { Form } from 'react-bootstrap';
-import { getAllLedgers } from '../../api/ledger';
-import { adminRoute } from '../../utils/router';
-import { fetchUserPermissions, hasPermission } from '../../utils/permissionUtils';
-import CommonModal from '../../components/common/CommonModal';
+import React, { useEffect, useState } from "react";
+import MonthlyLedgerTable from "./MonthlyLedgerReport";
+import { useNavigate } from "react-router-dom";
+import { fetchUserPermissions, hasPermission } from "../../utils/permissionUtils";
+import { toast } from "react-toastify";
+import { exportMonthlyLedgerReport, getMonthlyLedgerReport } from "../../api/ledger";
+import { adminRoute } from "../../utils/router";
+
+const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
 
 const Ledger = () => {
+    const navigate = useNavigate();
     const [userPermissions, setUserPermissions] = useState([]);
+    const [categorizedEntry, setCategorizedEntry] = useState([]);
     const [show403Modal, setShow403Modal] = useState(false);
-    const [ledgerGroups, setLedgerGroups] = useState([]);
-    const [summaryTotals, setSummaryTotals] = useState({});
-    const [query, setQuery] = useState('');
+    const [entries, setEntries] = useState([]);
+    const [totalEntries, setTotalEntries] = useState(0);
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
+    const [year, setYear] = useState(new Date().getFullYear());
+    const [openingBalance, setOpeningBalance] = useState(0);
+    const [closingBalance, setClosingBalance] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const limit = 10;
-    const hasWarnedRef = useRef(false);
-
-    const [filters, setFilters] = useState({
-        applicantName: '',
-        type: '',
-        accountType: ''
-    });
-
-    const navigate = useNavigate();
+    const [limit] = useState(10); // Fixed rows per page
 
     useEffect(() => {
         (async () => {
@@ -38,228 +38,120 @@ const Ledger = () => {
     }, []);
 
     useEffect(() => {
-        loadSummary();
-    }, [query, currentPage, filters]);
+        fetchReport();
+    }, [month, year, currentPage]);
 
-    const loadSummary = async () => {
+    const fetchReport = async () => {
         try {
-            const res = await getAllLedgers({
-                search: query,
-                page: currentPage,
-                limit,
-                transactionType: filters.type,
-                accountType: filters.accountType,
-            });
-
-            setLedgerGroups(res.entries || []);
-            setSummaryTotals({
-                overallCredit: res.summary?.overallCredit || 0,
-                overallDebit: res.summary?.overallDebit || 0,
-                overallInterest: res.summary?.overallInterest || 0,
-                overallBalance: res.summary?.overallBalance || 0,
-            });
+            const res = await getMonthlyLedgerReport({ month, year, page: currentPage, limit });
+            console.log(res)
+            setCategorizedEntry(res?.categorized)
+            setTotalEntries(res?.totalEntries)
+            setEntries(res.entries || []);
+            setOpeningBalance(res?.opening?.amount || 0);
+            setClosingBalance(res?.closing?.amount || 0);
             setTotalPages(res.totalPages || 1);
+
         } catch (err) {
-            toast.error('Failed to load ledger summary');
+            toast.error('Failed to load monthly ledger report');
         }
     };
 
-    const handlePageChange = (page) => {
-        if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
+    const handleExport = async (format) => {
+        try {
+            await exportMonthlyLedgerReport({ month, year, format });
+        } catch (err) {
+            toast.error('Export failed');
         }
-    };
-
-    const handleFilterChange = (e) => {
-        const { name, value } = e.target;
-        setFilters((prev) => ({ ...prev, [name]: value }));
-        setCurrentPage(1);
-    };
-
-    const handleClearFilters = () => {
-        setFilters({ applicantName: '', type: '', accountType: '' });
-        setQuery('');
-        setCurrentPage(1);
     };
 
     return (
         <div className="px-4 py-4">
             <div className="card theme-card border-0 shadow p-3">
-                <div className="d-flex justify-content-between align-items-center flex-wrap mb-3">
-                    <h4 className="theme-text">All Ledgers</h4>
-                    <div className="d-flex gap-2 flex-wrap align-items-end">
+                <div className="d-flex gap-2 flex-wrap justify-content-between w-100">
+                    <div>
+                        <h4 className="theme-text">Monthly Ledger Report</h4>
+                    </div>
+                    <div className='d-flex gap-2'>
                         <div>
-                            <label className="form-label mb-1 text-black">Transaction Type</label>
-                            <Form.Select
-                                size="sm"
-                                name="type"
-                                value={filters.type}
-                                onChange={handleFilterChange}
+                            <select
+                                className="form-select form-select-sm"
+                                value={month}
+                                onChange={(e) => setMonth(parseInt(e.target.value))}
                             >
-                                <option value="">All</option>
-                                <option value="deposit">Deposited / जमा</option>
-                                <option value="withdrawal">Withdrawn / निकासी</option>
-                                <option value="interest">Interest / ब्याज</option>
-                            </Form.Select>
+                                <option value="">Select Month</option>
+                                {monthNames.map((name, index) => (
+                                    <option key={index} value={index + 1}>
+                                        {name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div>
-                            <label className="form-label mb-1 text-black">Account Type</label>
-                            <Form.Select
-                                size="sm"
-                                name="accountType"
-                                value={filters.accountType}
-                                onChange={handleFilterChange}
-                            >
-                                <option value="">All</option>
-                                <option value="Recurring">RD / आवर्ती जमा</option>
-                                <option value="Savings">Saving / बचत</option>
-                                <option value="Fixed">Fixed / सावधि जमा</option>
-                                <option value="Mis">MIS / मासिक आय योजना</option>
-                                <option value="Loan">Loan / ऋण</option>
-                            </Form.Select>
+                            <input
+                                type="number"
+                                min="2023"
+                                max="2100"
+                                value={year}
+                                onChange={(e) => setYear(parseInt(e.target.value))}
+                                className="form-control form-control-sm pe-5"
+                                placeholder="Year (e.g. 2025)"
+                            />
                         </div>
 
-                        <div className="align-self-end">
+                        <div>
+                            <button className="btn btn-sm btn-outline-primary" onClick={() => {
+                                if (!hasPermission(userPermissions, 'GET:/monthly-report/export')) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                handleExport('excel')
+                            }}>
+                                📥 Export Excel
+                            </button>
+                        </div>
+                        <div>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => {
+                                if (!hasPermission(userPermissions, 'GET:/monthly-report/export')) {
+                                    setShow403Modal(true);
+                                    return;
+                                }
+                                handleExport('pdf')
+                            }}>
+                                📄 Export PDF
+                            </button>
+                        </div>
+                        <div>
                             <button
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={handleClearFilters}
+                                className="btn btn-sm btn-primary"
+                                onClick={() => {
+                                    if (!hasPermission(userPermissions, 'POST:/ledger')) {
+                                        setShow403Modal(true);
+                                        return;
+                                    }
+                                    navigate(adminRoute('/ledger/create'))
+                                }}
                             >
-                                Clear Filters
+                                + Create Ledger
                             </button>
                         </div>
                     </div>
                 </div>
-
-                {/* Search + Add */}
-                <div className="d-flex justify-content-end gap-2 mb-3">
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="Search Particular..."
-                            className="form-control form-control-sm"
-                            value={query}
-                            onChange={(e) => {
-                                setQuery(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() => {
-                                if (!hasPermission(userPermissions, 'POST:/ledger')) {
-                                    setShow403Modal(true);
-                                    return;
-                                }
-                                navigate(adminRoute('/ledger/create'))
-                            }}
-                        >
-                            + Create Ledger
-                        </button>
-                    </div>
-
-                </div>
-
-                {/* Ledger Table */}
-                <div className="table-responsive mb-4">
-                    <table className="table table-bordered theme-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Particular</th>
-                                <th>Total Credit (₹)</th>
-                                <th>Total Debit (₹)</th>
-                                <th>Total Interest (₹)</th>
-                                <th>Balance (₹)</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {ledgerGroups.length > 0 ? (
-                                ledgerGroups.map((item, index) => (
-                                    <tr
-                                        key={index}
-                                        className={item.isAutoCreated ? 'bg-warning-subtle' : ''}
-                                        style={item.isAutoCreated ? { borderLeft: '4px solid #ffc107' } : {}}
-                                    >
-                                        <td>{index + 1}</td>
-                                        <td>
-                                            {item.particulars || item._id}
-                                            {item.isAutoCreated && (
-                                                <span className="badge bg-warning text-dark ms-2">
-                                                    Auto-Created
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td>{item.totalCredit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        <td>{item.totalDebit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        <td>{item.totalInterest?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        <td>{item.balance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        <td>
-                                            <button
-                                                className="btn btn-sm btn-outline-primary"
-                                                onClick={() =>
-                                                    navigate(
-                                                        adminRoute(`/ledger/particular/${(item.particulars || item._id)?.replace(/\s+/g, '-')}`)
-                                                    )
-                                                }
-                                            >
-                                                View Summary
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="6" className="text-center">
-                                        No ledger entries found.
-                                    </td>
-                                </tr>
-                            )}
-
-                            <tr className="fw-bold bg-light">
-                                <td></td>
-                                <td>Total</td>
-                                <td>{summaryTotals.overallCredit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                <td>{summaryTotals.overallDebit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                <td>{summaryTotals.overallInterest?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                <td>{summaryTotals.overallBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="d-flex justify-content-end align-items-center gap-2">
-                    <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        Prev
-                    </button>
-                    <span>Page {currentPage} of {totalPages}</span>
-                    <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        Next
-                    </button>
-                </div>
+                <div className='border my-4'></div>
+                <MonthlyLedgerTable
+                    categorizedEntry={categorizedEntry}
+                    entries={entries}
+                    openingBalance={openingBalance}
+                    closingBalance={closingBalance}
+                    totalEntries={entries.length}
+                    month={7}
+                    year={2025}
+                />
             </div>
-            <CommonModal
-                show={show403Modal}
-                onHide={() => setShow403Modal(false)}
-                title="Access Denied"
-                type="access-denied"
-                emoji="🚫"
-            />
         </div>
-    );
-};
 
+    )
+
+}
 export default Ledger;

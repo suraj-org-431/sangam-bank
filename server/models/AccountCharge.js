@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const accountChargeSchema = new Schema({
-    accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
+    accountId: { type: Schema.Types.ObjectId, ref: 'Accounts', required: true },
 
     type: {
         type: String,

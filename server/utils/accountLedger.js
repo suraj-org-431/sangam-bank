@@ -56,7 +56,6 @@ export const createTransactionAndLedger = async ({
 
     await account.save();
 
-
     // ✅ Main Transaction
     const tx = await Transaction.create({
         accountId: account._id,
@@ -68,16 +67,6 @@ export const createTransactionAndLedger = async ({
         transactionId,
         loanId,
         noteBreakdown
-    });
-
-    await Ledger.create({
-        particulars: account.applicantName,
-        transactionType: type,
-        amount: parsedAmount,
-        balance: account.balance,
-        description,
-        date,
-        createdBy,
     });
 
     for (const txn of additionalTransactions) {
@@ -100,16 +89,6 @@ export const createTransactionAndLedger = async ({
             date,
             paymentType,
             loanId,
-            createdBy,
-        });
-
-        await Ledger.create({
-            particulars: account.applicantName,
-            transactionType: txn.type,
-            amount: extraAmount,
-            balance: account.balance,
-            description: txn.description,
-            date,
             createdBy,
         });
     }
