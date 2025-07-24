@@ -589,6 +589,13 @@ export const simpleinterestPayLoan = async (req, res) => {
                 createdBy: req.user?.name || 'Clerk',
                 additionalTransactions: [],
             });
+            const updatedLoanDetails = {
+                ...borrower.loanDetails,
+                totalPaidAmount: (borrower.loanDetails?.totalPaidAmount || 0) + amount
+            };
+            borrower.loanDetails = updatedLoanDetails;
+
+            await borrower.save();
 
         }
         return successResponse(res, 200, 'Loan repayment successful', {

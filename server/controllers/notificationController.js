@@ -5,11 +5,13 @@ export const getNotifications = async (req, res) => {
     try {
         const { page = 1, limit = 10, unreadOnly } = req.query;
         const skip = (page - 1) * limit;
-        const filter = { userId: req.user._id };
-        if (unreadOnly === 'true') filter.isRead = false;
+        let filter = {};
+        if (unreadOnly === 'true') {
+            filter.isRead = false;
+        }
 
         const [data, count] = await Promise.all([
-            Notification.find()
+            Notification.find(filter)
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(Number(limit)),

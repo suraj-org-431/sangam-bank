@@ -6,8 +6,8 @@ import { toast } from 'react-toastify';
 import { adminRoute } from '../../utils/router';
 
 const allowedTransactionTypes = {
-    Savings: ['deposit', 'withdrawal'],
-    Current: ['deposit', 'withdrawal'],
+    's/f': ['deposit', 'withdrawal'],
+    current: ['deposit', 'withdrawal'],
     fixed: ['deposit'],
     recurring: ['deposit'],
     loan: ['deposit'],
@@ -344,7 +344,7 @@ const CreateTransaction = () => {
                                 />
                             </div>
                         </div>
-                        {selectedAccount?.accountType !== 'Savings' && (
+                        {selectedAccount?.accountType !== 's/f' && (
                             <div className="alert alert-warning mt-2">
                                 {selectedAccount.accountType === 'fixed' && "Only initial deposit allowed. Withdrawal requires special approval."}
                                 {selectedAccount.accountType === 'recurring' && "Only monthly/periodic deposits are allowed."}

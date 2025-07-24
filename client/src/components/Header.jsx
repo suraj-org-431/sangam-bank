@@ -16,20 +16,21 @@ const AdminHeader = () => {
     const [profile, setProfile] = useProfile();
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [notifRes, messageRes] = await Promise.all([
-                    getUnreadNotifications(),
-                    getUnreadMessages()
-                ]);
-                setNotifications(notifRes?.data || []);
-                setMessages(messageRes?.data || []);
-            } catch (err) {
-                console.error("Header fetch error:", err);
-            }
-        };
         fetchData();
-    }, [navigate]);
+    }, []);
+
+    const fetchData = async () => {
+        try {
+            const [notifRes, messageRes] = await Promise.all([
+                getUnreadNotifications(),
+                getUnreadMessages()
+            ]);
+            setNotifications(notifRes?.data || []);
+            setMessages(messageRes?.data || []);
+        } catch (err) {
+            console.error("Header fetch error:", err);
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -40,7 +41,8 @@ const AdminHeader = () => {
     const toggleRead = async (id) => {
         try {
             await markAsRead(id);
-            await getUnreadNotifications();
+            const notifRes = await getUnreadNotifications();
+            setNotifications(notifRes?.data || []);
         } catch (err) {
             toast.error(err.message);
         }

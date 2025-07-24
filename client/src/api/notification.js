@@ -21,7 +21,7 @@ export const getUnreadNotifications = async () => {
 
 export const markAsRead = async (id) => {
     try {
-        return await API.patch(`/notifications/${id}/read`);
+        return await API.put(`/notifications/${id}/read`);
     } catch (err) {
         throw new Error(err?.response?.data?.message || 'Failed to mark as read');
     }
