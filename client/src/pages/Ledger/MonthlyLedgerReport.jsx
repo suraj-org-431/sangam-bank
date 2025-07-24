@@ -1,7 +1,7 @@
 import React from 'react';
 import SummaryTable from './SummaryTable';
 
-const MonthlyLedgerTable = ({ categorizedEntry, openingBalance, closingBalance, totalEntries, month, year }) => {
+const MonthlyLedgerTable = ({ categorizedEntry, entries, openingBalance, closingBalance, totalEntries, month, year }) => {
     const formatAmount = (amount) =>
         amount !== null && amount !== undefined
             ? new Intl.NumberFormat('en-IN', {
@@ -44,7 +44,7 @@ const MonthlyLedgerTable = ({ categorizedEntry, openingBalance, closingBalance, 
             <div className='border my-4'></div>
 
             {/* Summary Tables */}
-            <SummaryTable categorizedEntry={categorizedEntry} />
+            <SummaryTable categorizedEntry={categorizedEntry} totalEntries={entries} />
 
         </div>
     );

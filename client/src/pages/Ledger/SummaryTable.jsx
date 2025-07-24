@@ -1,6 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import CommonModal from "../../components/common/CommonModal";
+import { format } from 'date-fns';
 
-const SummaryTable = ({ categorizedEntry = {} }) => {
+const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
+    const [showModal, setShowModal] = useState(false);
+    const [selectedData, setSelectedData] = useState(null);
+    const [selectedSource, setSelectedSource] = useState(null);
     const accountEntries = categorizedEntry?.accountEntries || {};
     const loanEntries = categorizedEntry?.loanEntries || {};
     const chargeEntries = categorizedEntry?.chargeEntries || {};
@@ -16,6 +22,7 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                             <th>DR</th>
                             <th>CR</th>
                             <th>Total</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody className="table-bordered border-black">
@@ -31,11 +38,20 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                                         <td>{totalDebit}</td>
                                         <td>{totalCredit}</td>
                                         <td>{total}</td>
+                                        <td>
+                                            <Link to="#" component="button" onClick={() => {
+                                                setShowModal(true)
+                                                setSelectedData(accountType?.toLowerCase())
+                                                setSelectedSource("Transaction")
+                                            }}>
+                                                view
+                                            </Link>
+                                        </td>
                                     </tr>
                                 );
                             })}
                         <tr className="fw-bold fst-italic table-secondary">
-                            <td>TOTAL BALANCE</td>
+                            <td>TOTAL</td>
                             <td>{accountEntries?.totalDebitAll}</td>
                             <td>{accountEntries?.totalCreditAll}</td>
                             <td>{accountEntries?.totalAll}</td>
@@ -51,6 +67,7 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                             <th>DR</th>
                             <th>CR</th>
                             <th>Total</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody className="table-bordered border-black">
@@ -66,11 +83,20 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                                         <td>{totalDebit}</td>
                                         <td>{totalCredit}</td>
                                         <td>{total}</td>
+                                        <td>
+                                            <Link to="#" component="button" onClick={() => {
+                                                setShowModal(true)
+                                                setSelectedData(accountType?.toLowerCase())
+                                                setSelectedSource("Transaction")
+                                            }}>
+                                                view
+                                            </Link>
+                                        </td>
                                     </tr>
                                 );
                             })}
                         <tr className="fw-bold fst-italic table-secondary">
-                            <td>TOTAL BALANCE</td>
+                            <td>TOTAL</td>
                             <td>{loanEntries?.totalDebitAll}</td>
                             <td>{loanEntries?.totalCreditAll}</td>
                             <td>{loanEntries?.totalAll}</td>
@@ -86,6 +112,7 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                             <th>DR</th>
                             <th>CR</th>
                             <th>Total</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody className="table-bordered border-black">
@@ -101,11 +128,20 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                                         <td>{totalDebit}</td>
                                         <td>{totalCredit}</td>
                                         <td>{total}</td>
+                                        <td>
+                                            <Link to="#" component="button" onClick={() => {
+                                                setShowModal(true)
+                                                setSelectedData(accountType?.toLowerCase())
+                                                setSelectedSource("AccountCharge")
+                                            }}>
+                                                view
+                                            </Link>
+                                        </td>
                                     </tr>
                                 );
                             })}
                         <tr className="fw-bold fst-italic table-secondary">
-                            <td>TOTAL BALANCE</td>
+                            <td>TOTAL</td>
                             <td>{chargeEntries?.totalDebitAll}</td>
                             <td>{chargeEntries?.totalCreditAll}</td>
                             <td>{chargeEntries?.totalAll}</td>
@@ -125,7 +161,7 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                         </p>
 
                         <h5 className="mb-3 text-primary fw-bold">
-                            Total Balance (Profit/Loss): ₹
+                            TOTAL (Profit/Loss): ₹
                             {(
                                 (accountEntries?.totalAll || 0) +
                                 (loanEntries?.totalAll || 0) +
@@ -160,7 +196,71 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                     </div>
                 </div>
             </div>
+            <CommonModal
+                show={showModal}
+                onHide={() => setShowModal(false)}
+                title="All Records"
+                footer={false}
+            >
+                <div className="row">
+                    <h6 className="text-center fw-bold text-danger">Balance Sheet {new Date().toISOString().split('T')[0]}</h6>
+                    <div className="col-md-12">
+                        <table className="table table-sm table-bordered">
+                            <thead className="table-light">
+                                <tr>
+                                    <th>Account No</th>
+                                    <th>Debit</th>
+                                    <th>Credit</th>
+                                    <th>Total</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody className="table-bordered border-black">
+                                {(() => {
+                                    let totalDebit = 0;
+                                    let totalCredit = 0;
 
+                                    const filteredEntries = totalEntries?.filter(
+                                        (item) => {
+                                            if (selectedSource === "AccountCharge") {
+                                                return item?.type === selectedData && item?.source === selectedSource
+                                            } else {
+                                                return item?.accountType === selectedData && item?.source === selectedSource
+                                            }
+                                        }
+                                    );
+
+                                    return (
+                                        <>
+                                            {filteredEntries.map((item, idx) => {
+                                                totalDebit += item?.debit || 0;
+                                                totalCredit += item?.credit || 0;
+
+                                                return (
+                                                    <tr key={idx}>
+                                                        <td>{item?.accountNumber || "Auto-Created"}</td>
+                                                        <td>{item?.debit}</td>
+                                                        <td>{item?.credit}</td>
+                                                        <td>{item?.amount}</td>
+                                                        <td>{format(new Date(item?.date), 'dd MMM yyyy')}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            <tr className="fw-bold fst-italic table-secondary">
+                                                <td>TOTAL</td>
+                                                <td>{totalDebit}</td>
+                                                <td>{totalCredit}</td>
+                                                <td>{totalCredit - totalDebit}</td>
+                                                <td></td>
+                                            </tr>
+                                        </>
+                                    );
+                                })()}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </CommonModal>
         </div>
     );
 };

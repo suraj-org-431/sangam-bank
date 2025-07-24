@@ -47,7 +47,7 @@ const Ledger = () => {
             const res = await getMonthlyLedgerReport({ month, year, page: currentPage, limit });
             setCategorizedEntry(res?.categorized)
             setTotalEntries(res?.fullEntries?.length)
-            setEntries(res.entries || []);
+            setEntries(res?.fullEntries || []);
             setOpeningBalance(res?.opening?.amount || 0);
             setClosingBalance(res?.closing?.amount || 0);
             setTotalPages(res.totalPages || 1);
