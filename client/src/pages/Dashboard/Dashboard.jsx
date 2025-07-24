@@ -23,28 +23,20 @@ const Dashboard = () => {
 
     useEffect(() => {
         loadRecentTransactions();
-        loadTotalAccounts();
-        loadTodayLedgerEntry()
-        loadOpeningAndCloseBalance();
+        loadTotalAccounts();;
+        getLedgerRecord()
+
     }, []);
 
-    const loadOpeningAndCloseBalance = async () => {
+    const getLedgerRecord = async () => {
         try {
-            const res = await getMonthlyLedgerReport({ month, year });
-            setOpeningBalance(res.openingBalance || 0);
-            setClosingBalance(res.closingBalance || 0);
-        }
-        catch (error) {
-            toast.error('Failed to load opening and cloing balance ');
-        }
-    }
+            const res = await getMonthlyLedgerReport({ month, year, page: 1, limit: 1000 });
+            setLedgerCount(res?.fullEntries?.length)
+            setOpeningBalance(res?.opening?.amount || 0);
+            setClosingBalance(res?.closing?.amount || 0);
 
-    const loadTodayLedgerEntry = async () => {
-        try {
-            const res = await getTodayLedgerEntryCount();
-            setLedgerCount(res.count || 0);
         } catch (err) {
-            toast.error('Failed to load recent transactions');
+            toast.error('Failed to load monthly ledger report');
         }
     };
 

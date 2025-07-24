@@ -1,5 +1,4 @@
 import Account from '../models/Account.js';
-import Ledger from '../models/Ledger.js';
 import Config from '../models/Config.js';
 
 export const applyInterestToAllAccounts = async () => {
@@ -49,18 +48,6 @@ export const applyInterestToAllAccounts = async () => {
 
             const updated = await account.save();
             console.log(`✅ Account updated: ${account.accountNumber}, New Balance: ₹${updated.balance}`);
-
-            const ledgerEntry = await Ledger.create({
-                accountId: account._id,
-                particulars: account.applicantName || 'Unnamed',
-                transactionType: 'interest',
-                amount: interestAmount,
-                balance: account.balance,
-                description: 'Monthly Interest Added',
-                date: now,
-                createdBy: 'Auto Interest',
-            });
-            console.log(`📘 Ledger created: ID ${ledgerEntry._id}`);
 
             appliedCount++;
         }

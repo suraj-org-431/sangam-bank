@@ -1,5 +1,4 @@
 import Transaction from "../models/Transaction.js";
-import Ledger from "../models/Ledger.js";
 
 export const createTransactionAndLedger = async ({
     account,
