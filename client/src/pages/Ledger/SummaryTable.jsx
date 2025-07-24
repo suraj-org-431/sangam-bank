@@ -125,7 +125,7 @@ const SummaryTable = ({ categorizedEntry = {} }) => {
                         </p>
 
                         <h5 className="mb-3 text-primary fw-bold">
-                            Total Profit: ₹
+                            Total Balance (Profit/Loss): ₹
                             {(
                                 (accountEntries?.totalAll || 0) +
                                 (loanEntries?.totalAll || 0) +

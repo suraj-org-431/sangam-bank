@@ -54,7 +54,7 @@ export const upsertAccountCharge = async (req, res) => {
 
         // 💾 Create or update AccountCharge
         const payload = {
-            accountId: account._id,
+            accountId: account?._id || null,
             type,
             label,
             amount: amt,
@@ -316,7 +316,6 @@ export const exportMonthlyLedgerReport = async (req, res) => {
 
         const result = await getMonthlyLedgerReport({ query: { month, year } }, mockRes);
 
-        console.log(result)
         if (!result || result.statusCode !== 200) {
             return errorResponse(res, 500, "Failed to fetch ledger report");
         }
@@ -344,6 +343,7 @@ export const exportMonthlyLedgerReport = async (req, res) => {
 
             const createSheet = (title, rows) => {
                 const sheet = workbook.addWorksheet(title);
+
                 sheet.columns = [
                     { header: 'Date', key: 'date', width: 20 },
                     { header: 'Ledger Head', key: 'head', width: 20 },
@@ -354,17 +354,51 @@ export const exportMonthlyLedgerReport = async (req, res) => {
                     { header: 'Credit (₹)', key: 'credit', width: 15 },
                 ];
 
+                sheet.getRow(1).font = { bold: true };
+
+                let totalDebit = 0;
+                let totalCredit = 0;
+
                 rows.forEach(entry => {
+                    const debit = entry.debit || 0;
+                    const credit = entry.credit || 0;
+
                     sheet.addRow({
                         date: new Date(entry.date).toLocaleDateString('en-IN'),
-                        head: entry.head,
+                        head: entry.head?.toUpperCase(),
                         accountNumber: entry.accountNumber,
-                        accountType: entry.accountType,
-                        description: entry.label || '',
-                        debit: entry.debit || 0,
-                        credit: entry.credit || 0,
+                        accountType: entry?.accountType?.toUpperCase(),
+                        description: entry?.particulars || entry?.notes || '',
+                        debit,
+                        credit,
                     });
+
+                    totalDebit += debit;
+                    totalCredit += credit;
                 });
+
+                // Add 2 blank rows
+                sheet.addRow({});
+                sheet.addRow({});
+
+                // Add total row
+                const totalRow = sheet.addRow({
+                    description: 'TOTAL',
+                    debit: totalDebit,
+                    credit: totalCredit
+                });
+
+                sheet.addRow({
+                    description: 'NET TOTAL',
+                    credit: totalCredit - totalDebit
+                }).font = { bold: true };
+
+                // Style the total row
+                totalRow.font = { bold: true };
+
+                // Optional: Center align debit & credit in total row
+                totalRow.getCell('debit').alignment = { horizontal: 'right' };
+                totalRow.getCell('credit').alignment = { horizontal: 'right' };
             };
 
             createSheet('Account Entries', accountRows);

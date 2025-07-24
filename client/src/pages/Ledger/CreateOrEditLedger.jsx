@@ -75,7 +75,7 @@ const CreateOrEditCharge = () => {
         try {
             await upsertLedgerEntry(formData);
             toast.success(`Charge ${chargeData ? 'updated' : 'created'} successfully`);
-            navigate(adminRoute('/charges'));
+            navigate(adminRoute('/ledger'));
         } catch (err) {
             toast.error(err.message || 'Failed to save charge');
         }

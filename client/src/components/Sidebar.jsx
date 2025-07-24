@@ -37,7 +37,7 @@ const menuItems = [
     {
         label: "Ledger",
         icon: "fa-solid fa-book",
-        to: adminRoute("/ledger-report"),
+        to: adminRoute("/ledger"),
         roles: ["super-admin", "branch-manager", "account-officer"]
     },
     {
