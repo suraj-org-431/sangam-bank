@@ -43,85 +43,6 @@ export const createLoan = async (req, res) => {
     }
 };
 
-// ✅ Add Adjustment (POST /loans/:loanId/adjust)
-export const addLoanAdjustment = async (req, res) => {
-    try {
-        const { loanId } = req.params;
-        const { type, amount, remarks } = req.body;
-
-        if (!type || !amount) {
-            return badRequestResponse(res, 400, 'Adjustment type and amount are required');
-        }
-
-        const loan = await Loan.findById(loanId).populate('borrower');
-        if (!loan) return badRequestResponse(res, 404, 'Loan not found');
-
-        const adjustment = {
-            type,
-            amount: parseFloat(amount),
-            remarks,
-            status: 'pending',
-            createdAt: new Date(),
-            createdBy: req.user?.name || 'Admin'
-        };
-
-        loan.adjustments.push(adjustment);
-        await loan.save();
-
-        return successResponse(res, 200, 'Loan adjustment created (pending)', adjustment);
-    } catch (err) {
-        console.error('❌ Loan adjustment creation failed:', err);
-        return errorResponse(res, 500, 'Adjustment creation failed', err.message);
-    }
-};
-
-// ✅ Approve Adjustment (PUT /loans/:loanId/adjust/:adjustId/approve)
-export const approveLoanAdjustment = async (req, res) => {
-    try {
-        const { loanId, adjustId } = req.params;
-        const userName = req.user?.name || 'Admin';
-
-        const loan = await Loan.findById(loanId).populate('borrower');
-        if (!loan) return badRequestResponse(res, 404, 'Loan not found');
-
-        const adjustment = loan.adjustments.id(adjustId);
-        if (!adjustment) return badRequestResponse(res, 404, 'Adjustment not found');
-        if (adjustment.status !== 'pending') return badRequestResponse(res, 400, 'Already processed');
-
-        await applyApprovedLoanAdjustment({ loan, adjustment, userName });
-
-        return successResponse(res, 200, 'Adjustment approved and applied', adjustment);
-    } catch (err) {
-        console.error('❌ Adjustment approval failed:', err?.message);
-        return errorResponse(res, 500, 'Adjustment approval failed', err.message);
-    }
-};
-
-// ✅ Reject Adjustment
-export const rejectLoanAdjustment = async (req, res) => {
-    try {
-        const { loanId, adjustId } = req.params;
-        const { reason } = req.body;
-
-        const loan = await Loan.findById(loanId);
-        if (!loan) return badRequestResponse(res, 404, 'Loan not found');
-
-        const adjustment = loan.adjustments.id(adjustId);
-        if (!adjustment) return badRequestResponse(res, 404, 'Adjustment not found');
-        if (adjustment.status !== 'pending') return badRequestResponse(res, 400, 'Already processed');
-
-        adjustment.status = 'rejected';
-        adjustment.approvedBy = req.user?.name || 'Admin';
-        adjustment.approvedAt = new Date();
-        adjustment.remarks = reason || adjustment.remarks;
-
-        await loan.save();
-        return successResponse(res, 200, 'Adjustment rejected', adjustment);
-    } catch (err) {
-        return errorResponse(res, 500, 'Adjustment rejection failed', err.message);
-    }
-};
-
 // ✅ Get All Loans with pagination, filter, and search
 export const getAllLoans = async (req, res) => {
     try {
@@ -218,6 +139,7 @@ export const getLoanById = async (req, res) => {
             _id: loan._id,
             borrowerName: loan.borrower.applicantName,
             loanAmount: loan.loanAmount,
+            paidAmount: loan?.borrower?.loanDetails?.totalPaidAmount,
             paymentType: loan.paymentType,
             interestRate: loan.interestRate,
             tenureMonths: loan.tenureMonths,
@@ -394,6 +316,7 @@ export const repayLoan = async (req, res) => {
 
         if (mode === 'full') {
             let remainingAmount = parseFloat(amount);
+            console.log(remainingAmount);
 
             if (borrower.balance < remainingAmount) {
                 return badRequestResponse(res, 400, `Insufficient account balance. Available: ₹${borrower.balance.toFixed(2)}, Required: ₹${remainingAmount.toFixed(2)}`);
@@ -414,7 +337,8 @@ export const repayLoan = async (req, res) => {
 
                     repayments.push({ installment, amount: totalWithFine, fine });
                     remainingAmount -= totalWithFine;
-                } else {
+                }
+                else {
                     break;
                 }
             }
@@ -589,12 +513,16 @@ export const simpleinterestPayLoan = async (req, res) => {
                 createdBy: req.user?.name || 'Clerk',
                 additionalTransactions: [],
             });
+            const updatedTotalPaid = Number(borrower.loanDetails?.totalPaidAmount || 0) + Number(amount);
+            const loanAmount = Number(borrower.loanDetails?.loanAmount || 0);
             const updatedLoanDetails = {
                 ...borrower.loanDetails,
-                totalPaidAmount: (borrower.loanDetails?.totalPaidAmount || 0) + amount
+                totalPaidAmount: updatedTotalPaid,
+                status: updatedTotalPaid >= loanAmount ? 'repaid' : 'disbursed'
             };
             borrower.loanDetails = updatedLoanDetails;
-
+            loan.status = updatedLoanDetails.status;
+            await loan.save();
             await borrower.save();
 
         }

@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getLoanById, disburseLoan, repayLoan, approveLoan, rejectLoan, adjustLoan, approveLoanAdjustment, rejectLoanAdjustment, repaySimpleInterestLoan } from '../../api/loan';
+import { getLoanById, disburseLoan, repayLoan, approveLoan, rejectLoan, repaySimpleInterestLoan } from '../../api/loan';
 import { adminRoute } from '../../utils/router';
 import { toast } from 'react-toastify';
 import EMICalculator from './EMICalculator';
@@ -21,14 +21,12 @@ const LoanView = () => {
     const [repaymentRef, setRepaymentRef] = useState('');
     const [showRepayPreview, setShowRepayPreview] = useState(false);
     const [previewAmount, setPreviewAmount] = useState(0);
-    const [adjustmentFilter, setAdjustmentFilter] = useState('');
     const [activeTab, setActiveTab] = useState('repayments');
     const [selectedInstallmentId, setSelectedInstallmentId] = useState('');
 
     const [selectedType, setSelectedType] = useState('');
     const [interest, setInterest] = useState('');
     const [principal, setPrincipal] = useState('');
-    const [repayType, setRepayType] = useState('');
 
     const [modal, setModal] = useState({
         show: false,
@@ -40,17 +38,8 @@ const LoanView = () => {
         amount: '',
         remarks: ''
     });
-    const [currentPage, setCurrentPage] = useState(1);
-    const adjustmentsPerPage = 10;
 
-    const filteredAdjustments = loan?.adjustments
-        .filter(adj => adjustmentFilter === '' || adj.status === adjustmentFilter);
 
-    const totalPages = Math.ceil(filteredAdjustments?.length / adjustmentsPerPage);
-    const paginatedAdjustments = filteredAdjustments?.slice(
-        (currentPage - 1) * adjustmentsPerPage,
-        currentPage * adjustmentsPerPage
-    );
     const upcomingEMI = loan?.repaymentSchedule?.find(r => !r.paid);
     const openModal = (type) => setModal({ show: true, type });
     const closeModal = () => setModal({ show: false, type: '' });
@@ -129,22 +118,6 @@ const LoanView = () => {
         return <span className={`badge bg-${color} text-uppercase`}>{label}</span>;
     };
 
-    const handleAdjustment = async () => {
-        if (!adjustmentData.type || !adjustmentData.amount) {
-            return toast.error('Please fill all adjustment fields');
-        }
-
-        try {
-            await adjustLoan(loanId, adjustmentData);
-            toast.success('Adjustment submitted');
-            setAdjustmentData({ type: '', amount: '', remarks: '' });
-            fetchLoan();
-            closeModal();
-        } catch (err) {
-            toast.error(err?.message || 'Adjustment failed');
-        }
-    };
-
     if (!loan) return <div className="p-4">Loading...</div>;
 
     return (
@@ -164,7 +137,7 @@ const LoanView = () => {
                                 <p><strong>Borrower:</strong> {loan.borrowerName}</p>
                                 <p><strong>Amount:</strong> ₹{loan.loanAmount?.toLocaleString('en-IN')}</p>
                                 <p><strong>Interest Rate:</strong> {loan.interestRate}%</p>
-                                <p><strong>Tenure:</strong> {loan.tenureMonths} months</p>
+                                <p><strong>Tenure:</strong> &infin;</p>
 
                             </div>
                         )
@@ -190,6 +163,7 @@ const LoanView = () => {
                                 <p><strong>Status:</strong> {getStatusChip(loan.status)}</p>
                                 <p><strong>Principal:</strong> ₹{loan?.loanAmount?.toLocaleString('en-IN')}</p>
                                 <p><strong>Monthly EMI:</strong> ₹{emiData?.monthlyInterest?.toLocaleString('en-IN')}</p>
+                                <p><strong>Balance Remaining:</strong> ₹{(Number(loan?.loanAmount) - Number(loan?.paidAmount))?.toLocaleString('en-IN')}</p>
                             </div>
                         )
                             : (
@@ -707,9 +681,6 @@ const LoanView = () => {
                         } else if (modal.type === 'disburse') {
                             await disburseLoan(loanId);
                             toast.success('Loan disbursed');
-                        } else if (modal.type === 'adjust') {
-                            await handleAdjustment();
-                            return;
                         }
                         fetchLoan();
                         closeModal();
@@ -721,15 +692,13 @@ const LoanView = () => {
                     modal.type === 'approve' ? 'Approve' :
                         modal.type === 'reject' ? 'Reject' :
                             modal.type === 'disburse' ? 'Disburse' :
-                                modal.type === 'adjust' ? 'Submit Adjustment' :
-                                    'Confirm'
+                                'Confirm'
                 }
                 confirmVariant={
                     modal.type === 'reject' ? 'danger' :
                         modal.type === 'approve' ? 'warning' :
                             modal.type === 'disburse' ? 'primary' :
-                                modal.type === 'adjust' ? 'info' :
-                                    'primary'
+                                'primary'
                 }
             />
             <CommonModal
@@ -759,7 +728,7 @@ const LoanView = () => {
                 onConfirm={async () => {
                     try {
                         let payload;
-                        if (repayMode === 'emi') {
+                        if (repayMode === 'emi' || repayMode === 'full') {
                             payload = {
                                 amount: previewAmount,
                                 paymentRef: repaymentRef || `TXN-${Date.now()}`,
