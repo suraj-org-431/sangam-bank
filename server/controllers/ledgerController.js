@@ -86,10 +86,10 @@ export const getMonthlyLedgerReport = async (req, res) => {
         const endDate = new Date(selectedYear, selectedMonth, 1);
 
         const creditTypes = ['deposit', 'rdinstallment', 'loanrepayment', 'interestpayment', 'loaninterest', 'processingfee', 'fine', 'servicecharge', 'insurance', 'principal', 'cashnnhand'];
-        const debitTypes = ['withdrawal', 'loandisbursed', 'salarypayment', 'officeexpenses', 'interestpayout',];
+        const debitTypes = ['withdrawal', 'loandisbursed', 'salarypayment', 'officeexpenses', 'interestpayout', 'interestpaid', 'interestpayout'];
         const accountTypes = ['deposit', 'withdrawal', 'rdinstallment', 'transfer'];
         const loanTypes = ['loanrepayment', 'loandisbursed', 'principal', 'interestpayment'];
-        const chargeTypes = ['fine', 'processingfee', 'insurance', 'servicecharge', 'loaninterest', 'interestpayment', 'other', 'salarypayment', 'interestpayout', 'officeexpenses', 'cashnnhand',];
+        const chargeTypes = ['fine', 'processingfee', 'insurance', 'servicecharge', 'loaninterest', 'interestpayment', 'other', 'salarypayment', 'interestpayout', 'officeexpenses', 'cashnnhand', 'interestpaid', 'interestpayout'];
 
         const accountEntriesGrouped = {};
         const loanEntriesGrouped = {};

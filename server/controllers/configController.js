@@ -17,19 +17,15 @@ export const getConfig = async (req, res) => {
 export const updateConfig = async (req, res) => {
     try {
         const updates = req.body;
-        let config = await Config.findOne();
-
-        if (!config) {
-            config = new Config();
-        }
-
-        Object.assign(config, updates);
-        config.updatedAt = new Date();
-
-        await config.save();
+        const config = await Config.findOneAndUpdate(
+            {},
+            { ...updates, updatedAt: new Date() },
+            { new: true, upsert: true } // upsert in case config doesn't exist
+        );
 
         return successResponse(res, 200, 'Config updated successfully', config);
     } catch (err) {
+        console.log(err?.message)
         return errorResponse(res, 500, 'Failed to update config', err.message);
     }
 };
@@ -38,15 +34,9 @@ export const updateConfig = async (req, res) => {
 export const applyMonthlyInterest = async (req, res) => {
     try {
         const interestResult = await applyInterestToAllAccounts();
-        const rdFineResult = await applyRecurringFines();
-        const loanFineResult = await applyLoanFines();
 
         return successResponse(res, 200, "Monthly interest and fines applied", {
             interestApplied: interestResult.updatedCount,
-            rdFinesApplied: rdFineResult.finedAccounts,
-            rdTotalFine: rdFineResult.totalFineAmount,
-            loanFinesApplied: loanFineResult.finedLoans,
-            loanTotalFine: loanFineResult.totalFineAmount
         });
     } catch (err) {
         return errorResponse(res, 500, "Interest and fine application failed", err.message);

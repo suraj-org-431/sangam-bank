@@ -78,6 +78,8 @@ export const upsertAccount = async (req, res) => {
 
 
         const config = await Config.findOne();
+
+        const processingFee = config?.charges?.processingFee ?? 50;
         const lowerType = accountType?.toLowerCase();
         const normalizedInitialDeposits = Object.fromEntries(
             Object.entries(config?.initialDeposits || {}).map(([key, val]) => [key.toLowerCase(), val])
@@ -329,7 +331,6 @@ export const upsertAccount = async (req, res) => {
                     );
                 }
 
-
                 account = await Account.create(payload);
 
                 if (actualDeposit > 0) {
@@ -367,7 +368,7 @@ export const upsertAccount = async (req, res) => {
             }
 
             // ---- Prevent Duplicate Insurance Charge ----
-            if (hasInsurance?.toLowerCase() === 'yes' && account) {
+            if (hasInsurance?.toLowerCase() === 'yes' && account && lowerType !== 'mis') {
                 const existingInsuranceCharge = await AccountCharge.findOne({
                     accountId: account._id,
                     type: 'insurance'
@@ -388,7 +389,7 @@ export const upsertAccount = async (req, res) => {
             }
 
             // ---- Add ₹50 Processing Fee (one-time only) ----
-            if (account) {
+            if (account && lowerType !== 'mis') {
                 const existingProcessingFee = await AccountCharge.findOne({
                     accountId: account._id,
                     type: 'processingFee'
@@ -399,7 +400,7 @@ export const upsertAccount = async (req, res) => {
                         accountId: account._id,
                         type: 'processingFee',
                         label: `₹50 Processing fee for ${accountType}`,
-                        amount: 50,
+                        amount: processingFee,
                         notes: 'One-time processing fee charged during account creation',
                         createdBy: req.user?._id || null
                     });
@@ -745,12 +746,31 @@ export const searchAccounts = async (req, res) => {
 
         const regex = new RegExp(query, 'i'); // case-insensitive search
 
-        const results = await Account.find({
+        // Step 1: Get matching accounts
+        const accounts = await Account.find({
             $or: [
                 { applicantName: { $regex: regex } },
                 { accountNumber: { $regex: regex } }
             ]
-        }).limit(20); // limit to top 20 matches
+        })
+            .limit(20)
+            .lean();
+
+        // Step 2: Get list of all interestAccount references from MIS accounts
+        const misAccounts = await Account.find({
+            accountType: 'mis',
+            'misDetails.interestAccount': { $ne: null }
+        }).select('misDetails.interestAccount').lean();
+
+        const misInterestAccountIds = new Set(
+            misAccounts.map(acc => String(acc.misDetails?.interestAccount))
+        );
+
+        // Step 3: Add misSource flag to each account
+        const results = accounts.map(acc => ({
+            ...acc,
+            misSource: misInterestAccountIds.has(String(acc._id))
+        }));
 
         return successResponse(res, 200, "Search results fetched", { results });
     } catch (err) {

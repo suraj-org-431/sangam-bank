@@ -64,7 +64,7 @@ const configSchema = new mongoose.Schema({
         default: Date.now
     }
 }, {
-    timestamps: true
+    timestamps: true,
 });
 
 const Config = mongoose.model('Config', configSchema);

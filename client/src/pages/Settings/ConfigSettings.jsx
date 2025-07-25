@@ -13,7 +13,7 @@ const ConfigSettings = () => {
             penaltyPerDay: 0
         },
         initialDeposits: {
-            savings: 0,
+            's/f': 0,
             recurring: 0,
             fixed: 0
         },
@@ -399,17 +399,17 @@ const ConfigSettings = () => {
                 <h5>Initial Deposits (₹)</h5>
                 <div className="row mb-2">
                     <div className="col">
-                        <label className="text-black">Savings</label>
+                        <label className="text-black">Savings Fund (S/F)</label>
                         <input
                             type="number"
                             className="form-control"
-                            value={config.initialDeposits?.savings || 0}
+                            value={config.initialDeposits?.[`s/f`] || 0}
                             onChange={(e) =>
                                 setConfig((prev) => ({
                                     ...prev,
                                     initialDeposits: {
                                         ...prev.initialDeposits,
-                                        savings: parseFloat(e.target.value)
+                                        's/f': parseFloat(e.target.value)
                                     }
                                 }))
                             }

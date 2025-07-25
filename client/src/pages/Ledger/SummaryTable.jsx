@@ -35,9 +35,9 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                 return (
                                     <tr key={accountType}>
                                         <td>{accountType?.toUpperCase()}</td>
-                                        <td>{totalDebit}</td>
-                                        <td>{totalCredit}</td>
-                                        <td>{total}</td>
+                                        <td>{totalDebit?.toFixed(2)}</td>
+                                        <td>{totalCredit?.toFixed(2)}</td>
+                                        <td>{total?.toFixed(2)}</td>
                                         <td>
                                             <Link to="#" component="button" onClick={() => {
                                                 setShowModal(true)
@@ -52,8 +52,8 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                             })}
                         <tr className="fw-bold fst-italic table-secondary">
                             <td>TOTAL</td>
-                            <td>{accountEntries?.totalDebitAll}</td>
-                            <td>{accountEntries?.totalCreditAll}</td>
+                            <td>{accountEntries?.totalDebitAll?.toFixed(2)}</td>
+                            <td>{accountEntries?.totalCreditAll?.toFixed(2)}</td>
                             <td>{accountEntries?.totalAll?.toFixed(2)}</td>
                         </tr>
                     </tbody>
@@ -80,9 +80,9 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                 return (
                                     <tr key={accountType}>
                                         <td>{accountType?.toUpperCase()}</td>
-                                        <td>{totalDebit}</td>
-                                        <td>{totalCredit}</td>
-                                        <td>{total}</td>
+                                        <td>{totalDebit?.toFixed(2)}</td>
+                                        <td>{totalCredit?.toFixed(2)}</td>
+                                        <td>{total?.toFixed(2)}</td>
                                         <td>
                                             <Link to="#" component="button" onClick={() => {
                                                 setShowModal(true)
@@ -97,8 +97,8 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                             })}
                         <tr className="fw-bold fst-italic table-secondary">
                             <td>TOTAL</td>
-                            <td>{loanEntries?.totalDebitAll}</td>
-                            <td>{loanEntries?.totalCreditAll}</td>
+                            <td>{loanEntries?.totalDebitAll?.toFixed(2)}</td>
+                            <td>{loanEntries?.totalCreditAll?.toFixed(2)}</td>
                             <td>{loanEntries?.totalAll?.toFixed(2)}</td>
                         </tr>
                     </tbody>
@@ -125,9 +125,9 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                 return (
                                     <tr key={accountType}>
                                         <td>{accountType?.toUpperCase()}</td>
-                                        <td>{totalDebit}</td>
-                                        <td>{totalCredit}</td>
-                                        <td>{total}</td>
+                                        <td>{totalDebit?.toFixed(2)}</td>
+                                        <td>{totalCredit?.toFixed(2)}</td>
+                                        <td>{total?.toFixed(2)}</td>
                                         <td>
                                             <Link to="#" component="button" onClick={() => {
                                                 setShowModal(true)
@@ -142,8 +142,8 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                             })}
                         <tr className="fw-bold fst-italic table-secondary">
                             <td>TOTAL</td>
-                            <td>{chargeEntries?.totalDebitAll}</td>
-                            <td>{chargeEntries?.totalCreditAll}</td>
+                            <td>{chargeEntries?.totalDebitAll?.toFixed(2)}</td>
+                            <td>{chargeEntries?.totalCreditAll?.toFixed(2)}</td>
                             <td>{chargeEntries?.totalAll?.toFixed(2)}</td>
                         </tr>
                     </tbody>

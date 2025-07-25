@@ -17,7 +17,8 @@ const CreateTransaction = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedAccount, setSelectedAccount] = useState(null);
     const [noteBreakdownAmount, setNoteBreakdownAmount] = useState('');
-
+    const [searchResults, setSearchResults] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [formData, setFormData] = useState({
         accountId: '',
         type: '',
@@ -47,58 +48,35 @@ const CreateTransaction = () => {
         return ['mis'].includes(accountType); // You can add more types if needed
     };
 
-    const handleSearch = async () => {
-        try {
-            const res = await searchAccounts(searchQuery);
-            if (res.length > 0) {
-                const acc = res[0];
-                setSelectedAccount(acc);
-                if (!isBlockedAccountType(acc.accountType)) {
-                    setFormData({
-                        accountId: acc._id,
-                        accountType: acc.accountType,
-                        type: ['fixed', 'recurring', 'loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
-                        amount: ['fixed'].includes(acc.accountType) ? acc.balance : acc?.accountType === 'loan' ? acc?.loanDetails?.emiAmount : acc?.accountType === 'recurring' ? acc?.recurringDetails?.installmentAmount : '',
-                        description: '',
-                        date: new Date().toISOString().split('T')[0],
-                        paymentType: 'cash',
-                        transactionId: '',
-                        noteBreakdown: {
-                            500: '',
-                            200: '',
-                            100: '',
-                            50: '',
-                            20: '',
-                            10: ''
-                        }
-                    });
-                } else {
-                    setFormData({
-                        accountId: acc._id,
-                        accountType: acc.accountType,
-                        type: '',
-                        amount: '',
-                        description: '',
-                        date: new Date().toISOString().split('T')[0],
-                        paymentType: 'cash',
-                        transactionId: '',
-                        noteBreakdown: {
-                            500: '',
-                            200: '',
-                            100: '',
-                            50: '',
-                            20: '',
-                            10: ''
-                        }
-                    });
-                }
-            } else {
-                toast.error('No matching account found');
-                setSelectedAccount(null);
+    const handleAccountSelect = (acc) => {
+        setSelectedAccount(acc);
+
+        const isBlocked = isBlockedAccountType(acc.accountType);
+
+        setFormData({
+            accountId: acc._id,
+            accountType: acc.accountType,
+            type: isBlocked ? '' : ['fixed', 'recurring', 'loan'].includes(acc.accountType) ? 'deposit' : 'deposit',
+            amount: isBlocked ? '' : ['fixed'].includes(acc.accountType)
+                ? acc.balance
+                : acc.accountType === 'loan'
+                    ? acc?.loanDetails?.emiAmount
+                    : acc.accountType === 'recurring'
+                        ? acc?.recurringDetails?.installmentAmount
+                        : '',
+            description: '',
+            date: new Date().toISOString().split('T')[0],
+            paymentType: 'cash',
+            transactionId: '',
+            noteBreakdown: {
+                500: '',
+                200: '',
+                100: '',
+                50: '',
+                20: '',
+                10: ''
             }
-        } catch (err) {
-            toast.error('Failed to search account');
-        }
+        });
     };
 
     const handleChange = (e) => {
@@ -172,7 +150,60 @@ const CreateTransaction = () => {
 
                 {/* 🔍 Search Section */}
                 <div className="row align-items-end">
-                    <div className="col-md-6">
+                    <div className="col-md-6 position-relative">
+                        <label className='text-black'>Search Account</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Name or Account No."
+                            value={searchQuery}
+                            onChange={async (e) => {
+                                const val = e.target.value;
+                                setSearchQuery(val);
+                                if (val.trim()) {
+                                    try {
+                                        const res = await searchAccounts(val.trim());
+                                        setSearchResults(res || []);
+                                        setShowSuggestions(true);
+                                    } catch (err) {
+                                        toast.error("Search failed");
+                                        setSearchResults([]);
+                                    }
+                                } else {
+                                    setSearchResults([]);
+                                    setShowSuggestions(false);
+                                }
+                            }}
+                            onFocus={() => {
+                                if (searchResults.length > 0) setShowSuggestions(true);
+                            }}
+                            onBlur={() => {
+                                // Allow time for click
+                                setTimeout(() => setShowSuggestions(false), 200);
+                            }}
+                        />
+                        {showSuggestions && searchResults.length > 0 && (
+                            <ul className="list-group position-absolute w-100 z-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                {searchResults.map((acc) => (
+                                    <li
+                                        key={acc._id}
+                                        className="list-group-item list-group-item-action"
+                                        onClick={() => {
+                                            setSearchQuery(`${acc.applicantName} (${acc.accountNumber})`);
+                                            setShowSuggestions(false);
+                                            setSearchResults([]);
+                                            handleAccountSelect(acc); // new handler
+                                        }}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <div><strong>{acc.applicantName}</strong></div>
+                                        <small>{acc.accountNumber} - {acc?.accountType?.toUpperCase()}</small>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                    {/* <div className="col-md-6">
                         <label className='text-black'>Search Account</label>
                         <input
                             type="text"
@@ -185,7 +216,7 @@ const CreateTransaction = () => {
                     <div className="col-md-2">
                         <button className="btn btn-lg btn-primary w-100" onClick={handleSearch}>
                             <i className="fa-solid fa-magnifying-glass"></i> Search</button>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* 📋 Account Summary */}
@@ -211,7 +242,7 @@ const CreateTransaction = () => {
                                 <div className='alert alert-warning bank_info'>
                                     <label className='text-black border-bottom mb-2 text-muted'>Account Type</label>
                                     <div><i className="fa-solid fa-layer-group me-2"></i>
-                                        <b>{selectedAccount.accountType}</b></div>
+                                        <b>{selectedAccount.accountType?.toUpperCase()}</b></div>
                                 </div>
                             </div>
 
