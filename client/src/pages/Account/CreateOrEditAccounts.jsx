@@ -369,7 +369,22 @@ const CreateAccounts = () => {
     return (
         <div className="dashboard-wrapper px-4 py-4 theme-bg">
             <div className="card theme-card border-0 shadow p-3">
-                <h4 className="theme-text mb-3">Create New Account / नया खाता बनाएं</h4>
+<div className='row align-items-center'>
+    <div className='col-sm-9'>
+         <h4 className="theme-text mb-3">Create New Account / नया खाता बनाएं</h4>
+    </div>
+    <div className='col-sm-3'>
+       {['recurring', 'fixed', 'mis'].includes(formData.accountType) && (
+        <div className='alert alert-success bank_info'>
+            <label className='text-black border-bottom mb-2 text-muted'>Maturity Amount (परिपक्व राशि):</label>
+            <div className='text-success h2'> <i className='fa-solid fa-indian-rupee-sign me-2'></i><b>{maturityAmount}.00</b></div>
+         </div>
+        )}
+    </div>
+</div>
+                
+<div className='mb-3'><hr/></div>
+
                 <form onSubmit={handleSubmit}>
                     <div className="row">
                         <div className="col-md-6 mb-3">
@@ -528,16 +543,17 @@ const CreateAccounts = () => {
                                             : "Enter deposit amount"
                                 }
                             />
-                            {['recurring', 'fixed', 'mis'].includes(formData.accountType) && (
-                                <p className="bg-gray-100 p-4 rounded"><strong>Maturity Amount (परिपक्व राशि):</strong> ₹{maturityAmount}</p>
-                            )}
+                           
                         </div>
                         {loanDetails && (
-                            <div className="bg-gray-100 p-4 rounded">
+<div className="col-md-12 mb-3">
+                            <div className='alert alert-info'>
                                 {formData.paymentType === 's/i' && loanDetails.monthlyInterest ? (
                                     <>
-                                        <p><strong>मासिक भुगतान (Monthly Payment):</strong> ₹{loanDetails.monthlyInterest.toFixed(2)}</p>
-                                        <p>{loanDetails.message}</p>
+                                        <div className='mb-2'><strong>मासिक भुगतान (Monthly Payment):</strong>
+                                         <span className='h4 ms-3 text-success'><i className="fa-solid fa-indian-rupee-sign mx-2"></i>{loanDetails.monthlyInterest.toFixed(2)}</span>
+                                         </div>
+                                        <span>{loanDetails.message}</span>
                                     </>
                                 ) : (
                                     <>
@@ -547,6 +563,7 @@ const CreateAccounts = () => {
                                     </>
                                 )}
                             </div>
+</div>
                         )}
                         <div className="col-md-6 mb-3">
                             <label className="form-label text-black">Branch / शाखा</label>

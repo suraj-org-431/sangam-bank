@@ -101,6 +101,78 @@ const ViewAccount = () => {
                         ← Back to Summary
                     </button>
                 </div>
+
+
+<div className='mb-4'>
+     <h5 className='border-bottom pb-2 d-flex align-items-center text-primary'>
+        <i className="fa-solid fa-chart-pie"></i>
+       <span className='ms-2'>Ledger</span> </h5>
+   
+   <div className="row mb-3">
+      <div className="col-md-3">
+        <label className="form-label text-black">From Date:</label>
+        <input
+          type="date"
+          className="form-control form-select-sm"/>
+      </div>
+      <div className="col-md-3">
+        <label className="form-label text-black">To Date:</label>
+        <input
+          type="date"
+          className="form-control form-select-sm"/>
+      </div>
+       
+      <div className="col-md-3 d-flex align-items-end">
+        <button className="btn btn-primary btn-sm px-4">
+         <i className="fa-solid fa-filter me-2"></i>  Filter
+        </button>
+      </div>
+    </div>
+
+      <table className="w-full border-collapse border text-sm table table-striped">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border px-3 py-2">Date</th>
+            <th className="border px-3 py-2">Particulars</th>
+            <th className="border px-3 py-2">Debit(₹) <i class="fa-solid fa-minus text-danger"></i></th>
+            <th className="border px-3 py-2">Credit(₹) <i class="fa-solid fa-plus text-success"></i> </th>
+            <th className="border px-3 py-2">Balance(₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="border px-3 py-2">07-12-2022</td>
+            <td className="border px-3 py-2">PID</td>
+            <td className="border px-3 py-2 text-right">-</td>
+            <td className="border px-3 py-2 text-right">20,000</td>
+            <td className="border px-3 py-2 text-right"><b>20,000</b></td>
+          </tr>
+          <tr>
+            <td className="border px-3 py-2">28-01-2023</td>
+            <td className="border px-3 py-2">By Tr. Int</td>
+            <td className="border px-3 py-2 text-right">-</td>
+            <td className="border px-3 py-2 text-right">1,700</td>
+            <td className="border px-3 py-2 text-right"><b>21,700</b></td>
+          </tr>
+          <tr>
+            <td className="border px-3 py-2">22-06-2023</td>
+            <td className="border px-3 py-2">By Tr. Amt</td>
+            <td className="border px-3 py-2 text-right">-</td>
+            <td className="border px-3 py-2 text-right">1,697</td>
+            <td className="border px-3 py-2 text-right"><b>23,397</b></td>
+          </tr>
+          <tr>
+            <td className="border px-3 py-2">21-08-2023</td>
+            <td className="border px-3 py-2">By Tr. Amt</td>
+            <td className="border px-3 py-2 text-right">-</td>
+            <td className="border px-3 py-2 text-right">1,805</td>
+            <td className="border px-3 py-2 text-right"><b>25,202</b></td>
+          </tr>
+        </tbody>
+      </table>
+   </div>
+
+
                 {account?.accountType === 'Recurring' && (
                     <div className="text-end mb-4">
                         <button
