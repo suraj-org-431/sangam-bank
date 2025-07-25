@@ -54,7 +54,7 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                             <td>TOTAL</td>
                             <td>{accountEntries?.totalDebitAll}</td>
                             <td>{accountEntries?.totalCreditAll}</td>
-                            <td>{accountEntries?.totalAll}</td>
+                            <td>{accountEntries?.totalAll?.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -99,7 +99,7 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                             <td>TOTAL</td>
                             <td>{loanEntries?.totalDebitAll}</td>
                             <td>{loanEntries?.totalCreditAll}</td>
-                            <td>{loanEntries?.totalAll}</td>
+                            <td>{loanEntries?.totalAll?.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -144,7 +144,7 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                             <td>TOTAL</td>
                             <td>{chargeEntries?.totalDebitAll}</td>
                             <td>{chargeEntries?.totalCreditAll}</td>
-                            <td>{chargeEntries?.totalAll}</td>
+                            <td>{chargeEntries?.totalAll?.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -250,7 +250,7 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                                 <td>TOTAL</td>
                                                 <td>{totalDebit}</td>
                                                 <td>{totalCredit}</td>
-                                                <td>{totalCredit - totalDebit}</td>
+                                                <td>{(totalCredit - totalDebit)?.toFixed(2)}</td>
                                                 <td></td>
                                             </tr>
                                         </>
