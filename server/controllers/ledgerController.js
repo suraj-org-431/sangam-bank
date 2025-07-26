@@ -113,7 +113,6 @@ export const getMonthlyLedgerReport = async (req, res) => {
             const isCredit = creditTypes.includes(type);
             const isDebit = debitTypes.includes(type);
             const amount = tx.amount || 0;
-
             mergedEntries.push({
                 type: tx.type?.toLowerCase(),
                 amount,
@@ -186,9 +185,8 @@ export const getMonthlyLedgerReport = async (req, res) => {
 
         const openingBalance = pastCredits + pastDebits;
 
-
         // === Categorization ===
-        for (const entry of mergedEntries.slice(1, -1)) {
+        for (const entry of mergedEntries) {
             const type = entry.type?.toLowerCase();
             const accType = entry.accountType || 'Unknown';
 

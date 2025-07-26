@@ -46,7 +46,6 @@ const Ledger = () => {
     const fetchReport = async () => {
         try {
             const res = await getMonthlyLedgerReport({ month, year, page: currentPage, limit });
-            console.log(res)
             setCategorizedEntry(res?.categorized)
             setTotalEntries(res?.fullEntries?.length)
             setEntries(res?.fullEntries || []);
