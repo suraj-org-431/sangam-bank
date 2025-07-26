@@ -12,17 +12,17 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
     const chargeEntries = categorizedEntry?.chargeEntries || {};
 
     return (
-        <div className="row">
+        <div className="row g-0">
             <h6 className="text-center fw-bold text-danger">Balance Sheet {new Date().toISOString().split('T')[0]}</h6>
-            <div className="col-md-4">
-                <table className="table table-sm table-bordered">
+            <div className="col-md-12">
+                <table className="table theme-table table-bordered table-hover align-middle">
                     <thead className="table-light">
                         <tr>
                             <th>RECEIPT</th>
                             <th>DR</th>
                             <th>CR</th>
                             <th>Total</th>
-                            <th>Action</th>
+                            <th style={{ width: "100px" }}>Action</th>
                         </tr>
                     </thead>
                     <tbody className="table-bordered border-black">
@@ -39,12 +39,12 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                         <td>{totalCredit?.toFixed(2)}</td>
                                         <td>{total?.toFixed(2)}</td>
                                         <td>
-                                            <Link to="#" component="button" onClick={() => {
+                                            <Link className="badge bg-success" to="#" component="button" onClick={() => {
                                                 setShowModal(true)
                                                 setSelectedData(accountType?.toLowerCase())
                                                 setSelectedSource("Transaction")
                                             }}>
-                                                view
+                                                View Details
                                             </Link>
                                         </td>
                                     </tr>
@@ -59,15 +59,15 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                     </tbody>
                 </table>
             </div>
-            <div className="col-md-4">
-                <table className="table table-sm table-bordered">
+            <div className="col-md-12">
+                <table className="table theme-table table-bordered table-hover align-middle">
                     <thead className="table-light">
                         <tr>
                             <th>PAYMENT</th>
                             <th>DR</th>
                             <th>CR</th>
                             <th>Total</th>
-                            <th>Action</th>
+                            <th style={{ width: "100px" }}>Action</th>
                         </tr>
                     </thead>
                     <tbody className="table-bordered border-black">
@@ -84,12 +84,12 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                         <td>{totalCredit?.toFixed(2)}</td>
                                         <td>{total?.toFixed(2)}</td>
                                         <td>
-                                            <Link to="#" component="button" onClick={() => {
+                                            <Link className="badge bg-success" to="#" component="button" onClick={() => {
                                                 setShowModal(true)
                                                 setSelectedData(accountType?.toLowerCase())
                                                 setSelectedSource("Transaction")
                                             }}>
-                                                view
+                                                View Details
                                             </Link>
                                         </td>
                                     </tr>
@@ -104,15 +104,15 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                     </tbody>
                 </table>
             </div>
-            <div className="col-md-4">
-                <table className="table table-sm table-bordered">
+            <div className="col-md-12">
+                <table className="table theme-table table-bordered table-hover align-middle">
                     <thead className="table-light">
                         <tr>
                             <th>CLOSING / ASSETS</th>
                             <th>DR</th>
                             <th>CR</th>
                             <th>Total</th>
-                            <th>Action</th>
+                            <th style={{ width: "100px" }}>Action</th>
                         </tr>
                     </thead>
                     <tbody className="table-bordered border-black">
@@ -129,12 +129,12 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                         <td>{totalCredit?.toFixed(2)}</td>
                                         <td>{total?.toFixed(2)}</td>
                                         <td>
-                                            <Link to="#" component="button" onClick={() => {
+                                            <Link className="badge bg-success" to="#" component="button" onClick={() => {
                                                 setShowModal(true)
                                                 setSelectedData(accountType?.toLowerCase())
                                                 setSelectedSource("AccountCharge")
                                             }}>
-                                                view
+                                                View Details
                                             </Link>
                                         </td>
                                     </tr>
@@ -205,7 +205,7 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                 <div className="row">
                     <h6 className="text-center fw-bold text-danger">Balance Sheet {new Date().toISOString().split('T')[0]}</h6>
                     <div className="col-md-12">
-                        <table className="table table-sm table-bordered">
+                        <table className="table theme-table table-bordered table-hover align-middle">
                             <thead className="table-light">
                                 <tr>
                                     <th>Account No</th>
@@ -215,7 +215,7 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
                                     <th>Date</th>
                                 </tr>
                             </thead>
-                            <tbody className="table-bordered border-black">
+                            <tbody>
                                 {(() => {
                                     let totalDebit = 0;
                                     let totalCredit = 0;

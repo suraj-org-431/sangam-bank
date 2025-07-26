@@ -547,22 +547,49 @@ const CreateAccounts = () => {
                         </div>
                         {loanDetails && (
 <div className="col-md-12 mb-3">
-                            <div className='alert alert-info'>
+                            
                                 {formData.paymentType === 's/i' && loanDetails.monthlyInterest ? (
                                     <>
-                                        <div className='mb-2'><strong>मासिक भुगतान (Monthly Payment):</strong>
+                                     <div className='alert alert-info'>
+                                        <div className='mb-2'><strong>मासिक भुगतान (Monthly Payment)</strong>
                                          <span className='h4 ms-3 text-success'><i className="fa-solid fa-indian-rupee-sign mx-2"></i>{loanDetails.monthlyInterest.toFixed(2)}</span>
                                          </div>
                                         <span>{loanDetails.message}</span>
+                                        </div>
                                     </>
                                 ) : (
                                     <>
-                                        <p><strong>कुल ब्याज (Total Interest):</strong>  ₹{loanDetails.totalInterest?.toFixed(2)}</p>
-                                        <p><strong>मासिक भुगतान (Monthly Payment):</strong> ₹{loanDetails.monthlyPayment?.toFixed(2)}</p>
-                                        <p><strong>कुल भुगतान (Total Payable):</strong> ₹{loanDetails.totalPayable?.toFixed(2)}</p>
+<div className='row'>
+
+    <div className='col-md-4'>
+      <div className='alert alert-success'>
+        <div className='mb-2'><strong>कुल ब्याज (Total Interest)</strong></div>
+        <span className='h4 text-success'>
+            <i className="fa-solid fa-indian-rupee-sign mx-2"></i>{loanDetails.totalInterest?.toFixed(2)}</span>
+      </div>
+    </div>
+
+    <div className='col-md-4'>
+      <div className='alert alert-success'>
+        <div className='mb-2'><strong>मासिक भुगतान (Monthly Payment)</strong></div>
+        <span className='h4 text-success'>
+            <i className="fa-solid fa-indian-rupee-sign mx-2"></i>{loanDetails.monthlyPayment?.toFixed(2)}</span>
+      </div>
+    </div>
+
+     <div className='col-md-4'>
+      <div className='alert alert-success'>
+        <div className='mb-2'><strong>कुल भुगतान (Total Payable)</strong></div>
+        <span className='h4 text-success'>
+            <i className="fa-solid fa-indian-rupee-sign mx-2"></i>{loanDetails.totalPayable?.toFixed(2)}</span>
+      </div>
+    </div>
+
+</div>
+                                    
                                     </>
                                 )}
-                            </div>
+                           
 </div>
                         )}
                         <div className="col-md-6 mb-3">
