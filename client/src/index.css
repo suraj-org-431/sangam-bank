@@ -395,3 +395,18 @@ table.table-bordered tbody tr td:last-child {
   width: 20px;
   height: 20px;
 }
+.theme-tabs li.nav-item .nav-link.active, .theme-tabs li.nav-item .nav-link:hover {
+    background-color: #175f18;
+    color: var(--text-color);
+}
+.theme-tabs li.nav-item .nav-link {
+    color: var(--primary-color);
+    font-weight: 500;
+    padding: 7px 30px;
+    border: solid 1px #175f18;
+    cursor: pointer;
+}
+
+ul.nav-tabs.theme-tabs {
+    border-bottom: solid 1px #175f18;
+}

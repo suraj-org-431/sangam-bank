@@ -70,7 +70,7 @@ const SummaryTable = ({ categorizedEntry = {}, totalEntries = {} }) => {
 
             {/* Tabs */}
             <div className="col-md-12">
-                <ul className="nav nav-tabs mb-3">
+                <ul className="nav nav-tabs mb-3 theme-tabs">
                     <li className="nav-item">
                         <button className={`nav-link ${activeTab === "receipt" ? "active" : ""}`} onClick={() => setActiveTab("receipt")}>RECEIPT</button>
                     </li>
