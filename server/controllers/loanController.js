@@ -4,7 +4,6 @@ import { createTransactionAndLedger } from '../utils/accountLedger.js';
 import { successResponse, errorResponse, badRequestResponse } from '../utils/response.js';
 import Config from '../models/Config.js';
 import { generateRepaymentSchedule } from '../utils/loanUtils.js';
-import { applyApprovedLoanAdjustment } from '../utils/adjustmentUtils.js';
 import { notify } from '../utils/notify.js';
 import { calculateLoanDetails } from '../utils/calculateLoanDetails.js';
 import AccountCharge from '../models/AccountCharge.js';
@@ -158,10 +157,30 @@ export const getLoanById = async (req, res) => {
 export const approveLoan = async (req, res) => {
     try {
         const { loanId } = req.params;
+        const config = await Config.findOne();
+        const processingFee = config?.charges?.processingFee ?? 50;
         const loan = await Loan.findById(loanId).populate('borrower');
 
         if (!loan) return badRequestResponse(res, 404, 'Loan not found');
         if (loan.status !== 'pending') return badRequestResponse(res, 400, 'Loan cannot be approved');
+
+        const insuranceAmount = loan.loanAmount * 0.02;
+        await AccountCharge.create({
+            accountId: loan.borrower._id,
+            type: 'insurance',
+            label: `2% Insurance charge on ${loan.borrower.accountType}`,
+            amount: parseFloat(insuranceAmount.toFixed(2)),
+            notes: 'Auto-charged during account creation',
+            createdBy: req.user?._id || null
+        });
+        await AccountCharge.create({
+            accountId: loan.borrower._id,
+            type: 'processingFee',
+            label: `₹50 Processing fee for ${loan.borrower.accountType}`,
+            amount: processingFee,
+            notes: 'One-time processing fee charged during account creation',
+            createdBy: req.user?._id || null
+        });
 
         loan.status = 'approved';
         await loan.save();
@@ -176,6 +195,7 @@ export const approveLoan = async (req, res) => {
 
         return successResponse(res, 200, 'Loan approved successfully', loan);
     } catch (err) {
+        console.log(err)
         return errorResponse(res, 500, 'Loan approval failed', err.message);
     }
 };

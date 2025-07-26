@@ -17,7 +17,6 @@ export const calculateMaturityAmount = (
             (rate) => rate.type?.toLowerCase() === type
         );
     }
-
     if (!rateObj?.rate) {
         throw new Error(`Interest rate not found for account type: ${accountType}`);
     }

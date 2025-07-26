@@ -5,6 +5,7 @@ import { fetchUserPermissions, hasPermission } from "../../utils/permissionUtils
 import { toast } from "react-toastify";
 import { exportMonthlyLedgerReport, getMonthlyLedgerReport } from "../../api/ledger";
 import { adminRoute } from "../../utils/router";
+import CommonModal from "../../components/common/CommonModal";
 
 const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -45,11 +46,12 @@ const Ledger = () => {
     const fetchReport = async () => {
         try {
             const res = await getMonthlyLedgerReport({ month, year, page: currentPage, limit });
+            console.log(res)
             setCategorizedEntry(res?.categorized)
             setTotalEntries(res?.fullEntries?.length)
             setEntries(res?.fullEntries || []);
-            setOpeningBalance(res?.opening?.amount || 0);
-            setClosingBalance(res?.closing?.amount || 0);
+            setOpeningBalance(res?.openingBalance || 0);
+            setClosingBalance(res?.closingBalance || 0);
             setTotalPages(res.totalPages || 1);
 
         } catch (err) {
@@ -148,6 +150,13 @@ const Ledger = () => {
                     totalEntries={totalEntries}
                     month={7}
                     year={2025}
+                />
+                <CommonModal
+                    show={show403Modal}
+                    onHide={() => setShow403Modal(false)}
+                    title="Access Denied"
+                    type="access-denied"
+                    emoji="🚫"
                 />
             </div>
         </div>

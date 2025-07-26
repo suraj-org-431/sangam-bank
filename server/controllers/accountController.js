@@ -368,7 +368,7 @@ export const upsertAccount = async (req, res) => {
             }
 
             // ---- Prevent Duplicate Insurance Charge ----
-            if (hasInsurance?.toLowerCase() === 'yes' && account && lowerType !== 'mis') {
+            if (hasInsurance?.toLowerCase() === 'yes' && account && lowerType !== 'mis' && lowerType !== 'loan') {
                 const existingInsuranceCharge = await AccountCharge.findOne({
                     accountId: account._id,
                     type: 'insurance'
@@ -389,7 +389,7 @@ export const upsertAccount = async (req, res) => {
             }
 
             // ---- Add ₹50 Processing Fee (one-time only) ----
-            if (account && lowerType !== 'mis') {
+            if (account && lowerType !== 'mis' && lowerType !== 'loan') {
                 const existingProcessingFee = await AccountCharge.findOne({
                     accountId: account._id,
                     type: 'processingFee'

@@ -186,45 +186,6 @@ export const getMonthlyLedgerReport = async (req, res) => {
 
         const openingBalance = pastCredits + pastDebits;
 
-        const openingEntry = {
-            type: "Opening Balance",
-            amount: openingBalance,
-            debit: 0,
-            credit: openingBalance,
-            description: "Opening Balance",
-            date: startDate,
-            source: "System",
-            accountType: "All"
-        };
-
-        // === Closing Balance ===
-        const tillTransactions = await Transaction.find({ createdAt: { $lt: endDate } }).lean();
-        const tillCharges = await AccountCharge.find({ createdAt: { $lt: endDate } }).lean();
-
-        const tillCredits = tillTransactions
-            .filter(tx => creditTypes.includes(tx.type?.toLowerCase()))
-            .reduce((sum, tx) => sum + (tx.amount || 0), 0);
-
-        const tillDebits = [
-            ...tillTransactions.filter(tx => debitTypes.includes(tx.type?.toLowerCase())),
-            ...tillCharges
-        ].reduce((sum, entry) => sum + (entry.amount || 0), 0);
-
-        const closingBalance = tillCredits - tillDebits;
-
-        const closingEntry = {
-            type: "Closing Balance",
-            amount: closingBalance,
-            debit: 0,
-            credit: closingBalance,
-            description: "Closing Balance",
-            date: new Date(endDate.getTime() - 1),
-            source: "System",
-            accountType: "All"
-        };
-
-        mergedEntries.unshift(openingEntry);
-        mergedEntries.push(closingEntry);
 
         // === Categorization ===
         for (const entry of mergedEntries.slice(1, -1)) {
@@ -259,9 +220,11 @@ export const getMonthlyLedgerReport = async (req, res) => {
             }
         }
 
+        const ledgerAmount = (accountTotalCreditAll - accountTotalDebitAll) + (loanTotalCreditAll - loanTotalDebitAll) + (chargeTotalCreditAll - chargeTotalDebitAll)
+
+        const closingBalance = openingBalance + ledgerAmount;
+
         return successResponse(res, 200, "Monthly Ledger Report", {
-            opening: openingEntry,
-            closing: closingEntry,
             fullEntries: mergedEntries,
             categorized: {
                 accountEntries: {
@@ -282,7 +245,9 @@ export const getMonthlyLedgerReport = async (req, res) => {
                     totalCreditAll: chargeTotalCreditAll,
                     totalAll: chargeTotalCreditAll - chargeTotalDebitAll
                 }
-            }
+            },
+            openingBalance: openingBalance,
+            closingBalance: closingBalance
         });
 
     } catch (error) {
