@@ -83,12 +83,12 @@ const CreateOrEditCharge = () => {
 
     return (
         <div className="px-4 py-4">
-            <div className="card p-4 shadow-sm border-0">
+            <div className="card theme-card border-0 shadow p-3">
                 <h4 className="mb-4 text-primary">{chargeData ? 'Edit' : 'Create'} Account Ledger</h4>
                 <form onSubmit={handleSubmit}>
                     <div className="row g-3">
                         <div className="col-md-4">
-                            <label className="form-label">Date <span className="text-danger">*</span></label>
+                            <label className="theme-label text-black">Date <span className="text-danger">*</span></label>
                             <input
                                 type="date"
                                 name="chargedDate"
@@ -100,7 +100,7 @@ const CreateOrEditCharge = () => {
                         </div>
 
                         <div className="col-md-4">
-                            <label className="form-label">Charge Type <span className="text-danger">*</span></label>
+                            <label className="theme-label text-black">Charge Type <span className="text-danger">*</span></label>
                             {!showCustomParticular ? (
                                 <select
                                     name="particulars"
@@ -129,7 +129,7 @@ const CreateOrEditCharge = () => {
                         </div>
 
                         <div className="col-md-4">
-                            <label className="form-label">Amount ₹ <span className="text-danger">*</span></label>
+                            <label className="theme-label text-black">Amount ₹ <span className="text-danger">*</span></label>
                             <input
                                 type="number"
                                 name="amount"
@@ -142,7 +142,7 @@ const CreateOrEditCharge = () => {
                         </div>
 
                         <div className="col-md-6">
-                            <label className="form-label">Label <span className="text-danger">*</span></label>
+                            <label className="theme-label text-black">Label <span className="text-danger">*</span></label>
                             <input
                                 type="text"
                                 name="label"
@@ -155,7 +155,7 @@ const CreateOrEditCharge = () => {
                         </div>
 
                         <div className="col-md-6">
-                            <label className="form-label">Notes</label>
+                            <label className="theme-label text-black">Notes</label>
                             <textarea
                                 name="notes"
                                 value={formData.notes}
