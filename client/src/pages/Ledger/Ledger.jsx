@@ -53,6 +53,8 @@ const Ledger = () => {
             setClosingBalance(res?.closingBalance || 0);
             setTotalPages(res.totalPages || 1);
 
+            console.log('Monthly Ledger Report:', res);
+
         } catch (err) {
             toast.error('Failed to load monthly ledger report');
         }
