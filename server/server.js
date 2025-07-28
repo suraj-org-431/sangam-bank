@@ -85,6 +85,9 @@ mongoose.connect(process.env.MONGODB_URI)
 // ====================
 // ✅ Routes
 // ====================
+app.use("/", async (req, res) => {
+    res.json("Hello Testing")
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/google", googleRoutes);
 app.use("/api/admin", adminRoutes);
