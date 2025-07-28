@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getToken, removeToken } from '../utils/auth';
+import { adminRoute } from '../utils/router';
 
 const API = axios.create({
     baseURL: process.env.REACT_APP_API_URL,
@@ -24,7 +25,7 @@ API.interceptors.response.use(
     (err) => {
         if (err.response?.status === 401) {
             removeToken();
-            window.location.href = '/admin/login';
+            window.location.href = adminRoute('/login');
         }
         return Promise.reject(err);
     }

@@ -52,4 +52,4 @@ export default function useInitUserSettings() {
     return settingsLoaded;
 }
 
-export const adminRoute = (path = '') => `/admin${path.startsWith('/') ? path : `/${path}`}`;
+export const adminRoute = (path = '') => `/test-bank/admin${path.startsWith('/') ? path : `/${path}`}`;
