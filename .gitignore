@@ -1,2 +1,7 @@
-node_modules/
-.env
+# Ignore server-specific files
+/server/node_modules/
+/server/.env
+
+# Ignore frontend stuff if any
+/client/node_modules/
+/client/.env
